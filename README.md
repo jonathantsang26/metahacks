@@ -18,7 +18,7 @@ Built for the **Meta Global AI Developer Hackathon** (2026). The two fires cover
 - **Wind** comes from a few airport stations or a coarse reanalysis.
 - **Damage inspections** are a separate table of about 30,000 structures across these two fires.
 
-No public tool joins these into one timeline, gives a defensible, checked estimate of where and when the fire started, and compares structure outcomes at equal exposure.
+This project joins them into one timeline, estimates where and when each fire started with checked uncertainty, and compares structure outcomes at equal exposure.
 
 **Why now:** for the January 2025 fires, every input is public and machine-readable:
 - NIFC's 2025 operational perimeter archive.
@@ -26,7 +26,7 @@ No public tool joins these into one timeline, gives a defensible, checked estima
 - NASA JPL's AVIRIS-3 burn-severity flights.
 - NOAA's HRRR 3 km weather model, through Open-Meteo's historical archive.
 
-On the model side, Meta's Muse Spark (`muse-spark-1.3`) does tool calling over an OpenAI-compatible API. That makes an analyst practical whose every paragraph must cite a tool result, and whose numbers are checked against the cited results before they are shown.
+On the model side, Meta's Muse Spark (`muse-spark-1.3`) offers tool calling over an OpenAI-compatible API. The analyst is designed around it: every paragraph must cite a tool result, and its numbers are checked against the cited results before they are shown. It is built and tested offline; it has not yet answered live, which needs a key.
 
 ## What works today
 
@@ -38,7 +38,7 @@ On the model side, Meta's Muse Spark (`muse-spark-1.3`) does tool calling over a
 | Ignition back-trace: where and when it started, with calibrated uncertainty and an identifiability rule | **Working and benchmarked** (see Evidence) | [`ember/spread.py`](pipeline/ember/spread.py), [`s11_ignition.py`](pipeline/steps/s11_ignition.py) |
 | House-level exposure: destruction odds by construction feature, at matched exposure | **Working** | [`s09b_exposure.py`](pipeline/steps/s09b_exposure.py) |
 | Analyst (`muse-spark-1.3`): tool calls over the fire data, with citation, number and guardrail checks on the server, and a chat in the app whose citation chips move the map and the clock | **Built and tested offline. Not yet run against the live API**, which needs `MODEL_API_KEY`; without it the chat shows the server's message, never an answer | [`web/api/`](web/api), [`rail/analyst.tsx`](web/src/rail/analyst.tsx) |
-| Web app: replays each fire on 3D terrain from the pipeline's files. The map shows the interpolated progression from `arrival.png`, the dNBR burn scar, the mapped perimeter at the current time, the ignition estimate and its 90% region beside CAL FIRE's reported point, structures, roads and HRRR wind. Charts, key events, weather at the current time, the back-trace and house-level analysis, and the source manifest all follow one timeline | **Working** on Eaton and Palisades (switch fires from the header). The Drones and Resources tabs are disabled: there is no data for them in this build | [`web/src/`](web/src) |
+| Web app: replays each fire on 3D terrain from the pipeline's files. The map shows the interpolated progression from `arrival.png`, the burn scar (AVIRIS-3 dNBR, the differenced Normalized Burn Ratio, a standard burn-severity index), the mapped perimeter at the current time, the ignition estimate and its 90% region beside CAL FIRE's reported point, structures, roads and HRRR wind arrows (a layer toggle, off by default). Charts, key events, weather at the current time, the back-trace and house-level analysis, and the source manifest all follow one timeline | **Working** on Eaton and Palisades (switch fires from the header). The Drones and Resources tabs are disabled: there is no data for them in this build | [`web/src/`](web/src) |
 | Drone footage: Sentinel YOLOv8 + SAM 3.1 segmentation | **Not started** (stream C). Only the API smoke test exists | [`tools/smoke_meta.py`](pipeline/tools/smoke_meta.py) |
 | NASA FIRMS hotspots | **Code done**, gated on `FIRMS_MAP_KEY`; not used in the committed outputs | [`s04_firms.py`](pipeline/steps/s04_firms.py) |
 
@@ -99,10 +99,10 @@ The analysis on top:
 - **Tools:** Muse Spark gets 9 read-only tools over the fire files (place lookup, arrival at a point, street burn times, fire state at a time, weather, structures, events, the ignition back-trace, exposure statistics) plus a `final_answer` call.
 - **Checks before a paragraph is returned** ([`verify.ts`](web/api/_lib/verify.ts)):
   - It must cite a tool result from the same conversation.
-  - Every number and clock time in it must appear in the cited tool results or in the question. Rounding is allowed; computed numbers are not.
+  - Every number and clock time in it must appear in the cited tool results or in the question. Rounding is allowed; computed numbers are not. Small whole numbers up to 10 are exempt.
   - It must not match the cause, attribution or address patterns.
 - **What happens to failures:** dropped paragraphs are counted by reason.
-- **Eval** ([`scripts/eval-analyst.ts`](web/scripts/eval-analyst.ts)): 15 questions per fire, with ground truth computed from the data files by code independent of the tools. Questions with no truth in the data are skipped and listed. Where the back-trace withholds a start time, the ignition question becomes a must-decline question.
+- **Eval** ([`scripts/eval-analyst.ts`](web/scripts/eval-analyst.ts)): 15 questions per fire, with ground truth computed from the data files by code independent of the tools. Questions with no truth in the data are skipped and listed, so 14 are scored for Eaton and 13 for Palisades. Where the back-trace withholds a start time, the ignition question becomes a must-decline question.
 
 ## Evidence
 
@@ -131,6 +131,7 @@ How to read it:
 - **"Would show a start time" row:** how often the identifiability rule lets a start time through, and how good it is when it does.
 - **Real-fire rows** compare against CAL FIRE's *reported* start. That is a reported time and incident location, not an investigated origin.
   - For Eaton, the reported point lies outside the first four mapped perimeters (up to 10:37Z): 1,721 m outside the 07:06Z polygon (1,772 m on the analysis grid, as in the table) and 1,108 m outside the 10:34Z one. The search is confined to the first fitted footprint, so it can't reach that point: the early perimeters missed the origin area, or the point is approximate.
+- **IoU** (intersection over union) compares the modeled and observed burned areas: 1 means identical, 0 means no overlap.
 - **Wind row:** the current fit against the pipeline before HRRR (one ERA5 point, shape cap 8), so it mixes the wind change with the shape-cap change. [`eval/wind_ablation.json`](web/public/data/eaton/eval/wind_ablation.json) separates them, and `RESULTS.md` lists all four variants.
 - **Odds ratios** are associations, adjusted only for the recorded exposure.
 
@@ -162,7 +163,7 @@ What it shows:
 
 ## Reproduce
 
-Requires Python 3.11+ with [uv](https://docs.astral.sh/uv/), and Node 20.19+ (`web/.nvmrc`; `npm ci` refuses older Node). Everything below runs offline from a clean clone, against the committed outputs.
+Requires Python 3.11+ with [uv](https://docs.astral.sh/uv/), and Node 20.19+ (`web/.nvmrc`; `npm ci` refuses older Node). After a one-time package download (`uv sync`, `npm ci`), everything below runs offline against the committed outputs.
 
 ```bash
 cd pipeline && uv sync
