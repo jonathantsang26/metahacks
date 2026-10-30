@@ -110,10 +110,12 @@ def main() -> None:
         if e:
             events.append(e)
 
-    hourly = [h for h in fire.read_json("weather.json")["hourly"] if w0 <= parse_t(h["t"]) <= w1]
+    weather = fire.read_json("weather.json")
+    hourly = [h for h in weather["hourly"] if w0 <= parse_t(h["t"]) <= w1]
     peak = max(hourly, key=lambda h: h.get("gust_mph") or 0)
-    events.append(event("peak_gust", f"Peak gust {peak['gust_mph']:.0f} mph (reanalysis)", peak["t"],
-                        aoi["center"], "weather.json (ERA5 via Open-Meteo)"))
+    model = weather.get("model_label", "reanalysis")
+    events.append(event("peak_gust", f"Peak gust {peak['gust_mph']:.0f} mph ({model}, fire-area center)", peak["t"],
+                        aoi["center"], f"weather.json ({weather.get('model', 'era5_seamless')} via Open-Meteo)"))
 
     cont = aoi["official"].get("containment_date")
     if cont:

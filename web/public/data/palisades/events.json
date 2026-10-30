@@ -10,11 +10,11 @@
   },
   {
     "kind": "peak_gust",
-    "label": "Peak gust 36 mph (reanalysis)",
-    "t": "2025-01-08T10:00:00Z",
+    "label": "Peak gust 64 mph (HRRR 3 km, fire-area center)",
+    "t": "2025-01-08T04:00:00Z",
     "lon": -118.593219,
     "lat": 34.079604,
-    "source": "weather.json (ERA5 via Open-Meteo)",
+    "source": "weather.json (ncep_hrrr_conus via Open-Meteo)",
     "id": "e2"
   },
   {
