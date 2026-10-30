@@ -81,6 +81,9 @@ export function useFireData(): {data: FireData | null; error: string | null} {
       .then(([aoi, dem, manifest, perimeter]) => {
         // Set the replay window before the first render that has data, so no panel reads 0–1 ms.
         useTime.getState().setRange(Date.parse(aoi.window_utc[0]), Date.parse(aoi.window_utc[1]));
+        // `?t=<ISO time>` opens the replay at that moment (clamped to the window), for shareable links.
+        const t = Date.parse(new URLSearchParams(location.search).get('t') ?? '');
+        if (Number.isFinite(t)) useTime.getState().setTime(t);
         setData({id: FIRE_ID, base, aoi, dem, manifest, perimeter});
       })
       .catch(e => setError(String(e.message ?? e)));
