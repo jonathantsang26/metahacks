@@ -27,6 +27,32 @@ Built for the **Meta Global AI Developer Hackathon** (2026).
 - **Design inspiration**: the layout and interaction model are inspired by Dilum Sanjaya's "FireTrace" wildfire-analysis concept, shared on X. Its name and logo are not used.
 - **Data**: every source is listed in [`docs/spec/BUILD.md`](docs/spec/BUILD.md) §5 and, once built, in the app's Evidence tab. Anything simulated is labelled `SIM` in the UI.
 
+## Quickstart
+
+Requires Python 3.11+ with [uv](https://docs.astral.sh/uv/), and Node 20.19+ (`web/.nvmrc`).
+
+```bash
+cp .env.example .env              # add MODEL_API_KEY (Meta Model API) and FIRMS_MAP_KEY
+
+cd pipeline
+uv sync --extra sam
+make all                          # steps implemented so far → web/public/data/eaton/
+make smoke-meta ARGS="--image path/to/fire.jpg"   # checks muse-spark-1.3 tool calling + sam-3.1
+
+cd ../web
+npm install
+npm run dev                       # http://localhost:5173
+```
+
+Pick another fire with `make FIRE=palisades all` and open `/?fire=palisades`.
+
+**What works today:**
+- The real Eaton terrain (USGS-derived tiles) and the official final perimeter.
+- The UI shell, with a timeline that drives one global time.
+- A hover inspector showing elevation, slope, aspect, and whether a point is inside the final perimeter.
+- An Evidence tab listing every source.
+- The fire shader, verified with a **synthetic** test pattern labelled `SIM` in the UI. Real arrival times arrive with pipeline step 06.
+
 ## Docs
 
 - [`docs/spec/BUILD.md`](docs/spec/BUILD.md): architecture, data pipeline, models, evaluation plan, schedule

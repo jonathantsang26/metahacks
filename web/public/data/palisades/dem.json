@@ -1,0 +1,33 @@
+{
+  "width": 1025,
+  "height": 1025,
+  "bounds": [
+    -118.707563,
+    34.011883,
+    -118.478874,
+    34.147325
+  ],
+  "pixel_m": [
+    20.58,
+    14.71
+  ],
+  "elevation_m": [
+    0.0,
+    854.5
+  ],
+  "zoom": 13,
+  "decoder": {
+    "rScaler": 256,
+    "gScaler": 1,
+    "bScaler": 0.00390625,
+    "offset": -32768
+  },
+  "analysis_grid": {
+    "width": 1332,
+    "height": 952,
+    "pixel_m": [
+      15.83,
+      15.84
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "fire": "eaton",
+  "sources": [
+    {
+      "layer": "Base texture",
+      "source": "Stylized from elevation, slope and hillshade",
+      "url": "",
+      "status": "MODELED",
+      "attribution": "",
+      "notes": "Placeholder palette until step 03 colors it by LANDFIRE land cover.",
+      "retrieved": "2026-10-30"
+    },
+    {
+      "layer": "Final perimeter",
+      "source": "CAL FIRE 2025 California Fire Perimeters",
+      "url": "https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/2025_California_Fire_Perimeters_View/FeatureServer/0",
+      "status": "REAL",
+      "attribution": "",
+      "notes": "Final perimeter and official acres; used for the AOI and to validate Fire Area(t).",
+      "retrieved": "2026-10-30"
+    },
+    {
+      "layer": "Terrain",
+      "source": "AWS Terrain Tiles (terrarium)",
+      "url": "https://registry.opendata.aws/terrain-tiles/",
+      "status": "REAL",
+      "attribution": "Terrain Tiles on AWS Open Data; elevation from USGS 3DEP, SRTM and other public sources",
+      "notes": "z13, resampled to 16 m lon/lat grid",
+      "retrieved": "2026-10-30"
+    }
+  ]
+}

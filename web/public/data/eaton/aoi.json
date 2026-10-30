@@ -1,0 +1,25 @@
+{
+  "id": "eaton",
+  "name": "Eaton Fire",
+  "location": "Altadena \u00b7 San Gabriel foothills, Los Angeles County, CA",
+  "timezone": "America/Los_Angeles",
+  "bbox": [
+    -118.183793,
+    34.143926,
+    -117.991329,
+    34.255798
+  ],
+  "center": [
+    -118.087561,
+    34.199862
+  ],
+  "window_utc": [
+    "2025-01-08T00:00:00Z",
+    "2025-01-13T00:00:00Z"
+  ],
+  "official": {
+    "final_acres": 14056.26,
+    "alarm_date": "2025-01-08",
+    "containment_date": "2025-01-31"
+  }
+}

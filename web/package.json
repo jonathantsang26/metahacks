@@ -1,0 +1,38 @@
+{
+  "name": "sentinel-ember-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@deck.gl/core": "^9.1.0",
+    "@deck.gl/extensions": "^9.1.0",
+    "@deck.gl/geo-layers": "^9.1.0",
+    "@deck.gl/layers": "^9.1.0",
+    "@deck.gl/mesh-layers": "^9.1.0",
+    "@deck.gl/react": "^9.1.0",
+    "@luma.gl/core": "^9.4.2",
+    "@luma.gl/shadertools": "^9.4.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.4.1",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.6.3",
+    "vite": "^6.3.5"
+  }
+}

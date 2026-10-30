@@ -1,0 +1,25 @@
+{
+  "id": "palisades",
+  "name": "Palisades Fire",
+  "location": "Pacific Palisades \u00b7 Santa Monica Mountains, Los Angeles County, CA",
+  "timezone": "America/Los_Angeles",
+  "bbox": [
+    -118.707563,
+    34.011883,
+    -118.478874,
+    34.147325
+  ],
+  "center": [
+    -118.593219,
+    34.079604
+  ],
+  "window_utc": [
+    "2025-01-07T12:00:00Z",
+    "2025-01-14T00:00:00Z"
+  ],
+  "official": {
+    "final_acres": 23448.88,
+    "alarm_date": "2025-01-07",
+    "containment_date": "2025-01-31"
+  }
+}

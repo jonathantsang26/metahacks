@@ -61,7 +61,13 @@ The pipeline is parameterized by `fire.yaml` (name, bbox, time window, official 
 
 ## 3. The core mechanism: one arrival-time raster drives everything
 
-`arrival.png`: a grid over the area of interest (≈ 30 m cells). Each cell holds the hours since `t0` at which the fire reached it, encoded as 16-bit in the R and G channels, with `0xFFFF` meaning never burned.
+`arrival.png`: a grid aligned to the DEM bounds (row 0 = north). The **red channel** holds when the fire reached each cell, as an 8-bit code relative to `aoi.window_utc`:
+- codes **1–254** → arrival = `(code − 1) / 253` of the way through the window
+- **255** → never burned
+
+For a 5-day window that is ~28 min per code. Unlike a 16-bit R/G split, it survives deck's default linear filtering. If step 06 changes the window, it must rewrite `aoi.json` and `arrival.png` together.
+
+With linear and mipmap sampling, the 255 boundary blends into its neighbours, which gives the perimeter edge a thin "burns last" halo. To remove it, use nearest filtering on the arrival image.
 
 At render time, for a cell with arrival time `a` at scrub time `t`:
 - `t < a` → **unburned**: base terrain
@@ -207,7 +213,7 @@ This table goes **verbatim into the repo README**. The `Evidence` sub-tab in the
 
 ## 7. Pipeline (`pipeline/`, run with `uv run make all`)
 
-Each step reads `fire.yaml` and writes to `web/public/data/<fire_id>/`.
+Each step reads `fire.yaml` and writes to `web/public/data/<fire_id>/`. Step files are `pipeline/steps/sNN_name.py`, run as `uv run python -m steps.sNN_name` or through the Makefile. Steps 01–02 are implemented; the rest are documented stubs.
 
 1. `01_aoi.py`: bbox, CRS (UTM zone), grid definition (30 m), time window, `t0`.
 2. `02_dem.py` → `dem.png` (terrarium-encoded), `slope.npy`, `aspect.npy`, `hillshade.png`.

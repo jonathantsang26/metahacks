@@ -1,0 +1,27 @@
+# Which fire the pipeline builds. Override with FIRE=<id> (e.g. `make FIRE=palisades all`).
+default: eaton
+
+fires:
+  eaton:
+    name: Eaton Fire
+    calfire_name: EATON        # FIRE_NAME in CAL FIRE 2025_California_Fire_Perimeters_View
+    nifc_name: EATON           # IncidentName in NIFC Operational_Data_Archive_2025 (two IRWINIDs: filter by name)
+    year: 2025
+    location: Altadena · San Gabriel foothills, Los Angeles County, CA
+    timezone: America/Los_Angeles
+    # Replay window in UTC. It starts before the first archived perimeter (Jan 8 06:14Z);
+    # step 06 tightens t0 from the earliest FIRMS detection.
+    window_utc: ["2025-01-08T00:00:00Z", "2025-01-13T00:00:00Z"]
+    buffer_km: 2.0             # padding around the final perimeter
+    dem_zoom: 13               # terrarium zoom; z13 ≈ 16 m/px at this latitude
+
+  palisades:
+    name: Palisades Fire
+    calfire_name: PALISADES
+    nifc_name: PALISADES
+    year: 2025
+    location: Pacific Palisades · Santa Monica Mountains, Los Angeles County, CA
+    timezone: America/Los_Angeles
+    window_utc: ["2025-01-07T12:00:00Z", "2025-01-14T00:00:00Z"]
+    buffer_km: 2.0
+    dem_zoom: 13

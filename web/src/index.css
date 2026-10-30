@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* DESIGN.md §2, sampled from the reference frames. */
+:root {
+  --bg-chrome: #dedbcc;
+  --bg-card: #dedace;
+  --bg-rail: #d1c8b9;
+  --bg-section-head: #d3ccbc;
+  --bg-tabgroup: #d1cebf;
+  --bg-tab-active: #f2efe6;
+  --bg-row-selected: #dccabc;
+  --text: #29251a;
+  --text-muted: #857e6e;
+  --hairline: rgba(41, 37, 26, 0.12);
+  --accent: #d1654b;
+  --live: #b53536;
+  --badge: #d2492f;
+  --ok: #678352;
+  --chip-ok-bg: #dce3cf;
+  --btn-dark: #2e2a22;
+  --hud-bg: rgba(39, 35, 26, 0.92);
+
+  --chart-area-fill: rgba(211, 164, 136, 0.6);
+  --chart-area-stroke: #c0563a;
+  --chart-rate: #b8322e;
+  --chart-elev-fill: #b3b7a0;
+  --chart-elev-stroke: #4e5a44;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-chrome);
+  color: var(--text);
+  font-family: Inter, system-ui, sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+/* Thin range input used by the layer opacity sliders. */
+input[type='range'].slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--text);
+  border-radius: 1px;
+}
+input[type='range'].slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text);
+}
+input[type='range'].slider:disabled {
+  opacity: 0.35;
+}
