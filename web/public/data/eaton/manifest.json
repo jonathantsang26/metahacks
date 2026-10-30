@@ -52,7 +52,7 @@
       "url": "",
       "status": "MODELED",
       "attribution": "",
-      "notes": "Observed only at the 10 perimeter times; interpolated by distance between them; first interval seeded by CAL FIRE official start and reported location; 2506 cells only in the final perimeter; 0 hotspot refinements.",
+      "notes": "Observed only at the 10 perimeter times; interpolated by distance between them; first interval seeded by CAL FIRE official start; the reported location lies outside the first mapped footprint, so the seed is its nearest cell, 1,743 m away; 2506 cells only in the final perimeter; 0 hotspot refinements.",
       "retrieved": "2026-10-30"
     },
     {

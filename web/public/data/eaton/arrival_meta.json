@@ -5,7 +5,7 @@
   ],
   "encoding": "R: 1..254 = (code-1)/253 of the window, 255 = never burned; G: confidence",
   "seed": {
-    "source": "CAL FIRE official start and reported location",
+    "source": "CAL FIRE official start; the reported location lies outside the first mapped footprint, so the seed is its nearest cell, 1,743 m away",
     "t": "2025-01-08T02:18:00Z",
     "lonlat": [
       -118.072109,

@@ -77,7 +77,12 @@ def seed_cell(fire, grid: Grid, first: np.ndarray, w0: datetime, t_first: float)
         source = "first footprint median cell, first observation − 1 h"
     if not (0 <= r < grid.height and 0 <= c < grid.width and first[r, c]):
         i = np.argmin((rows - r) ** 2 + (cols - c) ** 2)  # snap into the first footprint
+        px, py = grid.pixel_m
+        moved_m = float(np.hypot((rows[i] - r) * py, (cols[i] - c) * px))
         r, c = int(rows[i]), int(cols[i])
+        if inc:
+            source = (f"CAL FIRE official start; the reported location lies outside the first mapped footprint, "
+                      f"so the seed is its nearest cell, {moved_m:,.0f} m away")
     return (r, c), min(t_seed, t_first - 0.25), source
 
 
