@@ -42,7 +42,7 @@ function LayersList() {
         const l = layers[id];
         const active = l.ready && l.visible;
         return (
-          <li key={id} className="flex items-center gap-2.5 px-3 py-1.5" title={l.ready ? undefined : `Data from pipeline step ${l.step}`}>
+          <li key={id} className="flex items-center gap-2.5 px-3 py-1.5" title={l.ready ? undefined : l.pending}>
             <input
               type="checkbox"
               checked={l.visible}
@@ -53,7 +53,7 @@ function LayersList() {
             <span className="h-7 w-7 shrink-0 rounded-sm" style={{background: THUMBS[id], opacity: l.ready ? 1 : 0.45}} />
             <span className={`flex-1 truncate text-sm ${active ? 'text-ink' : 'text-muted'}`}>
               {l.label}
-              {!l.ready && <span className="ml-1 font-mono text-2xs">· step {l.step}</span>}
+              {!l.ready && <span className="ml-1 font-mono text-2xs">· {l.pending}</span>}
             </span>
             {l.opacity !== null && (
               <>

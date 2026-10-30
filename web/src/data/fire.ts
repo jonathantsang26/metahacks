@@ -9,7 +9,13 @@ export type Aoi = {
   bbox: [number, number, number, number];
   center: [number, number];
   window_utc: [string, string];
-  official: {final_acres: number | null; alarm_date: string | null; containment_date: string | null};
+  official: {
+    final_acres: number | null;
+    alarm_date: string | null;
+    containment_date: string | null;
+    /** CAL FIRE's reported start and incident location: a report, not an investigated origin. */
+    incident?: {start_utc: string; reported_location: [number, number]; acres: number | null; url: string; source: string};
+  };
 };
 
 export type DemMeta = {
