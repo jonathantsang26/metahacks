@@ -252,7 +252,7 @@ def main() -> None:
         url="https://esa-worldcover.org/",
         status="MODELED",
         attribution=ATTRIBUTION,
-        notes="Fixed palette per land-cover class, lit by the step 02 hillshade, with grain. Not imagery.",
+        notes="Fixed palette per land-cover class, lit by the terrain hillshade, with grain. Not imagery.",
     )
 
     print(f"{fire.name}: WorldCover window {src.shape[1]}×{src.shape[0]} px → grid {grid.width}×{grid.height}")

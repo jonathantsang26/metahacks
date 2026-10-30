@@ -1,6 +1,6 @@
 """Step 10: key events, derived from the data rather than typed in.
 
-Inputs:  aoi.json, series.json + spine.geojson + profile.json (06), work/<fire>/arrival_hours.npy,
+Inputs:  aoi.json, arrival_meta.json + spine.geojson + profile.json (06), work/<fire>/arrival_hours.npy,
          spots.geojson (05), weather.json (07), ignition.json (11, optional),
          hotspots.geojson (04, optional)
 Outputs: events.json  [{id, kind, label, t, lon, lat, source, date_only?}] sorted by time
@@ -28,6 +28,9 @@ from steps.s06_arrival import iso, parse_t
 
 RIDGE_PROMINENCE_M = 40.0
 SPOT_MIN_ACRES = 2.0
+# Perimeters mapped closer together than this are one observation for growth rates.
+MIN_INTERVAL_H = 1.0
+ACRE_M2 = 4046.8564224
 
 
 def event(kind, label, t, lonlat, source, **extra):
@@ -36,14 +39,28 @@ def event(kind, label, t, lonlat, source, **extra):
 
 
 def rapid_growth(fire, grid: Grid, w0: datetime):
-    s = fire.read_json("series.json")
-    area = np.array(s["area_acres"])
-    growth = np.diff(area)
-    i = int(np.argmax(growth))
+    """The fastest growth between consecutive mapped perimeters, as an average rate.
+
+    Hourly growth from the arrival raster is interpolation inside long intervals and a mapping
+    step inside short ones (Eaton has perimeters 6 min apart), so it is not used. Intervals under
+    MIN_INTERVAL_H are merged into the one before them: two mappings minutes apart differ by
+    mapping, not growth. The event sits at the perimeter that closes the interval.
+    """
+    merged = []
+    for iv in fire.read_json("arrival_meta.json")["intervals"]:
+        if merged and iv["to_h"] - iv["from_h"] < MIN_INTERVAL_H:
+            merged[-1] = {**merged[-1], "to_h": iv["to_h"], "to": iv["to"], "new_cells": merged[-1]["new_cells"] + iv["new_cells"]}
+        else:
+            merged.append(dict(iv))
+    best = max(merged, key=lambda iv: iv["new_cells"] / (iv["to_h"] - iv["from_h"]))
+    hours = best["to_h"] - best["from_h"]
+    rate = best["new_cells"] * grid.pixel_m[0] * grid.pixel_m[1] / ACRE_M2 / hours
     arrival = np.load(fire.work_dir / "arrival_hours.npy")
-    rows, cols = np.nonzero((arrival > i) & (arrival <= i + 1))
+    rows, cols = np.nonzero((arrival > best["from_h"]) & (arrival <= best["to_h"]))
     lonlat = grid.to_lonlat(cols.mean(), rows.mean()) if len(rows) else fire.read_json("aoi.json")["center"]
-    return event("rapid_growth", f"Rapid growth (+{growth[i]:,.0f} acres/h)", s["t"][i + 1], lonlat, "series.json")
+    return event("rapid_growth", f"Fastest mapped growth (+{rate:,.0f} acres/h, averaged over the {hours:.1f} h before this perimeter)",
+                 best["to"], lonlat, "arrival_meta.json intervals (NIFC perimeters; the first starts at CAL FIRE's reported start)",
+                 interval=[best["from"], best["to"]])
 
 
 def first_spot(fire, w1: datetime):

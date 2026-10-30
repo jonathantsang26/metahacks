@@ -694,8 +694,8 @@ def main() -> None:
     })
     (eval_dir / "wind_ablation.json").write_text(json.dumps(wind_ablation(fire, model, masks, times), indent=2) + "\n")
     for layer, notes in (("Ignition probability", f"Back-trace over {best['evaluated']:,} candidates; 90% radius {unc['r90_m']:.0f} m."),
-                         ("Fire spread (modeled)", f"Forward run from the estimate; IoU vs observed footprints {agreement}.")):
-        add_source(fire, layer=layer, source="Sentinel Ember back-trace (pipeline step 11)", url="", status="MODELED", notes=notes)
+                         ("Back-trace forward run", f"The spread model run forward from the estimate (modeled_arrival.png); IoU vs observed footprints {agreement}.")):
+        add_source(fire, layer=layer, source="Sentinel Ember ignition back-trace", url="", status="MODELED", notes=notes)
     print(f"estimate {lon:.5f},{lat:.5f} at {iso_h(model, best['t0_h'])} k={best['k']:.2f}; 90% radius {unc['r90_m']:.0f} m, "
           f"t90 {[iso_h(model, t) for t in unc['t90_h']]}; timing {json.dumps(tm)}; IoU {agreement}")
 

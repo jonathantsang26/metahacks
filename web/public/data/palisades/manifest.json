@@ -2,12 +2,21 @@
   "fire": "palisades",
   "sources": [
     {
+      "layer": "Back-trace forward run",
+      "source": "Sentinel Ember ignition back-trace",
+      "url": "",
+      "status": "MODELED",
+      "attribution": "",
+      "notes": "The spread model run forward from the estimate (modeled_arrival.png); IoU vs observed footprints [0.431, 0.585, 0.287, 0.292, 0.304].",
+      "retrieved": "2026-10-30"
+    },
+    {
       "layer": "Base texture",
       "source": "Stylized from ESA WorldCover land cover + hillshade",
       "url": "https://esa-worldcover.org/",
       "status": "MODELED",
       "attribution": "(c) ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium",
-      "notes": "Fixed palette per land-cover class, lit by the step 02 hillshade, with grain. Not imagery.",
+      "notes": "Fixed palette per land-cover class, lit by the terrain hillshade, with grain. Not imagery.",
       "retrieved": "2026-10-30"
     },
     {
@@ -47,15 +56,6 @@
       "retrieved": "2026-10-30"
     },
     {
-      "layer": "Fire spread (modeled)",
-      "source": "Sentinel Ember back-trace (pipeline step 11)",
-      "url": "",
-      "status": "MODELED",
-      "attribution": "",
-      "notes": "Forward run from the estimate; IoU vs observed footprints [0.431, 0.585, 0.287, 0.292, 0.304].",
-      "retrieved": "2026-10-30"
-    },
-    {
       "layer": "House-level exposure",
       "source": "CAL FIRE DINS joined with arrival, weather and land cover",
       "url": "",
@@ -66,7 +66,7 @@
     },
     {
       "layer": "Ignition probability",
-      "source": "Sentinel Ember back-trace (pipeline step 11)",
+      "source": "Sentinel Ember ignition back-trace",
       "url": "",
       "status": "MODELED",
       "attribution": "",

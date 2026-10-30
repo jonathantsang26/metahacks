@@ -28,11 +28,15 @@
   },
   {
     "kind": "rapid_growth",
-    "label": "Rapid growth (+3,658 acres/h)",
-    "t": "2025-01-08T21:00:00Z",
-    "lon": -118.589923,
-    "lat": 34.059808,
-    "source": "series.json",
+    "label": "Fastest mapped growth (+614 acres/h, averaged over the 26.9 h before this perimeter)",
+    "t": "2025-01-08T21:24:23Z",
+    "lon": -118.58359,
+    "lat": 34.060912,
+    "source": "arrival_meta.json intervals (NIFC perimeters; the first starts at CAL FIRE's reported start)",
+    "interval": [
+      "2025-01-07T18:30:00Z",
+      "2025-01-08T21:24:23Z"
+    ],
     "id": "e4"
   },
   {
