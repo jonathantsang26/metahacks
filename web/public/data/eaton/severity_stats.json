@@ -1,0 +1,105 @@
+{
+  "source": {
+    "url": "https://popo.jpl.nasa.gov/pub/LA_Fires/dist/dnbr/COG_Eaton_AV3_provisional_dNBR_866nm_2198nm_20240905-20250116.tif",
+    "product": "JPL AVIRIS-3 provisional dNBR, NIR 866 nm / SWIR 2198 nm",
+    "pre_date": "2024-09-05",
+    "post_date": "2025-01-16",
+    "provisional": true,
+    "units": "unitless dNBR",
+    "valid_range": [
+      -2.0,
+      2.0
+    ],
+    "crs": "EPSG:32611",
+    "native_res_m": [
+      3.2,
+      3.2
+    ],
+    "native_shape": [
+      2394,
+      4283
+    ],
+    "nodata": "inf",
+    "scale": 1.0,
+    "offset": 0.0,
+    "native_valid_px": 3160172,
+    "masked_out_of_range_px": 39
+  },
+  "grid": {
+    "width": 1121,
+    "height": 788,
+    "bounds": [
+      -118.183793,
+      34.143926,
+      -117.991329,
+      34.255798
+    ],
+    "pixel_m": [
+      15.81,
+      15.8
+    ],
+    "resampling": "bilinear"
+  },
+  "encoding": {
+    "red": "dNBR clipped to [-0.1, 1.0] -> 1..255 linearly; 0 = no data; dnbr = -0.1 + (R - 1) / 254 * 1.1",
+    "green": {
+      "0": "no data",
+      "1": "unburned",
+      "2": "low",
+      "3": "moderate_low",
+      "4": "moderate_high",
+      "5": "high"
+    },
+    "blue": "0",
+    "class_edges": [
+      0.1,
+      0.27,
+      0.44,
+      0.66
+    ]
+  },
+  "perimeter": {
+    "cells": 228268,
+    "valid_cells": 128707,
+    "coverage": 0.5638,
+    "area_acres": 14091.5,
+    "covered_acres": 7945.4,
+    "class_fraction_of_valid": {
+      "unburned": 0.0843,
+      "low": 0.1738,
+      "moderate_low": 0.2629,
+      "moderate_high": 0.3206,
+      "high": 0.1585
+    },
+    "class_acres": {
+      "unburned": 669.6,
+      "low": 1380.7,
+      "moderate_low": 2088.5,
+      "moderate_high": 2547.0,
+      "high": 1259.5
+    },
+    "median_dnbr": 0.4272
+  },
+  "mean_dnbr": {
+    "inside": 0.427,
+    "outside": 0.2818,
+    "difference": 0.1451,
+    "n_valid_inside": 128707,
+    "n_valid_outside": 1229
+  },
+  "valid_inside_fraction": 0.9905,
+  "grid_valid_fraction": 0.1471,
+  "georef_check": {
+    "method": "mean distance (cells, capped at 3) from data-edge cells to the final-perimeter boundary, for data shifts up to \u00b112 cells; offset is [east, south] in cells",
+    "edge_cells": 4462,
+    "within_1_cell_at_zero": 0.7084,
+    "mean_dist_at_zero": 0.9324,
+    "best_mean_dist": 0.9324,
+    "best_offset_px": [
+      0,
+      0
+    ],
+    "background_median": 2.4908
+  },
+  "notes": "Provisional JPL AVIRIS-3 dNBR (866/2198 nm), reprojected bilinearly from 3.2 m UTM 11N to the ~16 m analysis grid. Valid data covers 56.4% of the final perimeter (7,945 of 14,092 acres); the rest is left as no data. Mean dNBR 0.427 inside vs 0.2818 outside (n=1229 edge cells; JPL clipped the product to a burn perimeter). Data edge best matches the perimeter edge at offset [0, 0] cells (71% of edge cells within 1 cell). severity.png: R = dNBR [-0.1, 1.0] -> 1..255 (0 = no data); G = class 0 none, 1 unburned <0.1, 2 low, 3 moderate-low, 4 moderate-high, 5 high >=0.66. GAP: AVIRIS-3 flight lines miss 44% of the final perimeter; no Sentinel-2 fallback is implemented yet."
+}
