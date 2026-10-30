@@ -125,11 +125,9 @@ const BONUS_PROMPT = `Award the META TOOLING BONUS (0 to 3 points, added to the 
 
 const ATTACK_PROMPT = `Your only job is to BREAK this project's claims.
 1. Read README.md and every doc it links to (docs/RESULTS.md, docs/spec/*.md, docs/judge/RUBRIC.md). List every factual claim: numbers, "works", "tested", "calibrated", "never", "held out", data provenance, privacy promises, test counts, file contents.
-2. Try to break each one: recompute numbers from the committed files, run the commands the README gives, read the code paths that produce each number, and look for hardcoded outputs, mocked responses, canned inputs, numbers that don't match their source, leakage between fit and evaluation, and behaviour that contradicts the docs. You may run offline commands in this worktree, e.g.:
+2. Try to break each one: recompute numbers from the committed files, read the code paths that produce each number, and look for hardcoded outputs, mocked responses, canned inputs, numbers that don't match their source, leakage between fit and evaluation, and behaviour that contradicts the docs. A runner agent has already run the README's documented commands (make test, make eval, make eval QUICK=1, npm ci/test/build, the analyst truth table) in a clean worktree; its raw log is at the end of this prompt and counts as evidence (cite it as "cmd: <command>"). Do not rerun make eval or make eval QUICK=1 (each takes 5-15 minutes of all CPUs). You may run other offline commands in this worktree, e.g.:
    cd ${wt.attack}/pipeline && uv sync && make test
-   cd ${wt.attack}/pipeline && make eval EVAL_DIR=${wt.attack}/../eval-out-attack   (the real hold-out with the committed calibration; about a minute)
-   cd ${wt.attack}/pipeline && make eval QUICK=1 EVAL_DIR=${wt.attack}/../eval-out-attack-quick   (recomputes 3 synthetic cases and checks them; Bash timeout 600000 ms)
-   cd ${wt.attack}/web && export PATH="${node_bin}:$PATH" && npm ci && npm test
+   cd ${wt.attack}/web && export PATH="${node_bin}:$PATH" && npm ci && npm test && npm run eval:analyst -- --truth --fire palisades
    python3 -c '...' to recompute numbers from JSON files.
 3. Default: a claim you cannot reproduce in this worktree counts as broken. Claims the README itself marks as pending, needing a key, or not run are "not_counted".
 Severity: critical = the claim is false, or a demo or number is faked; major = overstated, or missing its evidence; minor = wording. Every finding cites the claim (path:line) and the contradicting path:line or command output, with quotes. Report every claim you checked in claims_checked, including the ones that hold.`
@@ -160,8 +158,11 @@ const scoreAll = DIMENSIONS.map(d => async () => {
 })
 const bonusThunk = () => ask(`${base(wt.read, false)}\n\n${BONUS_PROMPT}`, {label: 'score:meta-bonus', phase: 'Score', schema: BONUS, model: 'haiku'})
 
+// The adversary starts after the runner, reads its log and does not rerun the long evals:
+// running both at once starved each of CPU past the 10-minute command limit.
 const attackThunk = async () => {
-  const atk = await ask(`${base(wt.attack, true)}\n\n${ATTACK_PROMPT}`, {label: 'attack', phase: 'Attack', schema: FINDINGS, model: 'haiku'})
+  const runText = (await runLog) || '(the runner agent failed; no commands were run)'
+  const atk = await ask(`${base(wt.attack, true)}\n\n${ATTACK_PROMPT}\n\nRunner log:\n${runText}`, {label: 'attack', phase: 'Attack', schema: FINDINGS, model: 'haiku'})
   if (!atk) return {attack: null, criticals: []}
   const crit = atk.findings.filter(f => f.severity === 'critical')
   log(`adversary: ${atk.findings.length} findings, ${crit.length} critical, ${atk.claims_checked.length} claims checked`)

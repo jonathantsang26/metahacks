@@ -54,3 +54,4 @@ A round is approved when all three hold:
 **Harness changes** (the rubric itself is unchanged):
 - **After round 1:** two of seven scoring agents failed on output formatting and were counted as 0. That was a harness fault, not a measurement, so agents now get one retry.
 - **The "works" agent is split** into a runner (raw command log) and a scorer, so a formatting failure can't erase what the commands showed.
+- **After round 1, before round 2:** the adversary starts after the runner and reads its log instead of rerunning the 5–15 minute evals; running both at once would starve each of CPU past the 10-minute command limit. `make eval QUICK=1` now only recomputes two synthetic cases (plain `make eval` reruns the hold-out).

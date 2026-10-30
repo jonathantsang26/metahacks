@@ -167,8 +167,8 @@ Requires Python 3.11+ with [uv](https://docs.astral.sh/uv/), and Node 20.19+ (`w
 ```bash
 cd pipeline && uv sync
 make test                                        # pipeline tests on the Eaton and Palisades outputs, incl. README headline drift
-make eval EVAL_DIR=/tmp/ember-eval               # re-run the real Eaton hold-out; matches eval/ignition_holdout.json (a few minutes)
-make eval QUICK=1 EVAL_DIR=/tmp/ember-eval-quick # also recompute 3 synthetic cases and check them against the committed ones
+make eval EVAL_DIR=/tmp/ember-eval               # re-run the real Eaton hold-out; matches eval/ignition_holdout.json (5-15 min)
+make eval QUICK=1 EVAL_DIR=/tmp/ember-eval-quick # recompute 2 synthetic cases and check them against the committed ones (about 6 min)
 make report                                      # regenerate docs/RESULTS.md and the README headline table
 
 cd ../web && npm ci
@@ -177,7 +177,7 @@ npm run build                                    # typecheck app + API, producti
 npm run eval:analyst -- --truth --fire palisades # print an analyst eval's ground truth (no key needed)
 ```
 
-With network access, `make all` rebuilds every output from the public sources (`make FIRE=palisades all` for Palisades). `make eval-full` reruns the whole synthetic benchmark and the wind ablation, which takes one to two hours.
+With network access, `make all` rebuilds every output from the public sources (`make FIRE=palisades all` for Palisades). `make eval-full` reruns the whole synthetic benchmark and the wind ablation, which takes one to two hours per fire.
 
 With a Meta key in `.env` (`cp .env.example .env`):
 - `npm run ask -- "When did the fire reach Lake Avenue?"` asks the analyst one question.

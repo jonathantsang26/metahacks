@@ -32,7 +32,7 @@ Outputs: ignition.json, ignition_posterior.png (R = relative posterior 0–255),
 Run: uv run python -m steps.s11_ignition [--eval-only] [--cases 30] [--check]
   --cases 0   reuse the committed synthetic cases (summaries and calibration are recomputed)
   --check     recompute the first --cases synthetic cases, compare them with the committed ones
-              (eval/ignition_check.json), and keep the committed calibration
+              (eval/ignition_check.json), and stop there (no hold-out)
 """
 
 from __future__ import annotations
@@ -582,7 +582,8 @@ def main() -> None:
             check = check_against(cases, committed)
             (eval_dir / "ignition_check.json").write_text(json.dumps(check, indent=2) + "\n")
             print(f"check: {check['cases_checked']} cases, identical to the committed ones: {check['identical']}")
-            synthetic = with_summaries(committed)
+            # A reproduction check only; plain `make eval` reruns the hold-out.
+            return
         else:
             synthetic = with_summaries({
                 "config": {"cases": args.cases, "seed": 20250107, "model_cell_m": round(grid.pixel_m[0], 1),
