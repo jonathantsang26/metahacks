@@ -46,7 +46,7 @@ from datetime import timedelta
 
 import numpy as np
 from PIL import Image
-from scipy.ndimage import binary_dilation, binary_erosion, gaussian_filter
+from scipy.ndimage import binary_dilation, binary_erosion, distance_transform_edt, gaussian_filter
 from shapely.geometry import box, mapping
 from shapely.ops import unary_union
 
@@ -190,8 +190,14 @@ def lattice(mask: np.ndarray) -> tuple[np.ndarray, int]:
 
 def invert(model: Model, obs: sp.Observations, candidate_mask: np.ndarray, tau_h: float = TAU_H,
            lb_grid=None) -> dict:
-    """Two-stage search over (cell, t0, k); returns the MAP, the relative posterior per cell, and
-    every evaluated candidate with its loss (for uncertainty summaries at any temperature)."""
+    """Two-stage search over (cell, t0, k); returns the MAP and the stage-1 grid with its losses.
+
+    Stage 1 is a regular grid: lattice cells × log-spaced lags × log-spaced k, i.e. a uniform prior
+    over the lattice and log-uniform over lag and k. The posterior, its 90% radius and interval
+    come from that grid alone. Stage 2 evaluates dense neighbourhoods around the best stage-1
+    points and only sharpens the point estimate: counting its candidates in the posterior would
+    weight cells by how often they were evaluated.
+    """
     terr = model.terrain
     packed = obs.packed(terr)
     burnable = candidate_mask & (terr.r0 > 0)
@@ -234,9 +240,11 @@ def invert(model: Model, obs: sp.Observations, candidate_mask: np.ndarray, tau_h
     cands = np.vstack([grid1, grid2])
     losses = np.concatenate([loss1, loss2])
     best = cands[np.argmin(losses)]
-    return {"row": int(best[0]), "col": int(best[1]), "t0_h": float(best[2]), "k": float(best[3]),
-            "lb_max": float(best[4]), "loss_h": float(losses.min()), "posterior": cell_posterior(cands, losses, terr.shape, tau_h),
-            "evaluated": int(len(cands)), "cands": cands, "losses": losses}
+    est = {"row": int(best[0]), "col": int(best[1]), "t0_h": float(best[2]), "k": float(best[3]),
+           "lb_max": float(best[4]), "loss_h": float(losses.min()), "evaluated": int(len(cands)),
+           "grid_cands": grid1, "grid_losses": loss1, "domain": burnable}
+    est["posterior"] = cell_posterior(est, tau_h)
+    return est
 
 
 def select_lb(model: Model, obs: sp.Observations, candidate_mask: np.ndarray, tau_h: float = TAU_H) -> tuple[dict, list[dict]]:
@@ -255,9 +263,20 @@ def weights(losses: np.ndarray, tau_h: float) -> np.ndarray:
     return w / w.sum()
 
 
-def cell_posterior(cands: np.ndarray, losses: np.ndarray, shape, tau_h: float) -> np.ndarray:
-    post = np.zeros(shape)
-    np.add.at(post, (cands[:, 0].astype(int), cands[:, 1].astype(int)), weights(losses, tau_h))
+def cell_posterior(est: dict, tau_h: float) -> np.ndarray:
+    """Posterior per cell: each stage-1 lattice cell's weight (summed over lag and k) is spread
+    evenly over the domain cells nearest to it, so the map is a continuous surface, not dots."""
+    cands, domain = est["grid_cands"], est["domain"]
+    rc = (cands[:, 0].astype(int), cands[:, 1].astype(int))
+    lattice_w = np.zeros(domain.shape)
+    np.add.at(lattice_w, rc, weights(est["grid_losses"], tau_h))
+    is_lattice = np.zeros(domain.shape, bool)
+    is_lattice[rc] = True
+    _, (nr, nc) = distance_transform_edt(~is_lattice, return_indices=True)
+    owner = np.where(domain, nr * domain.shape[1] + nc, -1)
+    counts = np.bincount(owner[domain], minlength=lattice_w.size)
+    post = np.zeros(domain.shape)
+    post[domain] = lattice_w.ravel()[owner[domain]] / counts[owner[domain]]
     return post
 
 
@@ -268,18 +287,21 @@ def weighted_quantile(v: np.ndarray, w: np.ndarray, q) -> np.ndarray:
 
 
 def uncertainty(est: dict, grid: Grid, tau_h: float) -> dict:
-    """90% radius around the MAP cell and 90% start-time interval, at temperature tau_h."""
-    c, w = est["cands"], weights(est["losses"], tau_h)
+    """90% radius around the MAP cell and 90% start-time interval over the stage-1 grid, at temperature tau_h."""
+    c, w = est["grid_cands"], weights(est["grid_losses"], tau_h)
     px, py = grid.pixel_m
     d = np.hypot((c[:, 0] - est["row"]) * py, (c[:, 1] - est["col"]) * px)
     lo, hi = weighted_quantile(c[:, 2], w, [(1 - COVERAGE) / 2, (1 + COVERAGE) / 2])
     return {"r90_m": float(weighted_quantile(d, w, COVERAGE)), "t90_h": (float(lo), float(hi))}
 
 
-def timing(est: dict, unc: dict) -> dict:
+def timing(est: dict, unc: dict, calibrated: bool = True) -> dict:
     """Whether the data pin down the start time (decided from the fit alone, never the reference)."""
     width = unc["t90_h"][1] - unc["t90_h"][0]
     reasons = []
+    if not calibrated:
+        reasons.append("uncertainty not calibrated: no temperature tried reached 90% coverage on this fire's "
+                       "calibration cases, so the interval is the widest tried")
     if width > TIMING_MAX_WIDTH_H:
         reasons.append(f"90% start-time interval is {width:.1f} h wide (limit {TIMING_MAX_WIDTH_H:g} h)")
     if est["k"] >= K_GRID[-1]:
@@ -407,6 +429,8 @@ def score_fit(model: Model, fit: sp.Observations, truth_rc: tuple[int, int], t0:
         "backtrace_time_err_min": round(abs(est["t0_h"] - t0) * 60, 1),
         "baseline_time_err_min": round(abs(base_t - t0) * 60, 1),
         "first_fit_obs_after_h": round(float(fit.t_h[0] - t0), 2),
+        # The search covers the first fitted footprint only; a synthetic origin outside it can't be found.
+        "truth_in_search_domain": bool(fit.masks[0][truth_rc]),
         "coverage_by_tau": coverage,
     }
 
@@ -423,9 +447,9 @@ def calibrate(cases: list[dict]) -> dict:
                        "test": {"distance": round(cover(test, t, "distance"), 2), "time": round(cover(test, t, "time"), 2)}}
               for t in TAUS_H}
     ok = [t for t in TAUS_H if cover(cal, t, "distance") >= COVERAGE and cover(cal, t, "time") >= COVERAGE]
-    tau = ok[0] if ok else TAUS_H[-1]
+    tau = ok[0] if ok else TAUS_H[-1]  # uncalibrated: the widest tried, flagged, and no start time is shown
     # Selective prediction: which unseen cases would the product show a start time for, and how good is it then?
-    shown = [c for c in test if c["coverage_by_tau"][str(tau)]["t90_width_h"] <= TIMING_MAX_WIDTH_H
+    shown = [c for c in test if ok and c["coverage_by_tau"][str(tau)]["t90_width_h"] <= TIMING_MAX_WIDTH_H
              and c["estimate"]["k"] < K_GRID[-1]]
     return {"tau_h": tau, "target": COVERAGE, "reached_on_calibration_half": bool(ok),
             "test_start_time_shown": {
@@ -451,6 +475,8 @@ def summarize(cases: list[dict]) -> dict:
         "distance_m": {"backtrace": stats("backtrace_dist_m"), "baseline_first_footprint_centroid": stats("baseline_dist_m")},
         "start_time_error_min": {"backtrace": stats("backtrace_time_err_min"), "baseline_area_backcast": stats("baseline_time_err_min")},
         "backtrace_beats_baseline": {"distance": round(float(wins_d), 2), "time": round(float(wins_t), 2)},
+        "truth_in_search_domain": (round(float(np.mean([c["truth_in_search_domain"] for c in cases])), 2)
+                                   if all("truth_in_search_domain" in c for c in cases) else None),
     }
 
 
@@ -604,6 +630,7 @@ def main() -> None:
     cal = synthetic["calibration"]
     cal_all = synthetic["calibration_all_observations"]
     tau, tau_all = float(cal["tau_h"]), float(cal_all["tau_h"])
+    calibrated, calibrated_all = bool(cal["reached_on_calibration_half"]), bool(cal_all["reached_on_calibration_half"])
     for name, c in (("calibration (hold-out)", cal), ("calibration (all observations)", cal_all)):
         print(f"{name}:", json.dumps({k: c[k] for k in c if k != "by_tau"}))
 
@@ -620,8 +647,9 @@ def main() -> None:
         "estimate": {"lonlat": [round(float(v), 6) for v in grid.to_lonlat(est["col"], est["row"])],
                      "t": iso_h(model, est["t0_h"]), "k": round(est["k"], 3), "lb_max": est["lb_max"],
                      "r90_m": round(unc["r90_m"], 1), "t90": [iso_h(model, t) for t in unc["t90_h"]],
-                     "timing": timing(est, unc), "tau_h": tau},
+                     "timing": timing(est, unc, calibrated), "tau_h": tau, "uncertainty_calibrated": calibrated},
         "lb_selection": holdout_lb,
+        "uncertainty_calibrated": calibrated,
         "baselines": {
             "first_fit_footprint_centroid_lonlat": [round(float(v), 6) for v in grid.to_lonlat(*centroid_baseline(fit.masks[0])[::-1])],
             "area_backcast_t": iso_h(model, area_backcast_baseline(fit, grid.cell_area_m2)),
@@ -655,9 +683,9 @@ def main() -> None:
     # Product: best estimate using every observation in the fit horizon (already inverted above,
     # when the length-to-breadth cap was chosen); its posterior uses the all-observations temperature.
     best = product
-    best["posterior"] = cell_posterior(best["cands"], best["losses"], model.terrain.shape, tau_all)
+    best["posterior"] = cell_posterior(best, tau_all)
     unc = uncertainty(best, grid, tau_all)
-    tm = timing(best, unc)
+    tm = timing(best, unc, calibrated_all)
     region, n_cells, area_km2 = credible_region(best["posterior"], grid)
     modeled = sp.arrival(model.terrain, model.wind, (best["row"], best["col"]), best["t0_h"], k=best["k"], lb_max=best["lb_max"])
     agreement = [round(sp.iou(modeled <= t, m), 3) for m, t in zip(masks, times)]
@@ -675,6 +703,7 @@ def main() -> None:
                 "t": iso_h(model, best["t0_h"]), "k": round(best["k"], 3), "lb_max": best["lb_max"]},
         "lb_selection": lb_table,
         "r90_m": round(unc["r90_m"], 1), "t90": [iso_h(model, t) for t in unc["t90_h"]], "timing": tm,
+        "uncertainty_calibrated": calibrated_all,
         "region90": region, "region90_cells": n_cells, "region90_km2": round(area_km2, 2),
         "loss_h": round(best["loss_h"], 3), "candidates_evaluated": best["evaluated"],
         "observations_used": len(masks), "first_observation": iso_h(model, times[0]),
@@ -682,15 +711,17 @@ def main() -> None:
         "wind": f"{model.wind.rows}×{model.wind.cols} HRRR points" if model.wind.rows * model.wind.cols > 1 else "single point",
         "modeled_vs_observed_iou": agreement,
         "calibration": {k: cal_all[k] for k in cal_all if k != "by_tau"},
-        "holdout": {k: holdout[k] for k in ("held_out", "errors") if k in holdout},
+        "holdout": {k: holdout[k] for k in ("held_out", "errors", "uncertainty_calibrated") if k in holdout},
         "reference_outside_first_footprint_m": (round(outside_first_footprint_m(grid, masks[0], grid.to_px(*inc["reported_location"])[::-1]), 1)
                                                 if inc else None),
         "synthetic_summary": synthetic.get("summary_all_observations", synthetic["summary"]),
         "synthetic_summary_holdout": synthetic["summary"],
         "model_card": "Elliptical rate-of-spread model with per-fuel base rates (ESA WorldCover classes), "
                       "power-law wind and tan²-slope terms, HRRR 3 km wind field interpolated per cell; no spotting, "
-                      f"crown fire or suppression. Relative posterior over evaluated candidates, tau = {tau_all:g} h "
-                      "(calibrated on this fire's synthetic cases).",
+                      f"crown fire or suppression. Relative posterior over the stage-1 grid (uniform over lattice cells, "
+                      f"log-uniform over lag and k), tau = {tau_all:g} h "
+                      + ("(calibrated on this fire's synthetic cases)." if calibrated_all else
+                         "(uncalibrated: the widest tried; no start time is shown)."),
     })
     (eval_dir / "wind_ablation.json").write_text(json.dumps(wind_ablation(fire, model, masks, times), indent=2) + "\n")
     for layer, notes in (("Ignition probability", f"Back-trace over {best['evaluated']:,} candidates; 90% radius {unc['r90_m']:.0f} m."),

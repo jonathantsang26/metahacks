@@ -38,7 +38,7 @@ Uncertainty calibration, all perimeters (as the app fits): posterior temperature
 
 The 6 h identifiability rule would have withheld the start time in all 15 of those cases.
 
-Uncertainty calibration, first 2 held out (stress test): posterior temperature tau = 38.4 h, chosen on the 15 even-numbered cases (the 90% target was not reached on the calibration half; this is the widest setting tried). On the 15 odd-numbered cases it never saw, the 90% radius (median 4,547 m) contains the true ignition in 100% of cases and the 90% start-time interval (median width 63.29 h) contains the true start in 80%.
+Uncertainty calibration, first 2 held out (stress test): posterior temperature tau = 38.4 h, chosen on the 15 even-numbered cases (uncalibrated: no temperature tried reached the 90% target on the calibration half, so this is the widest tried, and the fits it serves withhold their start time). On the 15 odd-numbered cases it never saw, the 90% radius (median 4,547 m) contains the true ignition in 100% of cases and the 90% start-time interval (median width 63.29 h) contains the true start in 80%.
 
 The 6 h identifiability rule would have withheld the start time in all 15 of those cases.
 

@@ -14,7 +14,7 @@ type HoldoutErrors = Ignition['holdout']['errors'] & {
 export type IgnitionFile = Omit<Ignition, 'holdout' | 'calibration'> & {
   candidates_evaluated?: number;
   calibration: Ignition['calibration'] & {target?: number};
-  holdout: {held_out: Ignition['holdout']['held_out']; errors?: HoldoutErrors};
+  holdout: {held_out: Ignition['holdout']['held_out']; errors?: HoldoutErrors; uncertainty_calibrated?: boolean};
   /** Same shape as synthetic_summary, for the hold-out setup. */
   synthetic_summary_holdout?: Ignition['synthetic_summary'];
 };
@@ -23,7 +23,10 @@ export type IgnitionFile = Omit<Ignition, 'holdout' | 'calibration'> & {
 export function EstimatedPlace({ig}: {ig: IgnitionFile}) {
   return (
     <>
-      {formatLatLon(ig.map.lat, ig.map.lon)} <span className="text-muted">± {meters(ig.r90_m)} (90%)</span>
+      {formatLatLon(ig.map.lat, ig.map.lon)}{' '}
+      <span className="text-muted">
+        ± {meters(ig.r90_m)} (90%{ig.uncertainty_calibrated === false ? ', uncalibrated' : ''})
+      </span>
     </>
   );
 }

@@ -136,6 +136,12 @@ function IgnitionSection({fire}: {fire: FireData}) {
   const reported = fire.aoi.official.incident?.reported_location;
   const shownDist = reported ? greatCircleM(ig.map.lon, ig.map.lat, reported[0], reported[1]) : null;
   const fullOutside = ig.reference_outside_first_footprint_m;
+  // The hold-out fit's start, from its error vs CAL FIRE's start; later than a withheld perimeter
+  // means it predicts that perimeter unburned, so its start-time error is not a result.
+  const reportedStart = fire.aoi.official.incident?.start_utc;
+  const startsAfterHeldOut =
+    !!e && !!reportedStart && holdout.held_out.length > 0 &&
+    Date.parse(reportedStart) + e.backtrace_time_error_min * 60_000 > Math.min(...holdout.held_out.map(h => Date.parse(h.t)));
   return (
     <>
       {head}
@@ -230,10 +236,14 @@ function IgnitionSection({fire}: {fire: FireData}) {
             <Stat
               label="Hold-out fit's start-time error"
               value={signedHours(e.backtrace_time_error_min)}
-              sub={`hold-out fit − reported · baseline ${signedHours(e.baseline_time_error_min)} (area backcast)`}
+              sub={
+                startsAfterHeldOut
+                  ? 'its start is later than the withheld perimeters, which it predicts unburned: not a credible start'
+                  : `hold-out fit − reported · baseline ${signedHours(e.baseline_time_error_min)} (area backcast)`
+              }
             />
             <Stat
-              label="Reported point within its 90% radius"
+              label={`Reported point within its 90% radius${holdout.uncertainty_calibrated === false ? ' (uncalibrated)' : ''}`}
               value={yesNo(e.reference_within_r90)}
               sub={
                 outside != null

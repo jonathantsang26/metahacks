@@ -61,6 +61,35 @@ def test_calibrate_picks_the_smallest_covering_temperature():
     assert shown["cases"] == 2 and shown["of"] == 5 and shown["median_time_err_min"] == 20.0
 
 
+def test_uncalibrated_temperature_shows_no_start_time():
+    # No temperature reaches 90% coverage: the widest is used, flagged, and nothing is shown.
+    cases = [{"coverage_by_tau": {str(t): {"r90_m": 100 * t, "t90_width_h": 1.0, "distance": False, "time": False}
+                                  for t in s11.TAUS_H},
+              "estimate": {"k": 2.0}, "backtrace_time_err_min": 10.0} for _ in range(6)]
+    cal = s11.calibrate(cases)
+    assert cal["tau_h"] == s11.TAUS_H[-1] and not cal["reached_on_calibration_half"]
+    assert cal["test_start_time_shown"]["cases"] == 0
+    tm = s11.timing({"k": 2.0}, {"t90_h": (0.0, 1.0)}, calibrated=False)
+    assert not tm["identifiable"] and "not calibrated" in tm["reasons"][0]
+
+
+def test_posterior_comes_from_the_stage_one_grid_only():
+    # A 6×6 domain with a lattice every 3 cells; each lattice point's weight is spread evenly over
+    # the cells nearest to it, and the result does not depend on any stage-2 candidates.
+    domain = np.ones((6, 6), bool)
+    pts = [(0, 0), (0, 3), (3, 0), (3, 3)]
+    grid = np.array([(r, c, t, 1.0, 1.0) for r, c in pts for t in (1.0, 2.0)], float)
+    losses = np.array([0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5])
+    est = {"grid_cands": grid, "grid_losses": losses, "domain": domain}
+    post = s11.cell_posterior(est, tau_h=1.0)
+    assert np.isclose(post.sum(), 1.0) and (post > 0).all()
+    w = s11.weights(losses, 1.0)
+    assert np.allclose(post[0:2, 0:2], (w[0] + w[1]) / post[0:2, 0:2].size)  # the (0, 0) block, shared evenly
+    est["row"], est["col"] = 0, 0
+    u = s11.uncertainty(est, s11.Grid(-118.0, 34.0, -117.99, 34.01, 6, 6), tau_h=1.0)
+    assert u["t90_h"][0] in (1.0, 2.0) and u["t90_h"][1] in (1.0, 2.0)
+
+
 def test_weighted_quantile():
     v, w = np.array([3.0, 1.0, 2.0]), np.array([0.2, 0.5, 0.3])
     assert s11.weighted_quantile(v, w, 0.5) == 1.0

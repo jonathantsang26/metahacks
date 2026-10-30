@@ -64,6 +64,12 @@ def synthetic_section(fire) -> list[str]:
         "Location baseline = centroid of the first footprint the fit sees; time baseline = linear back-extrapolation of sqrt(area).",
         "",
     ]
+    domain = [(label, s["truth_in_search_domain"]) for label, s, _ in scenarios if s and s.get("truth_in_search_domain") is not None]
+    if domain:
+        rows += ["Search domain: the back-trace searches the first footprint its fit sees. The true origin lay inside it in "
+                 + "; ".join(f"{share:.0%} of cases ({label})" for label, share in domain)
+                 + ". A synthetic fire grown from its origin almost always contains it, so the benchmark does not test an "
+                 "origin outside the first mapped perimeter, which is where CAL FIRE's reported point lies for Eaton.", ""]
     for label, _, cal in scenarios:
         rows += calibration_lines(cal, label)
     return rows
@@ -73,7 +79,9 @@ def calibration_lines(cal, label: str) -> list[str]:
     if not cal:
         return []
     t = cal["test_coverage"]
-    reached = "" if cal["reached_on_calibration_half"] else " (the 90% target was not reached on the calibration half; this is the widest setting tried)"
+    reached = ("" if cal["reached_on_calibration_half"] else
+               " (uncalibrated: no temperature tried reached the 90% target on the calibration half, so this is the widest "
+               "tried, and the fits it serves withhold their start time)")
     return [
         f"Uncertainty calibration, {label}: posterior temperature tau = {cal['tau_h']:g} h, chosen on the {cal['calibration_cases']} "
         f"even-numbered cases{reached}. On the {cal['test_cases']} odd-numbered cases it never saw, the 90% radius "
@@ -116,8 +124,9 @@ def holdout_section(fire) -> list[str]:
             f"| Start time vs CAL FIRE's official start | {fmt_min(e['backtrace_time_error_min'])} | {fmt_min(e['baseline_time_error_min'])} |",
         ]
         if "reference_within_r90" in e:
+            unc = "" if h.get("uncertainty_calibrated", True) else ", uncalibrated"
             rows += [
-                f"| Reported location inside the 90% radius ({est['r90_m']:,.0f} m) | {yes(e['reference_within_r90'])} | – |",
+                f"| Reported location inside the 90% radius ({est['r90_m']:,.0f} m{unc}) | {yes(e['reference_within_r90'])} | – |",
                 f"| Official start inside the 90% interval ({est['t90'][0]} – {est['t90'][1]}) | {yes(e['reference_within_t90'])} | – |",
             ]
     rows += [f"| IoU with held-out perimeter {x['t']} | {x['iou']:.2f} | – |" for x in h["held_out"]]
@@ -277,7 +286,8 @@ def headline(fires) -> list[str]:
     def coverage(f):
         c = syn(f)["calibration_all_observations"]
         return (f"{c['test_coverage']['distance']:.0%} / {c['test_coverage']['time']:.0%} "
-                f"(radius {c['median_test_r90_m']:,.0f} m, interval {c['median_test_t90_width_h']:g} h)")
+                f"(radius {c['median_test_r90_m']:,.0f} m, interval {c['median_test_t90_width_h']:g} h)"
+                + ("" if c["reached_on_calibration_half"] else "; uncalibrated, widest temperature tried"))
 
     def real_start(f):
         i, a = ign(f), read(f, "aoi.json")["official"]["incident"]

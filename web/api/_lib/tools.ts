@@ -28,6 +28,7 @@ type Structures = {features: {geometry: {coordinates: number[]}; properties: Str
 type Ignition = {
   map: {lon: number; lat: number; t: string};
   r90_m?: number;
+  uncertainty_calibrated?: boolean;
   t90?: [string, string];
   timing?: {identifiable: boolean; reasons: string[]; interval90_width_h: number};
   region90_km2?: number;
@@ -451,7 +452,7 @@ const ignitionSummary: Impl = (_args, {store, tz}) => {
   }
   // When the back-trace cannot pin down the start time, the model never sees one to repeat.
   const timed = ig.timing?.identifiable ?? true;
-  const where = {lon: ig.map.lon, lat: ig.map.lat, radius90_m: ig.r90_m ?? null};
+  const where = {lon: ig.map.lon, lat: ig.map.lat, radius90_m: ig.r90_m ?? null, uncertainty_calibrated: ig.uncertainty_calibrated ?? true};
   const est = timed
     ? {...stamp(Date.parse(ig.map.t), tz), ...where, interval90: ig.t90 ? ig.t90.map(t => stamp(Date.parse(t), tz)) : null}
     : {...where, start_time: 'not identifiable from the data', why: ig.timing?.reasons ?? []};

@@ -103,9 +103,12 @@ export type Ignition = {
     median_test_t90_width_h: number;
     test_start_time_shown: {cases: number; of: number};
   };
+  /** False when no temperature tried reached 90% coverage: the radius and interval are the widest tried. */
+  uncertainty_calibrated?: boolean;
   /** `errors` is written only when the fire has a CAL FIRE incident to compare against. */
   holdout: {
     held_out: {t: string; iou: number}[];
+    uncertainty_calibrated?: boolean;
     errors?: {
       backtrace_distance_m: number;
       baseline_distance_m: number;
