@@ -1,8 +1,9 @@
 """Step 09b: house-level exposure and construction-feature associations.
 
 For every inspected residence, joins CAL FIRE's construction attributes with the fire's
-exposure at that spot: when the fire arrived (arrival raster), the gust at that hour, the
-distance to wildland vegetation, and slope. Then asks, among homes exposed under similar
+exposure at that spot: when the fire arrived (arrival raster; for homes just outside the burned
+area, the arrival at the nearest burned cell, flagged as imputed), the HRRR gust at that place and
+hour, the distance to wildland vegetation, and slope. Then asks, among homes exposed under similar
 conditions, which construction features went with survival:
 
   * strata = gust at arrival (above/below the population median, which is recorded) × distance
@@ -14,7 +15,7 @@ conditions, which construction features went with survival:
 These are associations in observational data, not causal effects: homes differ in ways the
 inspection does not record (age, maintenance, defensible space, neighbouring structures).
 
-Inputs:  structures.geojson (09), work/<fire>/arrival_hours.npy (06), weather.json (07),
+Inputs:  structures.geojson (09), work/<fire>/arrival_hours.npy (06), wind_field.json (07; weather.json if absent),
          work/<fire>/landcover.npy (03), work/<fire>/slope_deg.npy (02), aoi.json
 Outputs: exposure.json        columnar per-structure exposure (ids match structures.geojson)
          exposure_stats.json  strata, per-feature contrasts and the regression
@@ -29,6 +30,7 @@ from datetime import timedelta
 import numpy as np
 from scipy.ndimage import binary_dilation, distance_transform_edt, uniform_filter
 
+from ember import spread as sp
 from ember.config import load_fire
 from ember.grid import Grid
 from ember.manifest import add_source
@@ -114,6 +116,28 @@ def logistic(X: np.ndarray, y: np.ndarray, names: list[str], iters: int = 50) ->
     return {"n": int(len(y)), "terms": out, "dropped_constant": dropped}
 
 
+def gust_lookup(fire, w0, grid):
+    """gust(row, col, hours) at a home: the HRRR field interpolated bilinearly in space and linearly
+    in time; the single weather.json series when there is no field."""
+    path = fire.out_dir / "wind_field.json"
+    if path.exists():
+        f = fire.read_json("wind_field.json")
+        t = np.array([(parse_t(x) - w0).total_seconds() / 3600 for x in f["t"]])
+        g = np.array(f["gust_mph"], float).T  # (T, P)
+        field = sp.Wind(np.zeros_like(g), np.zeros_like(g), float(t[0]), 1.0, f["rows"], f["cols"])
+        idx, wts = field.stencil(grid.height, grid.width)
+
+        def at(r, c, hours):
+            k = r * grid.width + c
+            series = (g[:, idx[k]] * wts[k]).sum(axis=1)
+            return float(np.interp(hours, t, series))
+        return at, f"HRRR {f['rows']}×{f['cols']} field at the home, at its arrival hour"
+    hourly = fire.read_json("weather.json")["hourly"]
+    t = np.array([(parse_t(h["t"]) - w0).total_seconds() / 3600 for h in hourly])
+    gust = np.array([h.get("gust_mph") or h["wind_mph"] for h in hourly], float)
+    return (lambda r, c, hours: float(np.interp(hours, t, gust))), "weather.json series at the AOI center"
+
+
 def main() -> None:
     fire = load_fire()
     grid = Grid.for_fire(fire)
@@ -122,9 +146,7 @@ def main() -> None:
     arrival = np.load(fire.work_dir / "arrival_hours.npy")
     landcover = np.load(fire.work_dir / "landcover.npy")
     slope = np.load(fire.work_dir / "slope_deg.npy")
-    hourly = fire.read_json("weather.json")["hourly"]
-    w_t = np.array([(parse_t(h["t"]) - w0).total_seconds() / 3600 for h in hourly])
-    w_gust = np.array([h.get("gust_mph") or h["wind_mph"] for h in hourly], float)
+    gust_at, gust_source = gust_lookup(fire, w0, grid)
 
     px, py = grid.pixel_m
     # Street trees are 'tree cover' in WorldCover, so wildland = vegetation away from the urban fabric.
@@ -133,9 +155,12 @@ def main() -> None:
     dist_wild = distance_transform_edt(~wild, sampling=(py, px))
     burned = ~np.isnan(arrival)
     near_burn = binary_dilation(burned, iterations=max(1, int(round(100 / px))))  # within ~100 m
+    # Arrival at the nearest burned cell: the exposure time for homes just outside the burned area.
+    _, (nr, nc) = distance_transform_edt(~burned, sampling=(py, px), return_indices=True)
+    arrival_near = arrival[nr, nc]
 
     feats = fire.read_json("structures.geojson")["features"]
-    cols = {k: [] for k in ("id", "arrival_t", "gust_mph", "dist_wildland_m", "slope_deg", "exposed")}
+    cols = {k: [] for k in ("id", "arrival_t", "arrival_imputed", "gust_mph", "dist_wildland_m", "slope_deg", "exposed")}
     rows = []
     for f in feats:
         p = f["properties"]
@@ -143,23 +168,20 @@ def main() -> None:
         c, r = (int(round(v)) for v in grid.to_px(lon, lat))
         if not (0 <= r < grid.height and 0 <= c < grid.width):
             continue
-        a = arrival[r, c]
-        gust = float(np.interp(a, w_t, w_gust)) if np.isfinite(a) else None
         exposed = bool(near_burn[r, c])
+        imputed = not burned[r, c]
+        a = arrival_near[r, c] if exposed else arrival[r, c]
+        gust = gust_at(r, c, a) if np.isfinite(a) else None
         cols["id"].append(p["id"])
         cols["arrival_t"].append(iso(w0 + timedelta(hours=float(a))) if np.isfinite(a) else None)
+        cols["arrival_imputed"].append(bool(imputed and np.isfinite(a)))
         cols["gust_mph"].append(round(gust, 1) if gust is not None else None)
         cols["dist_wildland_m"].append(round(float(dist_wild[r, c]), 1))
         cols["slope_deg"].append(round(float(slope[r, c]), 1))
         cols["exposed"].append(exposed)
         if exposed and p.get("structure_category") in RESIDENTIAL and p.get("damage") not in (None, "Inaccessible"):
-            # Gust at arrival; for cells just outside the burned area use the nearest burned cell's time.
-            if gust is None:
-                r0, r1, c0, c1 = max(r - 8, 0), r + 9, max(c - 8, 0), c + 9
-                local = arrival[r0:r1, c0:c1]
-                gust = float(np.interp(np.nanmin(local), w_t, w_gust)) if np.isfinite(local).any() else 0.0
             rows.append({**p, "gust": gust, "dist": float(dist_wild[r, c]), "slope": float(slope[r, c]),
-                         "destroyed": p["damage"] == "Destroyed"})
+                         "imputed": imputed, "destroyed": p["damage"] == "Destroyed"})
     fire.write_json("exposure.json", {"fields": list(cols), **cols})
 
     gust_split = float(np.median([r["gust"] for r in rows])) if rows else 0.0
@@ -209,6 +231,9 @@ def main() -> None:
         "population": "Inspected residences within ~100 m of the burned area (arrival raster), excluding inaccessible",
         "n": len(rows), "destroyed": int(sum(r["destroyed"] for r in rows)),
         "gust_split_mph": round(gust_split, 1),
+        "gust_source": gust_source,
+        "arrival_imputed": {"n": int(sum(r["imputed"] for r in rows)),
+                            "note": "Exposed homes outside the burned cells take the arrival time of the nearest burned cell."},
         "strata": strata, "contrasts": contrasts, "regression": regression,
         "caveat": "Associations in observational inspection data, adjusted only for the recorded exposure variables; not causal effects. "
                   "Attributes of destroyed homes are recorded after the fire, so features that burn away (decks, fences, siding) can be "

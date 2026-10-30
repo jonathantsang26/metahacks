@@ -25,3 +25,16 @@ def test_contrast_intervals_bracket_their_estimates(fire):
     assert terms[0]["term"] == "intercept"
     assert len(terms) + len(st["regression"]["dropped_constant"]) == 1 + 3 + len(st["contrasts"])
     assert all(np.isfinite(t["coef"]) for t in terms)
+
+
+def test_imputed_arrivals_are_flagged_and_counted(fire):
+    ex = fire.read_json("exposure.json")
+    st = fire.read_json("exposure_stats.json")
+    assert "arrival_imputed" in ex["fields"]
+    imputed = [i for i, flag in enumerate(ex["arrival_imputed"]) if flag]
+    assert all(ex["arrival_t"][i] is not None for i in imputed)
+    assert 0 <= st["arrival_imputed"]["n"] <= sum(ex["arrival_imputed"])
+    # Every exposed home has an arrival time and a gust (no 0 mph fallbacks).
+    exposed = [i for i, e in enumerate(ex["exposed"]) if e]
+    assert all(ex["arrival_t"][i] is not None and ex["gust_mph"][i] is not None for i in exposed)
+    assert "HRRR" in st["gust_source"]
