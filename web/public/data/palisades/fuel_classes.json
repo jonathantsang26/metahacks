@@ -1,0 +1,68 @@
+{
+  "0": {
+    "label": "No data",
+    "worldcover": [
+      0
+    ],
+    "burnable": false
+  },
+  "1": {
+    "label": "Grass",
+    "worldcover": [
+      30
+    ],
+    "burnable": true
+  },
+  "2": {
+    "label": "Chaparral / shrubland",
+    "worldcover": [
+      20
+    ],
+    "burnable": true
+  },
+  "3": {
+    "label": "Forest",
+    "worldcover": [
+      10
+    ],
+    "burnable": true
+  },
+  "4": {
+    "label": "Urban / WUI (structures)",
+    "worldcover": [
+      50
+    ],
+    "burnable": true
+  },
+  "5": {
+    "label": "Cropland",
+    "worldcover": [
+      40
+    ],
+    "burnable": true
+  },
+  "6": {
+    "label": "Bare / rock",
+    "worldcover": [
+      60,
+      70,
+      100
+    ],
+    "burnable": false
+  },
+  "7": {
+    "label": "Water",
+    "worldcover": [
+      80
+    ],
+    "burnable": false
+  },
+  "8": {
+    "label": "Wetland",
+    "worldcover": [
+      90,
+      95
+    ],
+    "burnable": true
+  }
+}
