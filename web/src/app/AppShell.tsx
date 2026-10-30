@@ -4,18 +4,13 @@ import {Dock} from '../dock/Dock';
 import {Header} from '../header/Header';
 import {Rail} from '../rail/Rail';
 import {Stage} from '../stage/Stage';
-import {startClock, useTime} from '../state/time';
+import {startClock} from '../state/time';
 
 /** DESIGN.md §1: header 40 / [stage + dock | rail 308]. */
 export function AppShell() {
   const {data, error} = useFireData();
 
   useEffect(() => startClock(), []);
-  useEffect(() => {
-    if (!data) return;
-    const [a, b] = data.aoi.window_utc;
-    useTime.getState().setRange(Date.parse(a), Date.parse(b));
-  }, [data]);
 
   if (error) {
     return (

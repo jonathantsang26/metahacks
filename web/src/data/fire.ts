@@ -1,4 +1,5 @@
 import {useEffect, useState} from 'react';
+import {useTime} from '../state/time';
 
 /** Shapes of the files the pipeline writes to public/data/<fire>/. */
 export type Aoi = {
@@ -52,7 +53,13 @@ export type FireData = {
   perimeter: PerimeterCollection;
 };
 
-const FIRE_ID = new URLSearchParams(location.search).get('fire') ?? 'eaton';
+/** The fires the pipeline has built; `?fire=<id>` picks one. */
+export const FIRES = [
+  {id: 'eaton', name: 'Eaton Fire'},
+  {id: 'palisades', name: 'Palisades Fire'}
+] as const;
+
+export const FIRE_ID = new URLSearchParams(location.search).get('fire') ?? 'eaton';
 
 async function getJson<T>(url: string): Promise<T> {
   const r = await fetch(url);
@@ -71,7 +78,11 @@ export function useFireData(): {data: FireData | null; error: string | null} {
       getJson<{sources: ManifestSource[]}>(`${base}/manifest.json`),
       getJson<PerimeterCollection>(`${base}/final_perimeter.geojson`)
     ])
-      .then(([aoi, dem, manifest, perimeter]) => setData({id: FIRE_ID, base, aoi, dem, manifest, perimeter}))
+      .then(([aoi, dem, manifest, perimeter]) => {
+        // Set the replay window before the first render that has data, so no panel reads 0–1 ms.
+        useTime.getState().setRange(Date.parse(aoi.window_utc[0]), Date.parse(aoi.window_utc[1]));
+        setData({id: FIRE_ID, base, aoi, dem, manifest, perimeter});
+      })
       .catch(e => setError(String(e.message ?? e)));
   }, []);
   return {data, error};

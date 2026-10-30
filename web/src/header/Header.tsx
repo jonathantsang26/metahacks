@@ -1,26 +1,52 @@
-import type {FireData} from '../data/fire';
+import {useEffect, useRef, useState} from 'react';
+import {FIRES, type FireData} from '../data/fire';
 import {formatDate} from '../lib/format';
 import {useTime} from '../state/time';
 import {useUi, type Tab} from '../state/ui';
 import {Icon, Logo} from '../ui/Icon';
 
-const TABS: {id: Tab; label: string; icon: string}[] = [
+/** Drones and Resources have no data in this build (DESIGN.md §5.2–5.3), so their tabs are disabled. */
+const TABS: {id: Tab; label: string; icon: string; unavailable?: string}[] = [
   {id: 'incident', label: 'Incident', icon: 'map'},
-  {id: 'drones', label: 'Drones', icon: 'drone'},
-  {id: 'resources', label: 'Resources', icon: 'truck'}
+  {id: 'drones', label: 'Drones', icon: 'drone', unavailable: 'Drone footage analysis is not part of this build yet'},
+  {id: 'resources', label: 'Resources', icon: 'truck', unavailable: 'Aircraft, engine and crew data are not part of this build'}
 ];
 
 function Divider({dotted = false}: {dotted?: boolean}) {
-  return <span className={`mx-3 h-5 border-l ${dotted ? 'border-dotted border-ink/40' : 'border-hairline'}`} />;
+  return <span className={`mx-3 h-5 border-l ${dotted ? 'border-dotted border-muted' : 'border-hairline'}`} />;
 }
 
-function MenuButton({icon, label}: {icon: string; label: string}) {
+/** Incident switcher: each fire is a separate page load (`?fire=<id>`), so every file reloads cleanly. */
+function FirePicker({fire}: {fire: FireData}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: PointerEvent) => ref.current && !ref.current.contains(e.target as Node) && setOpen(false);
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [open]);
   return (
-    <button className="flex items-center gap-1.5 rounded px-2 py-1 text-sm text-ink hover:bg-tabgroup">
-      <Icon name={icon} size={15} />
-      {label}
-      <Icon name="chevron" size={12} className="text-muted" />
-    </button>
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen(o => !o)} className="flex items-center gap-1 text-sm font-semibold" aria-expanded={open}>
+        {fire.aoi.name}
+        <Icon name="chevron" size={13} />
+      </button>
+      {open && (
+        <ul className="absolute left-0 top-7 z-30 min-w-[160px] rounded-md bg-card py-1 shadow-[0_0_0_1px_var(--hairline),0_6px_18px_rgba(0,0,0,0.12)]">
+          {FIRES.map(f => (
+            <li key={f.id}>
+              <a
+                href={`?fire=${f.id}`}
+                className={`block px-3 py-1.5 text-sm hover:bg-tabgroup ${f.id === fire.id ? 'font-semibold' : ''}`}
+              >
+                {f.name}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -39,10 +65,7 @@ export function Header({fire}: {fire: FireData}) {
         <span className="text-sm text-muted">Wildfire Forensic Analysis</span>
       </span>
       <Divider dotted />
-      <button className="flex items-center gap-1 text-sm font-semibold">
-        {fire.aoi.name}
-        <Icon name="chevron" size={13} />
-      </button>
+      <FirePicker fire={fire} />
       <span className="ml-4 hidden truncate text-sm text-muted xl:inline">{fire.aoi.location}</span>
       <span className="ml-4 hidden items-center gap-1.5 text-sm md:flex">
         <Icon name="calendar" size={14} className="text-muted" />
@@ -54,7 +77,9 @@ export function Header({fire}: {fire: FireData}) {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`flex items-center gap-1.5 rounded px-3 py-1 text-sm ${
+            disabled={!!t.unavailable}
+            title={t.unavailable}
+            className={`flex items-center gap-1.5 rounded px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-50 ${
               tab === t.id ? 'bg-tabactive font-medium text-ink shadow-[0_0_0_1px_var(--hairline)]' : 'text-muted'
             }`}
           >
@@ -63,16 +88,6 @@ export function Header({fire}: {fire: FireData}) {
           </button>
         ))}
       </nav>
-
-      <div className="ml-3 hidden items-center lg:flex">
-        <MenuButton icon="calendar" label="View" />
-        <MenuButton icon="chart" label="Analysis" />
-        <MenuButton icon="share" label="Share" />
-      </div>
-      <Divider />
-      <button className="text-ink" title="Settings">
-        <Icon name="gear" size={17} />
-      </button>
     </header>
   );
 }

@@ -15,7 +15,6 @@ const svgThumb = (body: string) =>
 
 const THUMBS: Partial<Record<LayerId, string>> = {
   terrain: 'linear-gradient(135deg,#6f7d4f,#a99e6c)',
-  imagery: 'linear-gradient(135deg,#9a9a92,#c8c6bd)',
   burnScar: 'linear-gradient(135deg,#3a1f17,#a3381e)',
   fireSpread: 'linear-gradient(135deg,#f08a2b,#d4521f)',
   perimeters: `${svgThumb("<path d='M6 9 17 5 23 13 17 23 7 20Z' fill='none' stroke='#fff7ec' stroke-width='1.6'/>")} #8f8a7c`,
@@ -23,15 +22,10 @@ const THUMBS: Partial<Record<LayerId, string>> = {
   ignition: 'radial-gradient(circle,#c70f1a 0 18%,#ff6b1a 40%,#ffd65c 70%)',
   spine: `${svgThumb("<path d='M4 22 12 15 18 12 24 5' fill='none' stroke='#f2b233' stroke-width='2' stroke-dasharray='3 2'/>")} #8f8a7c`,
   wind: 'linear-gradient(135deg,#d6dadb,#eef0ee)',
-  suppression: 'linear-gradient(135deg,#cdb79a,#b4442f)',
   structures: 'linear-gradient(135deg,#8d8d86,#b9b7ae)',
   roads: 'linear-gradient(135deg,#d9d6cc,#bcb8ab)',
-  labels: 'linear-gradient(135deg,#ebe8de,#d6d2c6)',
-  boundaries: 'linear-gradient(135deg,#e3e0d6,#cfcabd)'
+  labels: 'linear-gradient(135deg,#ebe8de,#d6d2c6)'
 };
-
-/** User-facing wording for a layer's `pending` note where the shared text is planning shorthand. */
-const PENDING_TEXT: Partial<Record<LayerId, string>> = {suppression: 'not in this build'};
 
 function LayersList() {
   const {layers, setLayer} = useUi();
@@ -40,7 +34,7 @@ function LayersList() {
       {LAYERS.map(({id}) => {
         const l = layers[id];
         const active = l.ready && l.visible;
-        const pending = PENDING_TEXT[id] ?? l.pending;
+        const pending = l.pending;
         return (
           <li key={id} className="flex items-center gap-2.5 px-3 py-1.5" title={l.ready ? undefined : pending}>
             <input

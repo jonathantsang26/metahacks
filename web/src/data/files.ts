@@ -74,6 +74,13 @@ export type WindField = {
   convention: string;
 };
 
+export type SyntheticSummary = {
+  n: number;
+  distance_m: {backtrace: {median: number; p90?: number}; baseline_first_footprint_centroid: {median: number; p90?: number}};
+  start_time_error_min: {backtrace: {median: number; p90?: number}; baseline_area_backcast: {median: number; p90?: number}};
+  backtrace_beats_baseline: {distance: number; time: number};
+};
+
 /** ignition.json (step 11). `timing.identifiable` false → show the location, never a start time. */
 export type Ignition = {
   map: {lon: number; lat: number; t: string; k: number; lb_max: number};
@@ -94,24 +101,26 @@ export type Ignition = {
     median_test_t90_width_h: number;
     test_start_time_shown: {cases: number; of: number};
   };
+  /** `errors` is written only when the fire has a CAL FIRE incident to compare against. */
   holdout: {
     held_out: {t: string; iou: number}[];
-    errors: {
+    errors?: {
       backtrace_distance_m: number;
       baseline_distance_m: number;
       backtrace_time_error_min: number;
       baseline_time_error_min: number;
       reference_within_r90: boolean;
       reference_within_t90: boolean;
+      /** How far CAL FIRE's point lies outside the hold-out fit's first footprint (0 = inside). */
+      reference_outside_first_fit_footprint_m?: number;
     };
   };
+  /** How far CAL FIRE's point lies outside the first mapped footprint (0 = inside). */
   reference_outside_first_footprint_m: number | null;
-  synthetic_summary: {
-    n: number;
-    distance_m: {backtrace: {median: number}; baseline_first_footprint_centroid: {median: number}};
-    start_time_error_min: {backtrace: {median: number}; baseline_area_backcast: {median: number}};
-    backtrace_beats_baseline: {distance: number; time: number};
-  };
+  /** Synthetic benchmark fitted on every footprint, as the app's fit is. */
+  synthetic_summary: SyntheticSummary;
+  /** The same benchmark with the first two footprints held out, as the real hold-out is. */
+  synthetic_summary_holdout?: SyntheticSummary;
   model_card: string;
 };
 
