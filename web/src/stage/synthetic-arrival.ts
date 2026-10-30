@@ -6,7 +6,8 @@
  * perimeter outline is drawn separately from DEM samples, any UV flip or offset in the
  * shader shows up immediately as the two not lining up.
  *
- * Replaced by pipeline step 06's arrival.png (BUILD.md §3).
+ * Kept only as the fallback when step 06's arrival.png fails to load; the stage then shows the
+ * SIM chip so the pattern is never mistaken for the fire.
  */
 import type {PerimeterCollection} from '../data/fire';
 import {perimeterRings} from '../data/fire';
