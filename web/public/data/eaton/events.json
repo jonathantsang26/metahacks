@@ -1,0 +1,57 @@
+[
+  {
+    "kind": "reported_start",
+    "label": "Reported start (CAL FIRE)",
+    "t": "2025-01-08T02:18:00Z",
+    "lon": -118.069155,
+    "lat": 34.203483,
+    "source": "CAL FIRE incidents API",
+    "id": "e1"
+  },
+  {
+    "kind": "peak_gust",
+    "label": "Peak gust 46 mph (reanalysis)",
+    "t": "2025-01-08T07:00:00Z",
+    "lon": -118.087561,
+    "lat": 34.199862,
+    "source": "weather.json (ERA5 via Open-Meteo)",
+    "id": "e2"
+  },
+  {
+    "kind": "ridge_crossing",
+    "label": "Ridge crossing (860 m)",
+    "t": "2025-01-08T07:05:02Z",
+    "lon": -118.12001,
+    "lat": 34.208877,
+    "source": "profile.json",
+    "id": "e3"
+  },
+  {
+    "kind": "rapid_growth",
+    "label": "Rapid growth (+1,321 acres/h)",
+    "t": "2025-01-08T08:00:00Z",
+    "lon": -118.109362,
+    "lat": 34.201817,
+    "source": "series.json",
+    "id": "e4"
+  },
+  {
+    "kind": "spot_fire",
+    "label": "Spot fire mapped (7 acres)",
+    "t": "2025-01-09T22:10:35Z",
+    "lon": -118.157698,
+    "lat": 34.183987,
+    "source": "spots.geojson (NIFC perimeters)",
+    "id": "e5"
+  },
+  {
+    "kind": "containment",
+    "label": "Containment (CAL FIRE)",
+    "t": "2025-01-31T20:00:00Z",
+    "lon": -118.087561,
+    "lat": 34.199862,
+    "source": "CAL FIRE 2025 perimeters",
+    "date_only": true,
+    "id": "e6"
+  }
+]

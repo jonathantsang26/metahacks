@@ -106,6 +106,14 @@ This produces the **Ignition Probability** layer, the `Ignition (est.)` event, a
    - *Only if* an official origin area is published in citable form, also report the distance to it, quoting the source. Don't infer or state a cause. For Eaton the investigation was still open at the time of writing.
 6. Running the same model forward from the MAP ignition gives the **Fire Spread (Modeled)** layer. The UI can show modeled vs observed side by side, which also makes a good demo beat.
 
+**As built** (`pipeline/steps/s11_ignition.py`; results in `docs/RESULTS.md`). The plan above is what we started from. What changed:
+- **Candidates:** a lattice inside the first fitted footprint, not a 200 m grid around detections.
+- **Start times:** log-spaced 0.5–90 h before that footprint, not −6 h in 15-minute steps. Palisades was first mapped 26 h after ignition.
+- **Score:** a weighted hinge loss on the observed footprints, not a Gaussian likelihood. Inside a footprint should have burned by then; a band outside it should not have. FIRMS is not used without a key.
+- **Uncertainty:** a 90% radius and a 90% start-time interval. Their temperature is calibrated on the fire's own synthetic cases.
+- **Evaluation:** a synthetic recovery benchmark alongside the hold-out.
+- **Withheld start time:** when the start time is not identifiable, it is left off the timeline and out of the analyst's answers.
+
 ### 4b. Meta models
 
 Facts from Meta's developer docs (`dev.meta.ai/docs`, read Oct 29):

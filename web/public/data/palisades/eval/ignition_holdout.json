@@ -1,0 +1,67 @@
+{
+  "fit_observations": [
+    "2025-01-09T22:53:47Z",
+    "2025-01-10T00:25:40Z",
+    "2025-01-10T19:05:53Z"
+  ],
+  "held_out": [
+    {
+      "t": "2025-01-08T20:34:03Z",
+      "observed_cells": 5185,
+      "predicted_cells": 0,
+      "iou": 0.0
+    },
+    {
+      "t": "2025-01-08T21:24:23Z",
+      "observed_cells": 7410,
+      "predicted_cells": 0,
+      "iou": 0.0
+    }
+  ],
+  "estimate": {
+    "lonlat": [
+      -118.56592,
+      34.052999
+    ],
+    "t": "2025-01-09T17:31:20Z",
+    "k": 45.255,
+    "r90_m": 1108.0,
+    "t90": [
+      "2025-01-09T13:17:47Z",
+      "2025-01-09T19:38:47Z"
+    ],
+    "timing": {
+      "identifiable": false,
+      "reasons": [
+        "90% start-time interval is 6.4 h wide (limit 6 h)"
+      ],
+      "interval90_width_h": 6.35
+    },
+    "tau_h": 0.15
+  },
+  "baselines": {
+    "first_fit_footprint_centroid_lonlat": [
+      -118.582434,
+      34.064274
+    ],
+    "area_backcast_t": "2024-12-09T06:33:55Z"
+  },
+  "reference": {
+    "source": "CAL FIRE incidents API",
+    "url": "https://www.fire.ca.gov/incidents/2025/1/7/palisades-fire/",
+    "t": "2025-01-07T18:30:00Z",
+    "lonlat": [
+      -118.54453,
+      34.07022
+    ],
+    "note": "Reported incident location, not an investigated origin."
+  },
+  "errors": {
+    "backtrace_distance_m": 2750.3,
+    "baseline_distance_m": 3556.9,
+    "backtrace_time_error_min": 2821.3,
+    "baseline_time_error_min": -42476.1,
+    "reference_within_r90": false,
+    "reference_within_t90": false
+  }
+}

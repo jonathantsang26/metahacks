@@ -1,0 +1,842 @@
+{
+  "population": "Inspected residences within ~100 m of the burned area (arrival raster), excluding inaccessible",
+  "n": 9581,
+  "destroyed": 5564,
+  "gust_split_mph": 23.7,
+  "strata": [
+    {
+      "stratum": "gust>24|100-500m",
+      "n": 2531,
+      "destroyed": 1595,
+      "rate": 0.6302,
+      "ci95": [
+        0.6112,
+        0.6488
+      ]
+    },
+    {
+      "stratum": "gust>24|<100m",
+      "n": 944,
+      "destroyed": 387,
+      "rate": 0.41,
+      "ci95": [
+        0.379,
+        0.4416
+      ]
+    },
+    {
+      "stratum": "gust>24|\u2265500m",
+      "n": 1315,
+      "destroyed": 1136,
+      "rate": 0.8639,
+      "ci95": [
+        0.8443,
+        0.8814
+      ]
+    },
+    {
+      "stratum": "gust\u226424|100-500m",
+      "n": 1737,
+      "destroyed": 658,
+      "rate": 0.3788,
+      "ci95": [
+        0.3563,
+        0.4019
+      ]
+    },
+    {
+      "stratum": "gust\u226424|<100m",
+      "n": 964,
+      "destroyed": 350,
+      "rate": 0.3631,
+      "ci95": [
+        0.3333,
+        0.3939
+      ]
+    },
+    {
+      "stratum": "gust\u226424|\u2265500m",
+      "n": 2090,
+      "destroyed": 1438,
+      "rate": 0.688,
+      "ci95": [
+        0.6678,
+        0.7075
+      ]
+    }
+  ],
+  "contrasts": [
+    {
+      "feature": "vents",
+      "label": "Vents: fine mesh (\u2264 1/8\") or none vs coarse/unscreened",
+      "n": 7370,
+      "or": 0.505,
+      "ci95": [
+        0.455,
+        0.56
+      ],
+      "unknown_rate": {
+        "destroyed": 0.3661,
+        "surviving": 0.0433
+      },
+      "by_stratum": [
+        {
+          "stratum": "gust>24|100-500m",
+          "protective": {
+            "n": 934,
+            "destroyed_rate": 0.4283
+          },
+          "reference": {
+            "n": 869,
+            "destroyed_rate": 0.6122
+          }
+        },
+        {
+          "stratum": "gust>24|<100m",
+          "protective": {
+            "n": 412,
+            "destroyed_rate": 0.2282
+          },
+          "reference": {
+            "n": 347,
+            "destroyed_rate": 0.4063
+          }
+        },
+        {
+          "stratum": "gust>24|\u2265500m",
+          "protective": {
+            "n": 356,
+            "destroyed_rate": 0.7275
+          },
+          "reference": {
+            "n": 576,
+            "destroyed_rate": 0.8681
+          }
+        },
+        {
+          "stratum": "gust\u226424|100-500m",
+          "protective": {
+            "n": 755,
+            "destroyed_rate": 0.2093
+          },
+          "reference": {
+            "n": 655,
+            "destroyed_rate": 0.3084
+          }
+        },
+        {
+          "stratum": "gust\u226424|<100m",
+          "protective": {
+            "n": 376,
+            "destroyed_rate": 0.1569
+          },
+          "reference": {
+            "n": 339,
+            "destroyed_rate": 0.2094
+          }
+        },
+        {
+          "stratum": "gust\u226424|\u2265500m",
+          "protective": {
+            "n": 516,
+            "destroyed_rate": 0.5213
+          },
+          "reference": {
+            "n": 1235,
+            "destroyed_rate": 0.6818
+          }
+        }
+      ]
+    },
+    {
+      "feature": "eaves",
+      "label": "Eaves: enclosed or none vs unenclosed",
+      "n": 5693,
+      "or": 1.158,
+      "ci95": [
+        1.026,
+        1.306
+      ],
+      "unknown_rate": {
+        "destroyed": 0.6968,
+        "surviving": 0.0027
+      },
+      "by_stratum": [
+        {
+          "stratum": "gust>24|100-500m",
+          "protective": {
+            "n": 717,
+            "destroyed_rate": 0.2789
+          },
+          "reference": {
+            "n": 630,
+            "destroyed_rate": 0.3397
+          }
+        },
+        {
+          "stratum": "gust>24|<100m",
+          "protective": {
+            "n": 453,
+            "destroyed_rate": 0.2472
+          },
+          "reference": {
+            "n": 259,
+            "destroyed_rate": 0.1737
+          }
+        },
+        {
+          "stratum": "gust>24|\u2265500m",
+          "protective": {
+            "n": 278,
+            "destroyed_rate": 0.6331
+          },
+          "reference": {
+            "n": 147,
+            "destroyed_rate": 0.4762
+          }
+        },
+        {
+          "stratum": "gust\u226424|100-500m",
+          "protective": {
+            "n": 658,
+            "destroyed_rate": 0.19
+          },
+          "reference": {
+            "n": 645,
+            "destroyed_rate": 0.1566
+          }
+        },
+        {
+          "stratum": "gust\u226424|<100m",
+          "protective": {
+            "n": 460,
+            "destroyed_rate": 0.2239
+          },
+          "reference": {
+            "n": 285,
+            "destroyed_rate": 0.1053
+          }
+        },
+        {
+          "stratum": "gust\u226424|\u2265500m",
+          "protective": {
+            "n": 533,
+            "destroyed_rate": 0.4409
+          },
+          "reference": {
+            "n": 628,
+            "destroyed_rate": 0.4395
+          }
+        }
+      ]
+    },
+    {
+      "feature": "roof",
+      "label": "Roof: tile, metal or concrete vs asphalt or wood",
+      "n": 8922,
+      "or": 0.614,
+      "ci95": [
+        0.558,
+        0.675
+      ],
+      "unknown_rate": {
+        "destroyed": 0.0845,
+        "surviving": 0.0309
+      },
+      "by_stratum": [
+        {
+          "stratum": "gust>24|100-500m",
+          "protective": {
+            "n": 797,
+            "destroyed_rate": 0.5006
+          },
+          "reference": {
+            "n": 1471,
+            "destroyed_rate": 0.6696
+          }
+        },
+        {
+          "stratum": "gust>24|<100m",
+          "protective": {
+            "n": 446,
+            "destroyed_rate": 0.3565
+          },
+          "reference": {
+            "n": 432,
+            "destroyed_rate": 0.4491
+          }
+        },
+        {
+          "stratum": "gust>24|\u2265500m",
+          "protective": {
+            "n": 359,
+            "destroyed_rate": 0.7994
+          },
+          "reference": {
+            "n": 857,
+            "destroyed_rate": 0.8938
+          }
+        },
+        {
+          "stratum": "gust\u226424|100-500m",
+          "protective": {
+            "n": 989,
+            "destroyed_rate": 0.3074
+          },
+          "reference": {
+            "n": 641,
+            "destroyed_rate": 0.4337
+          }
+        },
+        {
+          "stratum": "gust\u226424|<100m",
+          "protective": {
+            "n": 463,
+            "destroyed_rate": 0.3326
+          },
+          "reference": {
+            "n": 432,
+            "destroyed_rate": 0.3657
+          }
+        },
+        {
+          "stratum": "gust\u226424|\u2265500m",
+          "protective": {
+            "n": 403,
+            "destroyed_rate": 0.6427
+          },
+          "reference": {
+            "n": 1632,
+            "destroyed_rate": 0.6979
+          }
+        }
+      ]
+    },
+    {
+      "feature": "window_pane",
+      "label": "Windows: multi-pane vs single-pane",
+      "n": 7975,
+      "or": 0.637,
+      "ci95": [
+        0.577,
+        0.703
+      ],
+      "unknown_rate": {
+        "destroyed": 0.2789,
+        "surviving": 0.0037
+      },
+      "by_stratum": [
+        {
+          "stratum": "gust>24|100-500m",
+          "protective": {
+            "n": 1209,
+            "destroyed_rate": 0.4657
+          },
+          "reference": {
+            "n": 696,
+            "destroyed_rate": 0.592
+          }
+        },
+        {
+          "stratum": "gust>24|<100m",
+          "protective": {
+            "n": 570,
+            "destroyed_rate": 0.3211
+          },
+          "reference": {
+            "n": 271,
+            "destroyed_rate": 0.4133
+          }
+        },
+        {
+          "stratum": "gust>24|\u2265500m",
+          "protective": {
+            "n": 705,
+            "destroyed_rate": 0.8128
+          },
+          "reference": {
+            "n": 328,
+            "destroyed_rate": 0.8567
+          }
+        },
+        {
+          "stratum": "gust\u226424|100-500m",
+          "protective": {
+            "n": 1055,
+            "destroyed_rate": 0.2863
+          },
+          "reference": {
+            "n": 489,
+            "destroyed_rate": 0.3395
+          }
+        },
+        {
+          "stratum": "gust\u226424|<100m",
+          "protective": {
+            "n": 551,
+            "destroyed_rate": 0.2904
+          },
+          "reference": {
+            "n": 269,
+            "destroyed_rate": 0.197
+          }
+        },
+        {
+          "stratum": "gust\u226424|\u2265500m",
+          "protective": {
+            "n": 762,
+            "destroyed_rate": 0.5223
+          },
+          "reference": {
+            "n": 1070,
+            "destroyed_rate": 0.7346
+          }
+        }
+      ]
+    },
+    {
+      "feature": "siding",
+      "label": "Siding: stucco/brick/cement or metal vs wood or vinyl",
+      "n": 9386,
+      "or": 2.788,
+      "ci95": [
+        2.459,
+        3.161
+      ],
+      "unknown_rate": {
+        "destroyed": 0.0234,
+        "surviving": 0.0015
+      },
+      "by_stratum": [
+        {
+          "stratum": "gust>24|100-500m",
+          "protective": {
+            "n": 2155,
+            "destroyed_rate": 0.6631
+          },
+          "reference": {
+            "n": 303,
+            "destroyed_rate": 0.33
+          }
+        },
+        {
+          "stratum": "gust>24|<100m",
+          "protective": {
+            "n": 770,
+            "destroyed_rate": 0.4416
+          },
+          "reference": {
+            "n": 157,
+            "destroyed_rate": 0.242
+          }
+        },
+        {
+          "stratum": "gust>24|\u2265500m",
+          "protective": {
+            "n": 1161,
+            "destroyed_rate": 0.8691
+          },
+          "reference": {
+            "n": 140,
+            "destroyed_rate": 0.8071
+          }
+        },
+        {
+          "stratum": "gust\u226424|100-500m",
+          "protective": {
+            "n": 1424,
+            "destroyed_rate": 0.4108
+          },
+          "reference": {
+            "n": 277,
+            "destroyed_rate": 0.1588
+          }
+        },
+        {
+          "stratum": "gust\u226424|<100m",
+          "protective": {
+            "n": 747,
+            "destroyed_rate": 0.3949
+          },
+          "reference": {
+            "n": 202,
+            "destroyed_rate": 0.2079
+          }
+        },
+        {
+          "stratum": "gust\u226424|\u2265500m",
+          "protective": {
+            "n": 1659,
+            "destroyed_rate": 0.7209
+          },
+          "reference": {
+            "n": 391,
+            "destroyed_rate": 0.5396
+          }
+        }
+      ]
+    },
+    {
+      "feature": "fence_attached",
+      "label": "Attached fence: non-combustible or none vs combustible",
+      "n": 9064,
+      "or": 1.564,
+      "ci95": [
+        1.424,
+        1.718
+      ],
+      "unknown_rate": {
+        "destroyed": 0.0906,
+        "surviving": 0.0032
+      },
+      "by_stratum": [
+        {
+          "stratum": "gust>24|100-500m",
+          "protective": {
+            "n": 1421,
+            "destroyed_rate": 0.6172
+          },
+          "reference": {
+            "n": 945,
+            "destroyed_rate": 0.5894
+          }
+        },
+        {
+          "stratum": "gust>24|<100m",
+          "protective": {
+            "n": 713,
+            "destroyed_rate": 0.4334
+          },
+          "reference": {
+            "n": 211,
+            "destroyed_rate": 0.2938
+          }
+        },
+        {
+          "stratum": "gust>24|\u2265500m",
+          "protective": {
+            "n": 744,
+            "destroyed_rate": 0.8562
+          },
+          "reference": {
+            "n": 489,
+            "destroyed_rate": 0.8528
+          }
+        },
+        {
+          "stratum": "gust\u226424|100-500m",
+          "protective": {
+            "n": 1016,
+            "destroyed_rate": 0.4163
+          },
+          "reference": {
+            "n": 646,
+            "destroyed_rate": 0.2492
+          }
+        },
+        {
+          "stratum": "gust\u226424|<100m",
+          "protective": {
+            "n": 644,
+            "destroyed_rate": 0.3463
+          },
+          "reference": {
+            "n": 248,
+            "destroyed_rate": 0.2379
+          }
+        },
+        {
+          "stratum": "gust\u226424|\u2265500m",
+          "protective": {
+            "n": 980,
+            "destroyed_rate": 0.7469
+          },
+          "reference": {
+            "n": 1007,
+            "destroyed_rate": 0.5988
+          }
+        }
+      ]
+    },
+    {
+      "feature": "deck_elevated",
+      "label": "Elevated deck: none or masonry vs wood/composite",
+      "n": 8101,
+      "or": 0.917,
+      "ci95": [
+        0.816,
+        1.03
+      ],
+      "unknown_rate": {
+        "destroyed": 0.2513,
+        "surviving": 0.0204
+      },
+      "by_stratum": [
+        {
+          "stratum": "gust>24|100-500m",
+          "protective": {
+            "n": 1721,
+            "destroyed_rate": 0.5596
+          },
+          "reference": {
+            "n": 288,
+            "destroyed_rate": 0.4688
+          }
+        },
+        {
+          "stratum": "gust>24|<100m",
+          "protective": {
+            "n": 671,
+            "destroyed_rate": 0.3711
+          },
+          "reference": {
+            "n": 184,
+            "destroyed_rate": 0.3315
+          }
+        },
+        {
+          "stratum": "gust>24|\u2265500m",
+          "protective": {
+            "n": 831,
+            "destroyed_rate": 0.846
+          },
+          "reference": {
+            "n": 182,
+            "destroyed_rate": 0.7637
+          }
+        },
+        {
+          "stratum": "gust\u226424|100-500m",
+          "protective": {
+            "n": 1249,
+            "destroyed_rate": 0.2818
+          },
+          "reference": {
+            "n": 274,
+            "destroyed_rate": 0.4088
+          }
+        },
+        {
+          "stratum": "gust\u226424|<100m",
+          "protective": {
+            "n": 544,
+            "destroyed_rate": 0.2279
+          },
+          "reference": {
+            "n": 298,
+            "destroyed_rate": 0.3859
+          }
+        },
+        {
+          "stratum": "gust\u226424|\u2265500m",
+          "protective": {
+            "n": 1462,
+            "destroyed_rate": 0.6484
+          },
+          "reference": {
+            "n": 397,
+            "destroyed_rate": 0.6675
+          }
+        }
+      ]
+    },
+    {
+      "feature": "patio_cover",
+      "label": "Patio cover/carport: none or non-combustible vs combustible",
+      "n": 8019,
+      "or": 0.904,
+      "ci95": [
+        0.819,
+        0.998
+      ],
+      "unknown_rate": {
+        "destroyed": 0.2726,
+        "surviving": 0.0112
+      },
+      "by_stratum": [
+        {
+          "stratum": "gust>24|100-500m",
+          "protective": {
+            "n": 1261,
+            "destroyed_rate": 0.4901
+          },
+          "reference": {
+            "n": 727,
+            "destroyed_rate": 0.6121
+          }
+        },
+        {
+          "stratum": "gust>24|<100m",
+          "protective": {
+            "n": 606,
+            "destroyed_rate": 0.3614
+          },
+          "reference": {
+            "n": 244,
+            "destroyed_rate": 0.3361
+          }
+        },
+        {
+          "stratum": "gust>24|\u2265500m",
+          "protective": {
+            "n": 697,
+            "destroyed_rate": 0.8149
+          },
+          "reference": {
+            "n": 352,
+            "destroyed_rate": 0.8665
+          }
+        },
+        {
+          "stratum": "gust\u226424|100-500m",
+          "protective": {
+            "n": 883,
+            "destroyed_rate": 0.3092
+          },
+          "reference": {
+            "n": 655,
+            "destroyed_rate": 0.2962
+          }
+        },
+        {
+          "stratum": "gust\u226424|<100m",
+          "protective": {
+            "n": 535,
+            "destroyed_rate": 0.2523
+          },
+          "reference": {
+            "n": 272,
+            "destroyed_rate": 0.25
+          }
+        },
+        {
+          "stratum": "gust\u226424|\u2265500m",
+          "protective": {
+            "n": 1137,
+            "destroyed_rate": 0.6544
+          },
+          "reference": {
+            "n": 650,
+            "destroyed_rate": 0.6092
+          }
+        }
+      ]
+    }
+  ],
+  "regression": {
+    "n": 4578,
+    "terms": [
+      {
+        "term": "intercept",
+        "coef": -5.8043,
+        "or": 0.003,
+        "ci95": [
+          0.002,
+          0.005
+        ]
+      },
+      {
+        "term": "gust_at_arrival_mph",
+        "coef": 0.1565,
+        "or": 1.169,
+        "ci95": [
+          1.149,
+          1.191
+        ]
+      },
+      {
+        "term": "log1p_dist_wildland_m",
+        "coef": 0.2063,
+        "or": 1.229,
+        "ci95": [
+          1.17,
+          1.291
+        ]
+      },
+      {
+        "term": "slope_deg",
+        "coef": -0.0288,
+        "or": 0.972,
+        "ci95": [
+          0.963,
+          0.981
+        ]
+      },
+      {
+        "term": "vents_protective",
+        "coef": -0.7017,
+        "or": 0.496,
+        "ci95": [
+          0.421,
+          0.584
+        ]
+      },
+      {
+        "term": "eaves_protective",
+        "coef": 0.1664,
+        "or": 1.181,
+        "ci95": [
+          1.003,
+          1.391
+        ]
+      },
+      {
+        "term": "roof_protective",
+        "coef": -0.903,
+        "or": 0.405,
+        "ci95": [
+          0.341,
+          0.482
+        ]
+      },
+      {
+        "term": "window_pane_protective",
+        "coef": -0.5357,
+        "or": 0.585,
+        "ci95": [
+          0.495,
+          0.692
+        ]
+      },
+      {
+        "term": "siding_protective",
+        "coef": 1.1094,
+        "or": 3.033,
+        "ci95": [
+          2.391,
+          3.846
+        ]
+      },
+      {
+        "term": "fence_attached_protective",
+        "coef": 0.6224,
+        "or": 1.863,
+        "ci95": [
+          1.565,
+          2.219
+        ]
+      },
+      {
+        "term": "deck_elevated_protective",
+        "coef": -0.175,
+        "or": 0.839,
+        "ci95": [
+          0.689,
+          1.023
+        ]
+      },
+      {
+        "term": "patio_cover_protective",
+        "coef": -0.0997,
+        "or": 0.905,
+        "ci95": [
+          0.767,
+          1.069
+        ]
+      }
+    ],
+    "dropped_constant": []
+  },
+  "caveat": "Associations in observational inspection data, adjusted only for the recorded exposure variables; not causal effects. Attributes of destroyed homes are recorded after the fire, so features that burn away (decks, fences, siding) can be misrecorded; compare unknown_rate between destroyed and surviving homes per feature.",
+  "wildland_definition": "WorldCover tree/shrub/grass where < 20% of the surrounding 500 m is built-up"
+}

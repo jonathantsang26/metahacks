@@ -1,0 +1,48 @@
+[
+  {
+    "kind": "reported_start",
+    "label": "Reported start (CAL FIRE)",
+    "t": "2025-01-07T18:30:00Z",
+    "lon": -118.54453,
+    "lat": 34.07022,
+    "source": "CAL FIRE incidents API",
+    "id": "e1"
+  },
+  {
+    "kind": "peak_gust",
+    "label": "Peak gust 36 mph (reanalysis)",
+    "t": "2025-01-08T10:00:00Z",
+    "lon": -118.593219,
+    "lat": 34.079604,
+    "source": "weather.json (ERA5 via Open-Meteo)",
+    "id": "e2"
+  },
+  {
+    "kind": "spot_fire",
+    "label": "Spot fire mapped (5 acres)",
+    "t": "2025-01-08T20:34:03Z",
+    "lon": -118.569025,
+    "lat": 34.044111,
+    "source": "spots.geojson (NIFC perimeters)",
+    "id": "e3"
+  },
+  {
+    "kind": "rapid_growth",
+    "label": "Rapid growth (+3,658 acres/h)",
+    "t": "2025-01-08T21:00:00Z",
+    "lon": -118.589923,
+    "lat": 34.059808,
+    "source": "series.json",
+    "id": "e4"
+  },
+  {
+    "kind": "containment",
+    "label": "Containment (CAL FIRE)",
+    "t": "2025-01-31T20:00:00Z",
+    "lon": -118.593219,
+    "lat": 34.079604,
+    "source": "CAL FIRE 2025 perimeters",
+    "date_only": true,
+    "id": "e5"
+  }
+]

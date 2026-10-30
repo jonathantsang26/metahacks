@@ -1,0 +1,68 @@
+{
+  "fit_observations": [
+    "2025-01-08T10:33:59Z",
+    "2025-01-08T23:10:23Z",
+    "2025-01-09T04:30:17Z",
+    "2025-01-09T22:10:35Z"
+  ],
+  "held_out": [
+    {
+      "t": "2025-01-08T07:06:14Z",
+      "observed_cells": 571,
+      "predicted_cells": 13,
+      "iou": 0.023
+    },
+    {
+      "t": "2025-01-08T07:12:13Z",
+      "observed_cells": 1077,
+      "predicted_cells": 17,
+      "iou": 0.015
+    }
+  ],
+  "estimate": {
+    "lonlat": [
+      -118.093656,
+      34.201708
+    ],
+    "t": "2025-01-08T06:18:59Z",
+    "k": 11.314,
+    "r90_m": 3014.2,
+    "t90": [
+      "2025-01-07T18:33:59Z",
+      "2025-01-08T09:51:33Z"
+    ],
+    "timing": {
+      "identifiable": false,
+      "reasons": [
+        "90% start-time interval is 15.3 h wide (limit 6 h)"
+      ],
+      "interval90_width_h": 15.29
+    },
+    "tau_h": 9.6
+  },
+  "baselines": {
+    "first_fit_footprint_centroid_lonlat": [
+      -118.093907,
+      34.19515
+    ],
+    "area_backcast_t": "2025-01-06T19:23:49Z"
+  },
+  "reference": {
+    "source": "CAL FIRE incidents API",
+    "url": "https://www.fire.ca.gov/incidents/2025/1/7/eaton-fire/",
+    "t": "2025-01-08T02:18:00Z",
+    "lonlat": [
+      -118.069155,
+      34.203483
+    ],
+    "note": "Reported incident location, not an investigated origin."
+  },
+  "errors": {
+    "backtrace_distance_m": 2264.5,
+    "baseline_distance_m": 2460.5,
+    "backtrace_time_error_min": 241.0,
+    "baseline_time_error_min": -1854.2,
+    "reference_within_r90": true,
+    "reference_within_t90": true
+  }
+}
