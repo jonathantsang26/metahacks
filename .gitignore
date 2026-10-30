@@ -1,0 +1,23 @@
+# Local-only reference material (third-party screenshots, internal notes)
+docs/spec/ref/
+docs/internal/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Data pipeline caches
+pipeline/raw/
+footage/
+
+# Node / Python
+node_modules/
+dist/
+.vercel/
+__pycache__/
+.venv/
+*.pyc
+
+# OS
+.DS_Store
