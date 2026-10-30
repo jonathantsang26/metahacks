@@ -8,9 +8,12 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && tsc --noEmit -p api && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p api",
+    "test": "vitest run api",
+    "ask": "tsx scripts/ask.ts",
+    "eval:analyst": "tsx scripts/eval-analyst.ts"
   },
   "dependencies": {
     "@deck.gl/core": "^9.1.0",
@@ -21,18 +24,24 @@
     "@deck.gl/react": "^9.1.0",
     "@luma.gl/core": "^9.4.2",
     "@luma.gl/shadertools": "^9.4.2",
+    "openai": "^6.49.0",
+    "pngjs": "^7.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.4.1",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.23.15",
     "typescript": "~5.6.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^4.1.12"
   }
 }
