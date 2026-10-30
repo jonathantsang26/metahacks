@@ -6,8 +6,8 @@ onto `bounds`. Writes:
   dem.png             terrarium-encoded 1025×1025 heightmap (row 0 = north) for deck.gl TerrainLayer
   dem.json            size, bounds, pixel size, elevation range, decoder, analysis grid
   hillshade.png       greyscale hillshade
-  base_stylized.jpg   painted-relief texture from elevation + slope + hillshade.
-                      Placeholder: step 03 replaces it with a LANDFIRE land-cover palette.
+  base_stylized.jpg   painted-relief placeholder texture from elevation + slope + hillshade,
+                      written only until step 03 exists (it re-colours by ESA WorldCover land cover)
   work/<fire>/elevation.npy, slope_deg.npy, aspect_deg.npy  for later steps
 
 Run: uv run python -m steps.s02_dem
@@ -124,7 +124,10 @@ def main() -> None:
     mesh_elev = bilinear(elev, np.linspace(0, height - 1, mesh_n), np.linspace(0, width - 1, mesh_n))
     Image.fromarray(terrarium_encode(mesh_elev)).save(fire.out_dir / "dem.png")
     Image.fromarray((hill * 255).astype(np.uint8)).save(fire.out_dir / "hillshade.png")
-    Image.fromarray(stylize(elev, slope, hill, water)).save(fire.out_dir / "base_stylized.jpg", quality=88)
+    # Step 03 owns the texture once land cover exists; only write the placeholder before that.
+    placeholder = not (fire.work_dir / "landcover.npy").exists()
+    if placeholder:
+        Image.fromarray(stylize(elev, slope, hill, water)).save(fire.out_dir / "base_stylized.jpg", quality=88)
     np.save(fire.work_dir / "elevation.npy", elev)
     np.save(fire.work_dir / "slope_deg.npy", slope.astype(np.float32))
     np.save(fire.work_dir / "aspect_deg.npy", aspect.astype(np.float32))
@@ -153,14 +156,9 @@ def main() -> None:
         attribution="Terrain Tiles on AWS Open Data; elevation from USGS 3DEP, SRTM and other public sources",
         notes=f"z{z}, resampled to {px_x:.0f} m lon/lat grid",
     )
-    add_source(
-        fire,
-        layer="Base texture",
-        source="Stylized from elevation, slope and hillshade",
-        url="",
-        status="MODELED",
-        notes="Placeholder palette until step 03 colors it by LANDFIRE land cover.",
-    )
+    if placeholder:
+        add_source(fire, layer="Base texture", source="Stylized from elevation, slope and hillshade", url="",
+                   status="MODELED", notes="Placeholder palette until step 03 colors it by land cover.")
     print(f"{n_tiles} tiles → {width}×{height} px at {px_x:.1f}×{px_y:.1f} m; "
           f"elevation {elev.min():.0f}–{elev.max():.0f} m")
 

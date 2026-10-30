@@ -26,6 +26,7 @@ from ember.manifest import add_source
 from steps.s06_arrival import iso, parse_t
 
 RIDGE_PROMINENCE_M = 40.0
+SPOT_MIN_ACRES = 2.0
 
 
 def event(kind, label, t, lonlat, source, **extra):
@@ -49,6 +50,13 @@ def first_spot(fire, w1: datetime):
     if not path.exists():
         return None
     spots = [f for f in json.loads(path.read_text())["features"] if parse_t(f["properties"]["t"]) <= w1]
+    # Skip slivers and near-perfect circles: the archive holds 50 ft buffers around points that
+    # are not mapped spot fires.
+    def plausible(f):
+        g = shape(f["geometry"])
+        circularity = 4 * np.pi * g.area / max(g.length, 1e-12) ** 2
+        return (f["properties"].get("acres") or 0) >= SPOT_MIN_ACRES and circularity < 0.95
+    spots = [f for f in spots if plausible(f)]
     if not spots:
         return None
     f = min(spots, key=lambda f: f["properties"]["t"])
