@@ -31,7 +31,7 @@ These are what let the streams work in parallel. The producer writes files to `w
 | File | Shape |
 |---|---|
 | `arrival.png` | Same bounds as `dem.png`, row 0 = north. Red channel: 1–254 → `(code−1)/253` of `aoi.window_utc`, 255 → never burned (BUILD.md §3). If step 06 changes the window, it rewrites `aoi.json` too. |
-| `isochrones.geojson` | LineStrings, `properties: {t}`, every 15 min. The perimeter at time t, used in 2D. |
+| *(isochrones)* | Not produced. B contours `arrival.png` at time t client-side (d3-contour), which is cheaper than shipping hundreds of lines. |
 | `perimeters.geojson` | Polygons, `properties: {t, acres, source}`. The observed perimeters, for the Evidence tab. |
 | `hotspots.geojson` | Points, `properties: {t, frp, confidence, satellite}` |
 | `series.json` | `{t: string[], area_acres: number[], ros_chains_hr: number[]}`, hourly. Feeds the Fire Area and Rate of Spread charts. |
@@ -42,8 +42,8 @@ These are what let the streams work in parallel. The producer writes files to `w
 | `fuel.png` + `fuel_classes.json` | Class index per pixel, and `{index: label}` for the hover readout |
 | `trees.json` | `[[lon, lat, height_m], ...]`, ≤ 40k entries. B samples `arrival.png` per tree to char it. |
 | `structures.geojson` | Points, `properties: {id, damage, structure_type, roof, eaves, vents, siding}`. **No address, APN, year built or owner fields.** |
-| `exposure.json` / `exposure_stats.json` | Per structure: `{id, arrival_t, wind_mph, gust_mph, dist_to_burn_m, slope_deg, fuel}`. Stats: `{feature, bins: [{exposure, n, destroyed, rate, ci95}]}` |
-| `events.json` | `[{id, kind: "ignition"\|"rapid_growth"\|"spot_fire"\|"ridge_crossing"\|"containment", label, t, lon, lat, source}]` |
+| `exposure.json` / `exposure_stats.json` | `exposure.json` is columnar: `{fields, id[], arrival_t[], gust_mph[], dist_wildland_m[], slope_deg[], exposed[]}`. `exposure_stats.json` is `{n, destroyed, gust_split_mph, strata: [{stratum, n, destroyed, rate, ci95}], contrasts: [{feature, label, n, or, ci95, unknown_rate, by_stratum}], regression: {n, terms, dropped_constant}, caveat, wildland_definition}`. |
+| `events.json` | `[{id, kind, label, t, lon, lat, source, date_only?}]`, sorted by `t`. `kind` is one of `reported_start`, `ignition_estimate`, `rapid_growth`, `spot_fire`, `ridge_crossing`, `peak_gust` or `containment`. |
 | `ignition.json` + `ignition_posterior.png` | `{map: {lon, lat, t}, region90: GeoJSON Polygon, holdout: {hour_n, distance_m, time_error_min, first_perimeter_iou}}`. The PNG's red channel = posterior, 0–255. |
 
 ### A → B (analyst API): `POST /api/analyst`
