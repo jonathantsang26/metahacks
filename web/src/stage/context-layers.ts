@@ -1,11 +1,12 @@
 /**
  * Context around the fire: HRRR wind arrows for the hour at t, DINS structures by damage class,
- * OSM roads and place labels. Structures and roads are big files, fetched the first time their
- * layer is switched on; everything is draped once per dataset.
+ * OSM roads, place labels and the terrain's illustrative trees. Structures and roads are big
+ * files, fetched the first time their layer is switched on; everything is draped once per dataset.
  */
 import {useMemo} from 'react';
 import type {Layer} from '@deck.gl/core';
 import {PathLayer, ScatterplotLayer, TextLayer} from '@deck.gl/layers';
+import {SimpleMeshLayer} from '@deck.gl/mesh-layers';
 import {DataFilterExtension} from '@deck.gl/extensions';
 import type {FireData} from '../data/fire';
 import {indexAtOrBefore, useFireJson, type PlaceLabel, type Roads, type Structures, type WindField} from '../data/files';
@@ -15,7 +16,7 @@ import type {Dem} from './dem';
 import {distanceM, drapeDense, offsetM} from './drape';
 import {stamp, type MapLabel} from './labels';
 import {useFireJsonWhen} from './load';
-import {NO_PART, type StagePart} from './evidence-layers';
+import {manifestRow, NO_PART, type StagePart} from './evidence-layers';
 
 type RGBA = [number, number, number, number];
 const filterExtension = new DataFilterExtension({filterSize: 1});
@@ -75,30 +76,35 @@ export function useWindPart(fire: FireData, dem: Dem | null, t: number, layer: L
     if (wind.error) return {...NO_PART, notes: [{id: 'wind', title: 'Wind field unavailable', detail: wind.error}]};
     if (!wind.data) return NO_PART;
     const opacity = layer.opacity ?? 1;
-    const layers: Layer[] = arrows
-      ? [
-          new PathLayer<number[][]>({
-            id: 'wind-shadow',
-            data: arrows.paths,
-            getPath: d => d as any,
-            getColor: [39, 35, 26, 110],
-            getWidth: 4,
-            widthUnits: 'pixels',
-            capRounded: true,
-            jointRounded: true,
-            opacity
-          }),
-          new PathLayer<number[][]>({
-            id: 'wind-arrows',
-            data: arrows.paths,
-            getPath: d => d as any,
-            getColor: [255, 255, 255, 240],
-            getWidth: 2,
-            widthUnits: 'pixels',
-            capRounded: true,
-            jointRounded: true,
-            opacity
-          }),
+    const layers: Layer[] = [];
+    if (arrows) {
+      layers.push(
+        new PathLayer<number[][]>({
+          id: 'wind-shadow',
+          data: arrows.paths,
+          getPath: d => d as any,
+          getColor: [39, 35, 26, 110],
+          getWidth: 4,
+          widthUnits: 'pixels',
+          capRounded: true,
+          jointRounded: true,
+          opacity
+        }),
+        new PathLayer<number[][]>({
+          id: 'wind-arrows',
+          data: arrows.paths,
+          getPath: d => d as any,
+          getColor: [255, 255, 255, 240],
+          getWidth: 2,
+          widthUnits: 'pixels',
+          capRounded: true,
+          jointRounded: true,
+          opacity
+        })
+      );
+      // No TextLayer for an empty list: its empty font atlas fails the WebGL upload.
+      if (arrows.labels.length)
+        layers.push(
           new TextLayer<(typeof arrows.labels)[number]>({
             id: 'wind-speed',
             data: arrows.labels,
@@ -115,15 +121,23 @@ export function useWindPart(fire: FireData, dem: Dem | null, t: number, layer: L
             parameters: {depthCompare: 'always', depthWriteEnabled: false},
             opacity
           })
-        ]
-      : [];
-    const title = arrows ? `Wind · ${name} model · ${stamp(arrows.t, tz)}` : `Wind · ${name} model · no hour at or before t`;
+        );
+    }
+    const title = arrows ? `Wind · ${stamp(arrows.t, tz)}` : 'Wind · no model hour at or before t';
     return {
       layers,
       labels: [],
-      notes: [{id: 'wind', tag: name.toUpperCase(), title, detail: 'Arrows point where the air moves; length is proportional to speed'}]
+      notes: [
+        {
+          id: 'wind',
+          tag: name.toUpperCase(),
+          title,
+          detail: `${manifestRow(fire, 'Wind field')?.source ?? `${name} model`}: modeled wind for the hour at or before t, not a station reading. Arrows point where the air moves; length is proportional to speed`,
+          swatches: [{color: '#ffffff', label: 'Wind arrow', shape: 'line'}]
+        }
+      ]
     };
-  }, [layer.visible, layer.opacity, wind.data, wind.error, arrows, tz]);
+  }, [layer.visible, layer.opacity, wind.data, wind.error, arrows, tz, fire]);
 }
 
 type Damage = Structures['features'][number]['properties']['damage'];
@@ -259,7 +273,7 @@ export function useStructurePart(
       {
         id: 'structures',
         tag: 'DINS',
-        title: 'Structures by damage inspection outcome',
+        title: 'Structures · damage inspection',
         detail: gated
           ? "Outcome colour appears when the modeled front reaches each structure, or at the window's end where it never does"
           : undefined,
@@ -330,4 +344,97 @@ export function usePlaceLabels(fire: FireData, dem: Dem | null, on: boolean): Ma
     }));
   }, [dem, places.data]);
   return on ? all : NO_PART.labels;
+}
+
+/** A six-sided cone, radius 1 and height 1 in meters, base on the ground, one normal per face. */
+function coneMesh(sides = 6) {
+  const positions: number[] = [];
+  const normals: number[] = [];
+  // Side slope for radius 1, height 1: the face normal leans out by 45°.
+  const k = Math.SQRT1_2;
+  for (let i = 0; i < sides; i++) {
+    const a0 = (2 * Math.PI * i) / sides;
+    const a1 = (2 * Math.PI * (i + 1)) / sides;
+    const mid = (a0 + a1) / 2;
+    positions.push(0, 0, 1, Math.cos(a0), Math.sin(a0), 0, Math.cos(a1), Math.sin(a1), 0);
+    for (let v = 0; v < 3; v++) normals.push(Math.cos(mid) * k, Math.sin(mid) * k, k);
+  }
+  return {positions: {value: new Float32Array(positions), size: 3}, normals: {value: new Float32Array(normals), size: 3}};
+}
+const CONE = coneMesh();
+const LIVE: RGBA = [58, 86, 46, 255];
+const CHARRED: RGBA = [46, 40, 34, 255];
+/** Reach time for trees the arrival raster never burns. */
+const NEVER = 1e9;
+
+type Tree = {position: [number, number, number]; h: number};
+const treePosition = (d: Tree) => d.position;
+// Crown radius about a third of the height.
+const treeScale = (d: Tree): [number, number, number] => [d.h * 0.32, d.h * 0.32, d.h];
+const TREE_MATERIAL = {ambient: 0.55, diffuse: 0.6, shininess: 0, specularColor: [0, 0, 0] as [number, number, number]};
+
+/**
+ * trees.json: illustrative instances the pipeline scatters over the land-cover tree and shrub
+ * cells (not mapped trees), drawn as small cones with the Terrain layer. Each turns dark once
+ * the arrival raster says the fire reached its cell by t; like the structures, the switch is a
+ * GPU filter on a reach time sampled once per tree, so scrubbing costs no upload.
+ */
+export function useTreePart(
+  fire: FireData,
+  dem: Dem | null,
+  t: number,
+  on: boolean,
+  arrival: Raster | null,
+  arrivalWindow: [number, number]
+): {layers: Layer[]; count: number} {
+  const trees = useFireJsonWhen<[number, number, number][]>(fire, 'trees.json', on);
+
+  const placed = useMemo<Tree[] | null>(() => {
+    if (!dem || !trees.data) return null;
+    return trees.data.map(([lon, lat, h]) => ({position: [lon, lat, dem.heightAt(lon, lat)], h}));
+  }, [dem, trees.data]);
+
+  // Hours after the window start when the fire reaches each tree; cells mapped only in the final
+  // perimeter burn at the window's end, as they do on the terrain.
+  const reachH = useMemo(() => {
+    if (!placed || !arrival) return null;
+    const [w0, w1] = arrivalWindow;
+    const endH = (w1 - w0) / 3_600_000;
+    const out = new Float32Array(placed.length);
+    placed.forEach((tree, i) => {
+      const px = arrival.pixel(tree.position[0], tree.position[1]);
+      const k = px ? (px.row * arrival.width + px.col) * 4 : -1;
+      if (k < 0) out[i] = NEVER;
+      else if (arrival.data[k + 1] === 32 && arrival.data[k] < 255) out[i] = endH;
+      else {
+        const ms = decodeArrival(arrival.data[k], w0, w1);
+        out[i] = ms === null ? NEVER : (ms - w0) / 3_600_000;
+      }
+    });
+    return out;
+  }, [placed, arrival, arrivalWindow]);
+
+  const tH = (t - arrivalWindow[0]) / 3_600_000;
+
+  return useMemo(() => {
+    if (!on || !placed) return {layers: [], count: 0};
+    const common = {
+      data: placed,
+      mesh: CONE as any,
+      getPosition: treePosition,
+      getScale: treeScale,
+      material: TREE_MATERIAL,
+      extensions: [filterExtension],
+      getFilterValue: (_d: Tree, {index}: {index: number}) => (reachH ? reachH[index] : NEVER),
+      filterEnabled: Boolean(reachH),
+      updateTriggers: {getFilterValue: reachH}
+    };
+    type Props = {getFilterValue: (d: Tree, info: {index: number}) => number; filterRange: [number, number]; filterEnabled: boolean};
+    const layers: Layer[] = [
+      new SimpleMeshLayer<Tree, Props>({...common, id: 'trees', getColor: LIVE, filterRange: [tH + 1e-3, NEVER * 2]})
+    ];
+    if (reachH)
+      layers.push(new SimpleMeshLayer<Tree, Props>({...common, id: 'trees-burned', getColor: CHARRED, filterRange: [-1e6, tH + 1e-3]}));
+    return {layers, count: placed.length};
+  }, [on, placed, reachH, tH]);
 }

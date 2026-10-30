@@ -20,6 +20,9 @@
  * ignition_posterior.png, red = relative posterior 0..255 (a model output): a violet heat
  * overlay, a hue kept apart from the fire and the observed scar so the two cannot be confused.
  *
+ * The base texture itself is blended toward a flat neutral first (fireBase), so switching the
+ * Terrain layer off or fading it changes only the ground under the fire, never the fire layers.
+ *
  * Pass it to a TerrainLayer: extensions are forwarded to the mesh sublayer.
  */
 import {LayerExtension} from '@deck.gl/core';
@@ -28,13 +31,15 @@ import type {Texture} from '@luma.gl/core';
 import type {ShaderModule} from '@luma.gl/shadertools';
 
 export type FireExtensionProps = {
+  /** Weight of the stylized base texture: 1 = as is, 0 = flat neutral ground (Terrain layer off). */
+  fireBase?: number;
   /** Arrival-time image (image, canvas or texture). Null leaves the terrain unburned. */
   fireArrival?: unknown;
   /** Replay position in [0, 1] of the arrival window. */
   fireTime?: number;
   /** Width of the glowing front, in the same normalized units. */
   fireGlow?: number;
-  /** Draw the char and the front (the Fire Spread layer); the arrival still gates the scar when off. */
+  /** Draw the char and the front (the Fire Progression layer); the arrival still gates the scar when off. */
   fireVisible?: boolean;
   fireOpacity?: number;
   /** Show the burn scar only where the fire has arrived by fireTime. */
@@ -52,6 +57,9 @@ export type FireExtensionProps = {
 };
 
 type RGB = [number, number, number];
+/** Fire progression: the glowing front's base colour and the char it leaves (the key's swatches). */
+export const FRONT: RGB = [255, 115, 20];
+export const CHAR: RGB = [51, 43, 36];
 /** Burn-scar wash (observed dNBR), low → high severity. The map key draws its swatches from here. */
 export const SCAR_RAMP: [RGB, RGB] = [
   [242, 143, 66],
@@ -63,12 +71,15 @@ export const POSTERIOR_RAMP: [RGB, RGB, RGB] = [
   [154, 98, 226],
   [96, 32, 150]
 ];
+/** Flat ground when the Terrain layer is off: the app's card tone, still lit by the mesh normals. */
+const NEUTRAL: RGB = [222, 218, 206];
 const glsl = ([r, g, b]: RGB) => `vec3(${(r / 255).toFixed(3)}, ${(g / 255).toFixed(3)}, ${(b / 255).toFixed(3)})`;
 
 type FireModuleProps = {
   arrival: Texture;
   severity: Texture;
   ignition: Texture;
+  base: number;
   time: number;
   glow: number;
   enabled: boolean;
@@ -80,6 +91,7 @@ type FireModuleProps = {
   ignitionOpacity: number;
 };
 type FireUniforms = {
+  base: number;
   time: number;
   glow: number;
   enabled: number;
@@ -95,6 +107,7 @@ type FireBindings = {fire_arrival: Texture; fire_severity: Texture; fire_ignitio
 // Field order must match uniformTypes below.
 const fs = /* glsl */ `\
 layout(std140) uniform fireUniforms {
+  float base;
   float time;
   float glow;
   float enabled;
@@ -124,6 +137,8 @@ vec4 fire_texel(sampler2D tex, vec2 uv) {
 
 const inject = {
   'fs:DECKGL_FILTER_COLOR': /* glsl */ `
+  color.rgb = mix(${glsl(NEUTRAL)}, color.rgb, fire.base);
+
   float fire_code = fire_texel(fire_arrival, geometry.uv).r * 255.0;
   float fire_at = (fire_code - 1.0) / 253.0;
   bool fire_burned = fire_code < 254.5 && fire.time >= fire_at;
@@ -133,9 +148,9 @@ const inject = {
     float front = 1.0 - smoothstep(0.0, fire.glow, since);
     float speck = step(0.955, fire_hash(floor(geometry.uv * 1400.0)));
     float embers = speck * (1.0 - smoothstep(0.0, fire.glow * 8.0, since));
-    vec3 charred = mix(color.rgb * 0.38, vec3(0.20, 0.17, 0.14), 0.6);
+    vec3 charred = mix(color.rgb * 0.38, ${glsl(CHAR)}, 0.6);
     charred = mix(charred, vec3(0.98, 0.38, 0.08), embers * 0.85);
-    vec3 flame = mix(vec3(1.0, 0.45, 0.08), vec3(1.0, 0.86, 0.52), front * front);
+    vec3 flame = mix(${glsl(FRONT)}, vec3(1.0, 0.86, 0.52), front * front);
     color.rgb = mix(color.rgb, mix(charred, flame * 1.6, front), fire.opacity);
   }
 
@@ -169,6 +184,7 @@ const fireModule = {
       fire_arrival: opts.arrival,
       fire_severity: opts.severity,
       fire_ignition: opts.ignition,
+      base: opts.base,
       time: opts.time,
       glow: opts.glow,
       enabled: opts.enabled ? 1 : 0,
@@ -181,6 +197,7 @@ const fireModule = {
     };
   },
   uniformTypes: {
+    base: 'f32',
     time: 'f32',
     glow: 'f32',
     enabled: 'f32',
@@ -197,6 +214,7 @@ const fireModule = {
 const nearest = {minFilter: 'nearest', magFilter: 'nearest', mipmapFilter: 'nearest'} as const;
 
 const defaultProps: DefaultProps<FireExtensionProps> = {
+  fireBase: 1,
   fireArrival: {type: 'image', value: null, async: true, parameters: nearest},
   fireTime: 0,
   fireGlow: 0.012,
@@ -233,6 +251,7 @@ export class FireExtension extends LayerExtension {
       arrival: (p.fireArrival as Texture | null) ?? empty,
       severity: (p.fireSeverity as Texture | null) ?? zero,
       ignition: (p.fireIgnition as Texture | null) ?? zero,
+      base: Math.min(1, Math.max(0, p.fireBase ?? 1)),
       time: p.fireTime ?? 0,
       glow: p.fireGlow ?? 0.012,
       enabled: Boolean(p.fireArrival) && p.fireVisible !== false,

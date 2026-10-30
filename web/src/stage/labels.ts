@@ -7,7 +7,7 @@ import {WebMercatorViewport, type MapViewState} from '@deck.gl/core';
 import {TextLayer} from '@deck.gl/layers';
 import {formatDateTime, zoneLabel} from '../lib/format';
 
-export type LabelStyle = 'chip' | 'chipMuted' | 'marker' | 'markerLeft' | 'markerBelow' | 'place' | 'water';
+export type LabelStyle = 'chip' | 'chipMuted' | 'callout' | 'marker' | 'markerLeft' | 'markerBelow' | 'place' | 'water';
 
 export type MapLabel = {
   id: string;
@@ -35,6 +35,8 @@ const SANS = 'Inter, system-ui, sans-serif';
 const STYLES: Record<LabelStyle, StyleDef> = {
   chip: {size: 11, advance: 0.62, offset: [12, 0], anchor: 'start', pad: [6, 3]},
   chipMuted: {size: 11, advance: 0.62, offset: [12, 0], anchor: 'start', pad: [6, 3]},
+  // Clears the highlight ring.
+  callout: {size: 11, advance: 0.62, offset: [26, 0], anchor: 'start', pad: [6, 3]},
   marker: {size: 12, advance: 0.6, offset: [14, 0], anchor: 'start', pad: [2, 2]},
   markerLeft: {size: 12, advance: 0.6, offset: [-14, 0], anchor: 'end', pad: [2, 2]},
   markerBelow: {size: 12, advance: 0.6, offset: [0, 26], anchor: 'middle', pad: [2, 2]},
@@ -104,9 +106,13 @@ const textBase = {
   parameters: {depthCompare: 'always' as const, depthWriteEnabled: false}
 };
 
-/** One TextLayer per style, over the labels that survived declutter. */
+/**
+ * One TextLayer per style, over the labels that survived declutter. Styles with no labels get no
+ * layer: an empty TextLayer uploads an empty font atlas, which WebGL rejects (texSubImage2D).
+ */
 export function labelLayers(byStyle: Record<LabelStyle, MapLabel[]>): TextLayer<MapLabel>[] {
   const chip = (id: LabelStyle, color: [number, number, number, number], bg: [number, number, number, number]) =>
+    byStyle[id].length > 0 &&
     new TextLayer<MapLabel>({
       ...textBase,
       id: `labels-${id}`,
@@ -122,6 +128,7 @@ export function labelLayers(byStyle: Record<LabelStyle, MapLabel[]>): TextLayer<
       backgroundBorderRadius: 4
     });
   const halo = (id: LabelStyle, color: [number, number, number, number], weight: number) =>
+    byStyle[id].length > 0 &&
     new TextLayer<MapLabel>({
       ...textBase,
       id: `labels-${id}`,
@@ -143,14 +150,16 @@ export function labelLayers(byStyle: Record<LabelStyle, MapLabel[]>): TextLayer<
     halo('markerLeft', [255, 255, 255, 255], 600),
     halo('markerBelow', [255, 255, 255, 255], 600),
     chip('chipMuted', [255, 255, 255, 150], [39, 35, 26, 150]),
-    chip('chip', [255, 255, 255, 255], [39, 35, 26, 235])
-  ];
+    chip('chip', [255, 255, 255, 255], [39, 35, 26, 235]),
+    chip('callout', [255, 255, 255, 255], [209, 101, 75, 245])
+  ].filter((l): l is TextLayer<MapLabel> => l !== false);
 }
 
 export function groupByStyle(labels: MapLabel[], keep: Map<string, LabelStyle>): Record<LabelStyle, MapLabel[]> {
   const out: Record<LabelStyle, MapLabel[]> = {
     chip: [],
     chipMuted: [],
+    callout: [],
     marker: [],
     markerLeft: [],
     markerBelow: [],

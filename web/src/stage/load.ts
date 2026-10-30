@@ -18,7 +18,7 @@ export type ArrivalMeta = {
 
 /** severity_stats.json (step 08), the fields the stage reads. */
 export type SeverityStats = {
-  source: {product: string};
+  source: {product: string; pre_date?: string; post_date?: string; provisional?: boolean};
   encoding: {class_edges: number[]};
   perimeter: {coverage: number};
 };

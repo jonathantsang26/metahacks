@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import type {FireData} from '../data/fire';
 import {insideRings, perimeterRings} from '../data/fire';
 import {useFireJson, type FuelClasses} from '../data/files';
@@ -18,7 +18,7 @@ export function Compass({onReset}: {onReset: () => void}) {
     <button
       onClick={onReset}
       title="Reset north"
-      className="absolute left-3 top-3 flex h-9 w-9 flex-col items-center justify-center rounded-full bg-card/90 shadow-[0_0_0_1px_var(--hairline)]"
+      className="absolute left-3 top-3 flex h-9 w-9 flex-col items-center justify-center rounded-full bg-card shadow-[0_0_0_1px_var(--hairline)]"
     >
       <span className="absolute -top-3 text-2xs font-semibold text-ink">N</span>
       <svg width="18" height="18" viewBox="0 0 18 18" style={{transform: `rotate(${-bearing}deg)`}}>
@@ -62,45 +62,122 @@ export function SyntheticChip({visible}: {visible: boolean}) {
   return (
     <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-md bg-hud px-2.5 py-1 text-xs text-white">
       <span className="mr-1.5 rounded bg-white/15 px-1 font-mono text-2xs tracking-wide">SIM</span>
-      arrival.png did not load · fire spread is a synthetic shader test inside the real final perimeter
+      arrival.png did not load · the fire progression shown is a synthetic shader test inside the real final perimeter
     </div>
   );
 }
+
+/** A key mark: a dot (point marker), line or dashed line (outline), ring or square (filled area). */
+export type Swatch = {color: string; label: string; shape?: 'dot' | 'line' | 'dash' | 'ring' | 'square'};
 
 /** One line of the map key: what a visible layer is, where it comes from, and whether it is modeled. */
 export type StageNote = {
   id: string;
   /** Mono chip before the title, e.g. MODELED. */
   tag?: string;
+  /** The layer's name and at most a few words of state: the key shows it on one line. */
   title: string;
+  /** Sources and caveats, shown when the line is expanded. */
   detail?: string;
-  swatches?: {color: string; label: string}[];
+  swatches?: Swatch[];
 };
 
-/** Bottom-left key for the visible layers. */
+function SwatchMark({s}: {s: Swatch}) {
+  const shape = s.shape ?? 'dot';
+  if (shape === 'line') return <span className="inline-block h-0.5 w-3 shrink-0 rounded" style={{background: s.color}} />;
+  if (shape === 'dash')
+    return <span className="inline-block w-3 shrink-0" style={{borderTop: `2px dashed ${s.color}`}} />;
+  if (shape === 'ring')
+    return <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{boxShadow: `inset 0 0 0 1.5px ${s.color}`}} />;
+  if (shape === 'square') return <span className="inline-block h-2 w-2 shrink-0 rounded-sm" style={{background: s.color}} />;
+  return <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{background: s.color}} />;
+}
+
+/** Swatches on a collapsed line; the rest show, with their labels, when it is opened. */
+const SWATCHES_COLLAPSED = 4;
+
+/**
+ * Bottom-left key for the visible layers: one line each (tag, name, swatches); a click on a line
+ * opens its sources and caveats, and the header opens or closes them all. Capped at 40% of the
+ * stage and scrolled beyond that, so it never reaches the compass.
+ */
 export function MapNotes({notes}: {notes: StageNote[]}) {
+  // Notes are rebuilt every render, so the open lines are tracked by id here.
+  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
   if (!notes.length) return null;
+  const expandable = notes.filter(n => n.detail || n.swatches?.length).map(n => n.id);
+  const allOpen = expandable.length > 0 && expandable.every(id => open.has(id));
+  const toggle = (id: string) =>
+    setOpen(prev => {
+      const next = new Set(prev);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   return (
-    <div className="pointer-events-none absolute bottom-3 left-3 flex max-w-[380px] flex-col gap-1">
-      {notes.map(n => (
-        <div key={n.id} className="rounded-md bg-hud px-2.5 py-1.5 text-xs text-white">
-          <div className="flex items-baseline gap-1.5">
-            {n.tag && <span className="rounded bg-white/15 px-1 font-mono text-2xs tracking-wide">{n.tag}</span>}
-            <span>{n.title}</span>
-          </div>
-          {n.detail && <div className="mt-0.5 whitespace-pre-line text-white/60">{n.detail}</div>}
-          {n.swatches && (
-            <div className="mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5 text-2xs text-white/75">
-              {n.swatches.map(s => (
-                <span key={s.label} className="flex items-center gap-1">
-                  <span className="inline-block h-2 w-2 rounded-full" style={{background: s.color}} />
-                  {s.label}
+    <div
+      className="absolute bottom-3 left-3 flex max-h-[40%] flex-col overflow-hidden rounded-md bg-hud text-xs text-white"
+      style={{maxWidth: 'min(390px, calc(100% - 160px))'}}
+    >
+      <div className="flex shrink-0 items-center justify-between gap-3 px-2.5 pb-0.5 pt-1.5">
+        <span className="text-2xs font-semibold uppercase tracking-wide text-white/55">Map key</span>
+        {expandable.length > 0 && (
+          <button
+            onClick={() => setOpen(allOpen ? new Set() : new Set(expandable))}
+            className="text-2xs text-white/55 hover:text-white"
+          >
+            {allOpen ? 'Hide details' : 'Show details'}
+          </button>
+        )}
+      </div>
+      <div className="min-h-0 overflow-y-auto pb-1 [scrollbar-color:rgba(255,255,255,0.3)_transparent] [scrollbar-width:thin]">
+        {notes.map(n => {
+          const canOpen = expandable.includes(n.id);
+          const isOpen = canOpen && open.has(n.id);
+          return (
+            <div key={n.id}>
+              <button
+                onClick={() => canOpen && toggle(n.id)}
+                aria-expanded={canOpen ? isOpen : undefined}
+                className={`flex w-full items-center gap-1.5 px-2.5 py-[3px] text-left ${canOpen ? 'hover:bg-white/10' : 'cursor-default'}`}
+              >
+                <span className={`w-2.5 shrink-0 text-white/50 ${canOpen ? '' : 'invisible'}`}>
+                  <Icon name="chevron" size={10} className={isOpen ? '' : '-rotate-90'} />
                 </span>
-              ))}
+                {n.tag && <span className="shrink-0 rounded bg-white/15 px-1 font-mono text-2xs tracking-wide">{n.tag}</span>}
+                {/* Wraps rather than truncates on a narrow stage: titles carry caveats like "start time withheld". */}
+                <span className="min-w-0 flex-1">{n.title}</span>
+                {!isOpen && n.swatches && (
+                  <span className="flex shrink-0 items-center gap-1 pl-1">
+                    {n.swatches.slice(0, SWATCHES_COLLAPSED).map(s => (
+                      <span key={s.label} title={s.label} className="flex items-center">
+                        <SwatchMark s={s} />
+                      </span>
+                    ))}
+                    {n.swatches.length > SWATCHES_COLLAPSED && (
+                      <span className="text-2xs text-white/50">+{n.swatches.length - SWATCHES_COLLAPSED}</span>
+                    )}
+                  </span>
+                )}
+              </button>
+              {isOpen && (
+                <div className="pb-1.5 pl-[26px] pr-2.5">
+                  {n.detail && <div className="whitespace-pre-line text-white/60">{n.detail}</div>}
+                  {n.swatches && (
+                    <div className="mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5 text-2xs text-white/75">
+                      {n.swatches.map(s => (
+                        <span key={s.label} className="flex items-center gap-1">
+                          <SwatchMark s={s} />
+                          {s.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      ))}
+          );
+        })}
+      </div>
     </div>
   );
 }

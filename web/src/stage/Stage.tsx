@@ -11,13 +11,14 @@ import {useRaster} from '../data/raster';
 import {useTime} from '../state/time';
 import {useUi} from '../state/ui';
 import {Dem} from './dem';
-import {FireExtension, SCAR_RAMP, type FireExtensionProps} from './fire-extension';
+import {CHAR, FireExtension, FRONT, SCAR_RAMP, type FireExtensionProps} from './fire-extension';
 import {syntheticArrival} from './synthetic-arrival';
 import {useFireImage, type ArrivalMeta, type SeverityStats} from './load';
 import {declutter, groupByStyle, labelLayers, stamp, type LabelStyle, type MapLabel} from './labels';
 import {dashExtension, manifestRow, useIgnitionPart, usePerimeterPart, useSpinePart} from './evidence-layers';
 import {distanceM} from './drape';
-import {usePlaceLabels, useRoadPart, useStructurePart, useWindPart} from './context-layers';
+import {usePlaceLabels, useRoadPart, useStructurePart, useTreePart, useWindPart} from './context-layers';
+import {useHighlightPart} from './highlight';
 import {Compass, HoverInspector, MapControls, MapNotes, SyntheticChip, type StageNote} from './overlays';
 
 const PITCH_3D = 58;
@@ -38,6 +39,7 @@ export function Stage({fire}: {fire: FireData}) {
   const layers = useUi(s => s.layers);
   const flyTo = useUi(s => s.flyTo);
   const selectedStructure = useUi(s => s.selectedStructure);
+  const highlight = useUi(s => s.highlight);
   const setBearing = useUi(s => s.setBearing);
   const setHover = useUi(s => s.setHover);
   const selectStructure = useUi(s => s.selectStructure);
@@ -158,11 +160,13 @@ export function Stage({fire}: {fire: FireData}) {
     selectStructure
   );
   const placeLabels = usePlaceLabels(fire, dem, layers.labels.visible);
+  const treePart = useTreePart(fire, dem, t, terrain.visible, arrivalRaster, arrivalWindow);
+  const highlightPart = useHighlightPart(dem, highlight);
 
   // Labels from every layer compete for space; the survivors depend on the camera.
   const labels = useMemo<MapLabel[]>(
-    () => [...ignitionPart.labels, ...perimeterPart.labels, ...spinePart.labels, ...placeLabels],
-    [ignitionPart.labels, perimeterPart.labels, spinePart.labels, placeLabels]
+    () => [...highlightPart.labels, ...ignitionPart.labels, ...perimeterPart.labels, ...spinePart.labels, ...placeLabels],
+    [highlightPart.labels, ignitionPart.labels, perimeterPart.labels, spinePart.labels, placeLabels]
   );
   // The surviving ids and their placements, as a string so the text layers rebuild only when they change.
   const keepKey = [...declutter(labels, viewState, size.width, size.height)]
@@ -188,26 +192,65 @@ export function Stage({fire}: {fire: FireData}) {
     const reported = fire.aoi.official.incident?.reported_location;
     const moved = reported ? distanceM(seed.lonlat[0], seed.lonlat[1], reported[0], reported[1]) : 0;
     const snapped = moved > 100 ? `; its seed sits inside that perimeter, ${(moved / 1000).toFixed(1)} km from the reported point` : '';
-    return `Before the first mapped perimeter (${stamp(Date.parse(first.to), tz)}), it grows from the ${seed.source} (${stamp(
+    return `Before the first mapped perimeter (${stamp(Date.parse(first.to), tz)}), the progression grows from the ${seed.source} (${stamp(
       Date.parse(seed.t),
       tz
     )}), a report, not an investigated origin${snapped}`;
   }, [arrivalMeta, fire, tz]);
 
   const notes: StageNote[] = [];
+  const baseRow = manifestRow(fire, 'Base texture');
+  if (terrain.visible && baseRow) {
+    const land = manifestRow(fire, 'Land cover / fuels')?.source;
+    const elevation = manifestRow(fire, 'Terrain')?.source;
+    notes.push({
+      id: 'terrain',
+      tag: baseRow.status,
+      title: 'Base texture · stylized land cover',
+      detail: [
+        `${baseRow.source}${elevation ? `, on ${elevation} elevation` : ''}`,
+        treePart.count
+          ? `Trees are illustrative: ${treePart.count.toLocaleString()} cones scattered over the ${land ?? 'land-cover'} tree and shrub cells, not mapped trees. They darken once the fire progression reaches their cell`
+          : ''
+      ]
+        .filter(Boolean)
+        .join('\n')
+    });
+  }
   if (spread.visible && arrivalImage.status === 'ok')
-    notes.push({id: 'spread', tag: 'MODELED', title: 'Fire spread interpolated between mapped perimeters', detail: seedNote});
+    notes.push({
+      id: 'spread',
+      tag: 'MODELED',
+      title: 'Fire Progression (Interpolated)',
+      detail: [
+        "Interpolated between mapped perimeters: each cell's burn time lies between the perimeters that bracket it. Hover the map for a cell's interval",
+        seedNote
+      ]
+        .filter(Boolean)
+        .join('\n'),
+      swatches: [
+        {color: css(FRONT), label: 'Front at t'},
+        {color: css(CHAR), label: 'Burned before t'}
+      ]
+    });
   if (scar.visible) {
-    if (severityImage.status === 'error') notes.push({id: 'scar', title: 'Burn scar unavailable (severity.png did not load)'});
+    if (severityImage.status === 'error')
+      notes.push({id: 'scar', title: 'Burn scar unavailable', detail: 'severity.png did not load'});
     else if (severityStats) {
       const edges = severityStats.encoding.class_edges;
+      const src = severityStats.source;
+      const coverage = Math.round(severityStats.perimeter.coverage * 100);
       notes.push({
         id: 'scar',
-        tag: 'dNBR',
-        title: `Burn scar · ${severityStats.source.product.split(',')[0]}`,
-        detail: `Covers ${Math.round(severityStats.perimeter.coverage * 100)}% of the final perimeter${
-          simulated ? '' : ' · shown where the modeled front has passed by t'
-        }`,
+        tag: manifestRow(fire, 'Burn severity (dNBR)')?.status ?? 'dNBR',
+        title: `Burn scar (dNBR) · ${coverage}% coverage`,
+        detail: [
+          `${src.product}${src.provisional && !/provisional/i.test(src.product) ? ' (provisional)' : ''}${src.pre_date && src.post_date ? `, ${src.pre_date} to ${src.post_date}` : ''}`,
+          `The imagery covers ${coverage}% of the final perimeter; the rest has no burn-scar data`,
+          simulated ? '' : 'Shown only where the interpolated fire progression has reached by t'
+        ]
+          .filter(Boolean)
+          .join('\n'),
         swatches: edges?.length
           ? [
               {color: css(SCAR_RAMP[0]), label: `Low (dNBR ${edges[0]})`},
@@ -218,10 +261,19 @@ export function Stage({fire}: {fire: FireData}) {
     }
   }
   if (ignition.visible && ignitionImage.status === 'error')
-    notes.push({id: 'posterior', title: 'Ignition heat map unavailable (ignition_posterior.png did not load)'});
+    notes.push({id: 'posterior', title: 'Ignition heat map unavailable', detail: 'ignition_posterior.png did not load'});
+  notes.push(...perimeterPart.notes);
   // The final perimeter is always drawn; roads and place names share one OpenStreetMap source.
   const finalRow = manifestRow(fire, 'Final perimeter');
-  if (finalRow) notes.push({id: 'final', tag: finalRow.status, title: 'Final perimeter (dashed white)', detail: finalRow.source});
+  if (finalRow)
+    notes.push({
+      id: 'final',
+      tag: finalRow.status,
+      title: 'Final perimeter',
+      detail: finalRow.source,
+      swatches: [{color: '#ffffff', label: 'Final perimeter', shape: 'dash'}]
+    });
+  notes.push(...ignitionPart.notes, ...spinePart.notes, ...windPart.notes, ...structurePart.notes, ...roadPart.notes);
   const osmRow = manifestRow(fire, 'Roads, peaks & places');
   if (osmRow && (layers.roads.visible || layers.labels.visible))
     notes.push({
@@ -230,43 +282,37 @@ export function Stage({fire}: {fire: FireData}) {
       title: layers.roads.visible && layers.labels.visible ? 'Roads and place names' : layers.roads.visible ? 'Roads' : 'Place names',
       detail: osmRow.source
     });
-  notes.push(
-    ...perimeterPart.notes,
-    ...ignitionPart.notes,
-    ...spinePart.notes,
-    ...windPart.notes,
-    ...structurePart.notes,
-    ...roadPart.notes
-  );
 
-  const deckLayers: (Layer | false)[] = [
-    terrain.visible &&
-      new TerrainLayer<FireExtensionProps>({
-        id: 'terrain',
-        elevationData: `${fire.base}/dem.png`,
-        texture: `${fire.base}/base_stylized.jpg`,
-        bounds: fire.dem.bounds,
-        elevationDecoder: fire.dem.decoder,
-        meshMaxError: 2,
-        opacity: terrain.opacity ?? 1,
-        material: {ambient: 0.72, diffuse: 0.4, shininess: 4, specularColor: [20, 20, 20]},
-        // '3d' picks the terrain surface under the cursor; plain picking unprojects onto sea level,
-        // which at this pitch reads a point 1–3 km beyond the cursor.
-        pickable: '3d',
-        extensions: [fireExtension],
-        fireArrival: arrivalImage.image ?? synthetic,
-        fireTime,
-        fireGlow: 0.012,
-        fireVisible: spread.visible,
-        fireOpacity: spread.opacity ?? 1,
-        // Post-fire imagery only shows where the front has been; the synthetic pattern cannot gate it.
-        fireGateScar: !simulated,
-        fireSeverity: severityImage.image,
-        fireSeverityOpacity: scar.visible ? scar.opacity ?? 1 : 0,
-        fireSeverityRange: severityRange,
-        fireIgnition: ignitionImage.image,
-        fireIgnitionOpacity: ignition.visible ? ignition.opacity ?? 1 : 0
-      }),
+  // The terrain mesh is always drawn: the fire layers live in its shader. The Terrain layer's
+  // switch and slider blend only its stylized texture toward a flat neutral ground.
+  const deckLayers: Layer[] = [
+    new TerrainLayer<FireExtensionProps>({
+      id: 'terrain',
+      elevationData: `${fire.base}/dem.png`,
+      texture: `${fire.base}/base_stylized.jpg`,
+      bounds: fire.dem.bounds,
+      elevationDecoder: fire.dem.decoder,
+      meshMaxError: 2,
+      material: {ambient: 0.72, diffuse: 0.4, shininess: 4, specularColor: [20, 20, 20]},
+      // '3d' picks the terrain surface under the cursor; plain picking unprojects onto sea level,
+      // which at this pitch reads a point 1–3 km beyond the cursor.
+      pickable: '3d',
+      extensions: [fireExtension],
+      fireBase: terrain.visible ? terrain.opacity ?? 1 : 0,
+      fireArrival: arrivalImage.image ?? synthetic,
+      fireTime,
+      fireGlow: 0.012,
+      fireVisible: spread.visible,
+      fireOpacity: spread.opacity ?? 1,
+      // Post-fire imagery only shows where the front has been; the synthetic pattern cannot gate it.
+      fireGateScar: !simulated,
+      fireSeverity: severityImage.image,
+      fireSeverityOpacity: scar.visible ? scar.opacity ?? 1 : 0,
+      fireSeverityRange: severityRange,
+      fireIgnition: ignitionImage.image,
+      fireIgnitionOpacity: ignition.visible ? ignition.opacity ?? 1 : 0
+    }),
+    ...treePart.layers,
     ...roadPart.layers,
     new PathLayer<number[][], {getDashArray: [number, number]; dashJustified: boolean}>({
       id: 'final-perimeter',
@@ -284,6 +330,7 @@ export function Stage({fire}: {fire: FireData}) {
     ...spinePart.layers,
     ...windPart.layers,
     ...ignitionPart.layers,
+    ...highlightPart.layers,
     ...textLayers
   ];
 

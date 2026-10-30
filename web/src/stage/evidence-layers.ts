@@ -6,16 +6,16 @@
  */
 import {useMemo} from 'react';
 import type {Layer} from '@deck.gl/core';
-import {PathLayer, ScatterplotLayer} from '@deck.gl/layers';
+import {PathLayer, PolygonLayer, ScatterplotLayer} from '@deck.gl/layers';
 import {PathStyleExtension} from '@deck.gl/extensions';
 import type {FireData} from '../data/fire';
 import {indexAtOrBefore, useFireJson, type Ignition, type Perimeters, type Spine, type Spots} from '../data/files';
 import {formatDateTime, zoneLabel} from '../lib/format';
 import type {Dem} from './dem';
-import {distanceM, drapeDense, ringsOf} from './drape';
+import {distanceM, drapeDense, drapeFill, insideRuns, offsetM, ringArea, ringsOf} from './drape';
 import {POSTERIOR_RAMP} from './fire-extension';
 import {stamp, type MapLabel} from './labels';
-import type {StageNote} from './overlays';
+import type {StageNote, Swatch} from './overlays';
 
 export type StagePart = {layers: Layer[]; labels: MapLabel[]; notes: StageNote[]};
 export const NO_PART: StagePart = {layers: [], labels: [], notes: []};
@@ -32,6 +32,13 @@ export const dashExtension = new PathStyleExtension({dash: true, dashMode: 'path
 type RGBA = [number, number, number, number];
 const css = ([r, g, b]: number[]) => `rgb(${r}, ${g}, ${b})`;
 const ESTIMATE: RGBA = [214, 52, 40, 255];
+const SPINE: RGBA = [242, 178, 51, 255];
+/** region90's cells: a faint fill, so the scattered candidate cells read as a sampled area. */
+const REGION: RGBA = [214, 52, 40, 56];
+// The fill is cut into squares this size so it follows the ground (measured against the DEM:
+// at 30 m no part of either fire's fill dips under the terrain; at 60 m about 1% does).
+const FILL_STEP_M = 30;
+const fillParameters = {depthWriteEnabled: false};
 const byTime = <T extends {properties: {t: string}}>(a: T, b: T) => Date.parse(a.properties.t) - Date.parse(b.properties.t);
 
 /** Latest mapped perimeter at or before t (solid line + time chip) and the spot fires mapped by t. */
@@ -107,11 +114,16 @@ export function usePerimeterPart(fire: FireData, dem: Dem | null, t: number, on:
       notes.push({
         id: 'perimeters',
         tag: manifestRow(fire, 'Perimeters (time series)')?.status,
-        title: `Mapped perimeter at t (solid)${spotRings.length ? ' and spot fires' : ''}`,
-        detail: current.source
+        title: `Mapped perimeter at t${spotRings.length ? ' + spot fires' : ''}`,
+        detail: `Latest perimeter mapped at or before t: ${stamp(current.t, tz)}, ${Math.round(current.acres).toLocaleString()} ac\n${current.source}`,
+        swatches: [{color: '#fff7ec', label: 'Mapped perimeter and spot fires', shape: 'line'}]
       });
     else if (mapped && mapped.items.length)
-      notes.push({id: 'perimeters', title: `No perimeter mapped yet · first at ${stamp(mapped.items[0].t, tz)}`});
+      notes.push({
+        id: 'perimeters',
+        title: 'No perimeter mapped yet at t',
+        detail: `First mapped perimeter: ${stamp(mapped.items[0].t, tz)}`
+      });
     return {layers, labels, notes};
   }, [on, mapped, index, spotRings, tz, perims.error, fire]);
 }
@@ -169,7 +181,7 @@ export function useSpinePart(fire: FireData, dem: Dem | null, t: number, on: boo
         id: 'spine',
         data: drawn.paths,
         getPath: d => d as any,
-        getColor: [242, 178, 51, 255],
+        getColor: SPINE,
         getWidth: 3,
         widthUnits: 'pixels',
         getDashArray: [5, 3],
@@ -202,7 +214,13 @@ export function useSpinePart(fire: FireData, dem: Dem | null, t: number, on: boo
       priority: i < reached ? 50 + i : 40 - i
     }));
     const notes: StageNote[] = [
-      {id: 'spine', tag: 'MODELED', title: 'Spread spine', detail: 'From the first-burned area to the farthest early run, traced on the modeled arrival'}
+      {
+        id: 'spine',
+        tag: 'MODELED',
+        title: 'Spread spine',
+        detail: 'From the first-burned area to the farthest early run, traced on the interpolated fire progression; waypoints after t are muted',
+        swatches: [{color: css(SPINE), label: 'Spine and waypoints', shape: 'dash'}]
+      }
     ];
     return {layers, labels, notes};
   }, [on, drawn, reached, spine.error]);
@@ -210,11 +228,25 @@ export function useSpinePart(fire: FireData, dem: Dem | null, t: number, on: boo
 
 const fmtKm = (m: number) => `${(m / 1000).toFixed(1)} km`;
 
+/** Closed ring of `n` steps at `r` meters around (lon, lat). */
+function circle(lon: number, lat: number, r: number, n: number): number[][] {
+  return Array.from({length: n + 1}, (_, i) => offsetM(lon, lat, r * Math.sin((2 * Math.PI * i) / n), r * Math.cos((2 * Math.PI * i) / n)));
+}
+
 /**
- * Ignition: the 90% credible region outline, the estimate (red, rings) and CAL FIRE's reported
- * location (white; a report, kept visibly separate from the model's estimate). The estimate's
- * start time appears only when timing.identifiable; otherwise it is withheld with the file's
- * reasons. `heat` says whether the posterior heat map is on the terrain, for the key's swatches.
+ * Ignition: the 90% credible region, the r90 ring, the estimate (red, rings) and CAL FIRE's
+ * reported location (white; a report, kept visibly separate from the model's estimate).
+ *
+ * region90 is the set of evaluated candidate cells that holds 90% of the relative posterior,
+ * already dissolved by the pipeline: one polygon per group of touching cells. The back-trace
+ * scores candidates on a coarse lattice plus a dense patch around its best fits, so the patch
+ * is one contiguous polygon and the rest are isolated single cells. Every cell gets a faint
+ * fill; only polygons larger than one cell are outlined, so the isolated samples do not read
+ * as a scatter of squares. The r90 ring (90% of the posterior lies within it) is cut where it
+ * leaves the terrain.
+ *
+ * The estimate's start time appears only when timing.identifiable; otherwise it is withheld with
+ * the file's reasons. `heat` says whether the posterior heat map is on the terrain, for the key.
  */
 export function useIgnitionPart(fire: FireData, dem: Dem | null, on: boolean, heat: boolean): StagePart {
   const ignition = useFireJson<Ignition>(fire, 'ignition.json');
@@ -225,8 +257,22 @@ export function useIgnitionPart(fire: FireData, dem: Dem | null, on: boolean, he
     if (!dem) return null;
     const ig = ignition.data;
     const reported = incident?.reported_location;
+    const g = ig?.region90;
+    const polygons = g ? (g.type === 'Polygon' ? [g.coordinates] : g.coordinates) : [];
+    const areas = polygons.map(p => ringArea(p[0]) - p.slice(1).reduce((sum, h) => sum + ringArea(h), 0));
+    // One cell's area: the region's area over its cell count, else the smallest polygon (a lone cell).
+    const cells = (ig as (Ignition & {region90_cells?: number}) | null)?.region90_cells;
+    const cell = cells ? areas.reduce((a, b) => a + b, 0) / cells : Math.min(...areas);
+    const r90 = ig ? drapeDense(dem, circle(ig.map.lon, ig.map.lat, ig.r90_m, 128), 14, 60) : null;
+    const r90Runs = r90 ? insideRuns(dem, r90) : [];
     return {
-      region: ig ? ringsOf(ig.region90).map(r => drapeDense(dem, r, 10, 60)) : [],
+      fill: polygons.flatMap(p => drapeFill(dem, p, 10, FILL_STEP_M)),
+      // Outer ring and holes of every polygon larger than one cell, draped a little above the fill.
+      outline: polygons
+        .filter((_, i) => areas[i] > cell * 1.5)
+        .flatMap(p => p.flatMap(r => insideRuns(dem, drapeDense(dem, r, 14, FILL_STEP_M)))),
+      r90: r90Runs,
+      r90Clipped: Boolean(r90 && r90Runs.reduce((n, run) => n + run.length, 0) < r90.length),
       estimate: ig ? [ig.map.lon, ig.map.lat, dem.heightAt(ig.map.lon, ig.map.lat) + 20] : null,
       reported: reported ? [reported[0], reported[1], dem.heightAt(reported[0], reported[1]) + 20] : null
     };
@@ -237,15 +283,41 @@ export function useIgnitionPart(fire: FireData, dem: Dem | null, on: boolean, he
     const ig = ignition.data;
     const identifiable = Boolean(ig?.timing.identifiable);
     const layers: Layer[] = [
-      new PathLayer<number[][]>({
-        id: 'ignition-region90',
-        data: drawn.region,
-        getPath: d => d as any,
-        getColor: [181, 53, 54, 235],
-        getWidth: 1.5,
-        widthUnits: 'pixels'
+      new PolygonLayer<number[][][]>({
+        id: 'ignition-region90-fill',
+        data: drawn.fill,
+        getPolygon: d => d as any,
+        filled: true,
+        stroked: false,
+        getFillColor: REGION,
+        parameters: fillParameters
       })
     ];
+    if (drawn.outline.length)
+      layers.push(
+        new PathLayer<number[][]>({
+          id: 'ignition-region90-outline',
+          data: drawn.outline,
+          getPath: d => d as any,
+          getColor: [214, 52, 40, 230],
+          getWidth: 1.5,
+          widthUnits: 'pixels'
+        })
+      );
+    if (drawn.r90.length)
+      layers.push(
+        new PathLayer<number[][], {getDashArray: [number, number]; dashJustified: boolean}>({
+          id: 'ignition-r90',
+          data: drawn.r90,
+          getPath: d => d as any,
+          getColor: [214, 52, 40, 220],
+          getWidth: 1.5,
+          widthUnits: 'pixels',
+          getDashArray: [5, 4],
+          dashJustified: true,
+          extensions: [dashExtension]
+        })
+      );
     const labels: MapLabel[] = [];
     if (drawn.estimate) {
       const rings = [26, 18, 11].map((r, i) => ({position: drawn.estimate!, r, a: 90 + i * 60}));
@@ -314,28 +386,40 @@ export function useIgnitionPart(fire: FireData, dem: Dem | null, on: boolean, he
     }
     const notes: StageNote[] = [];
     if (ig) {
-      const timing = identifiable
-        ? `start ${stamp(Date.parse(ig.map.t), tz)} (90%: ${stamp(Date.parse(ig.t90[0]), tz)} – ${stamp(Date.parse(ig.t90[1]), tz)})`
-        : 'start time withheld';
-      // r90_m is a distance quantile around the estimate; region90 is the smaller credible region.
+      const cells = (ig as Ignition & {region90_cells?: number}).region90_cells;
       const detail = [
-        `90% of the posterior lies within ${fmtKm(ig.r90_m)} of the estimate · outline: 90% credible region (${ig.region90_km2} km²)`
+        identifiable
+          ? `Start ${stamp(Date.parse(ig.map.t), tz)} (90%: ${stamp(Date.parse(ig.t90[0]), tz)} – ${stamp(Date.parse(ig.t90[1]), tz)})`
+          : `Start time withheld: ${ig.timing.reasons.join('; ')}`,
+        `Shaded cells: the ${cells != null ? `${cells.toLocaleString()} ` : ''}evaluated candidate cells that hold 90% of the relative posterior (${ig.region90_km2} km²)${drawn.outline.length ? '; solid outline where neighbouring cells join into one area' : ''}`,
+        `Dashed ring: 90% of the posterior lies within ${fmtKm(ig.r90_m)} of the estimate${drawn.r90Clipped ? ' (the ring runs past the edge of the terrain shown)' : ''}`
       ];
-      if (!identifiable) detail.push(`Start time withheld: ${ig.timing.reasons.join('; ')}`);
       if (drawn.reported && drawn.estimate) {
         const [a, b] = [drawn.estimate, drawn.reported];
         detail.push(
           `White marker: the location in the CAL FIRE incident report (a report, not an investigated origin), ${fmtKm(distanceM(a[0], a[1], b[0], b[1]))} from the estimate`
         );
       }
-      const swatches = [{color: css(ESTIMATE), label: 'Estimate'}];
+      if (heat) detail.push('Violet: relative posterior over the evaluated candidates');
+      const swatches: Swatch[] = [{color: css(ESTIMATE), label: 'Estimate'}];
       if (drawn.reported) swatches.push({color: '#ffffff', label: 'Reported (CAL FIRE)'});
+      swatches.push(
+        {color: `rgba(${REGION.slice(0, 3).join(', ')}, 0.55)`, label: '90% credible cells', shape: 'square'},
+        ...(drawn.outline.length ? [{color: css(ESTIMATE), label: 'Joined 90% cells', shape: 'line' as const}] : []),
+        {color: css(ESTIMATE), label: '90% radius', shape: 'dash'}
+      );
       if (heat)
         swatches.push(
           {color: css(POSTERIOR_RAMP[0]), label: 'Lower posterior'},
           {color: css(POSTERIOR_RAMP[2]), label: 'Higher posterior'}
         );
-      notes.push({id: 'ignition', tag: 'MODELED', title: `Ignition estimate · ${timing}`, detail: detail.join('\n'), swatches});
+      notes.push({
+        id: 'ignition',
+        tag: 'MODELED',
+        title: identifiable ? `Ignition estimate · start ${stamp(Date.parse(ig.map.t), tz)}` : 'Ignition estimate · start time withheld',
+        detail: detail.join('\n'),
+        swatches
+      });
     } else if (ignition.error) {
       notes.push({id: 'ignition', title: 'Ignition estimate unavailable', detail: ignition.error});
     }
