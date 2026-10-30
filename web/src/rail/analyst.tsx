@@ -1,13 +1,13 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {create} from 'zustand';
 import type {FireData} from '../data/fire';
 import {useFireJson, type FireEvent} from '../data/files';
 import {formatDate} from '../lib/format';
 import {useTime} from '../state/time';
-import {useUi} from '../state/ui';
+import {useUi, type Highlight} from '../state/ui';
 import {Icon} from '../ui/Icon';
 import {chipTime, stamp} from './fmt';
-import {Button} from './ui';
+import {Button, Chip} from './ui';
 
 /**
  * Mirrors web/api/_lib/types.ts (POST /api/analyst); kept local because api/ is a separate TS project.
@@ -85,12 +85,21 @@ const LAYER_ICON: Record<string, string> = {
 };
 
 /**
- * DESIGN.md §9: a chip per cite. Click sets t (inside the window) and eases the camera to the place.
- * A date-only event (containment) has a date but no clock time: its t is a placeholder noon, so the
- * chip shows the date alone and never moves the scrubber to it.
+ * DESIGN.md §9: a chip per cite. Hovering marks the cited place on the map; click sets t (inside the
+ * window) and eases the camera there. A date-only event (containment) has a date but no clock time:
+ * its t is a placeholder noon, so the chip shows the date alone and never moves the scrubber to it.
  */
 function CiteChip({cite, tz, dateOnly}: {cite: Cite; tz: string; dateOnly: Set<string>}) {
   const requestFlyTo = useUi(s => s.requestFlyTo);
+  const setHighlight = useUi(s => s.setHighlight);
+  // The highlight this chip set, so leaving or unmounting clears only its own, never another's.
+  const mine = useRef<Highlight>(null);
+  const unmark = () => {
+    if (mine.current && useUi.getState().highlight === mine.current) setHighlight(null);
+    mine.current = null;
+  };
+  // On unmount (sub-tab switch, new fire) a chip under the pointer leaves its mark behind otherwise.
+  useEffect(() => unmark, []);
   const ms = cite.t ? Date.parse(cite.t) : NaN;
   const hasTime = Number.isFinite(ms);
   const dayOnly = hasTime && (cite.date_only === true || (cite.layer === 'events' && dateOnly.has(cite.t!)));
@@ -102,9 +111,18 @@ function CiteChip({cite, tz, dateOnly}: {cite: Cite; tz: string; dateOnly: Set<s
     if (hasTime && !dayOnly && ms >= start && ms <= end) setTime(ms);
     if (hasPlace) requestFlyTo(cite.lon!, cite.lat!);
   };
+  const mark = () => {
+    if (!hasPlace) return;
+    mine.current = {lon: cite.lon!, lat: cite.lat!, label: cite.label};
+    setHighlight(mine.current);
+  };
   return (
     <button
       onClick={go}
+      onMouseEnter={mark}
+      onMouseLeave={unmark}
+      onFocus={mark}
+      onBlur={unmark}
       disabled={(!hasTime || dayOnly) && !hasPlace}
       title={cite.label + (hasTime ? ` · ${dayOnly ? `${when} (date only)` : stamp(ms, tz)}` : '')}
       className="mx-0.5 inline-flex max-w-full items-center gap-1 rounded bg-selected px-1.5 align-baseline font-mono text-2xs tracking-wide text-ink disabled:cursor-default"
@@ -162,7 +180,7 @@ function Answer({turn, tz, dateOnly}: {turn: Turn; tz: string; dateOnly: Set<str
   );
 }
 
-/** Notes sub-tab: the Muse Spark analyst (DESIGN.md §9). Answers come only from the server; nothing is canned. */
+/** Analyst sub-tab: the Muse Spark analyst (DESIGN.md §9). Answers come only from the server; nothing is canned. */
 export function Analyst({fire}: {fire: FireData}) {
   const {turns: all, pending, ask, fire: chatFire} = useAnalyst();
   const turns = chatFire === fire.id ? all : [];
@@ -179,6 +197,9 @@ export function Analyst({fire}: {fire: FireData}) {
   };
   return (
     <div className="flex flex-col">
+      <div className="flex justify-end px-3 pt-2">
+        <Chip tone="modeled">MUSE SPARK</Chip>
+      </div>
       <div className="space-y-2 px-3 py-2">
         {turns.length === 0 && (
           <div className="py-3 text-center text-sm text-muted">

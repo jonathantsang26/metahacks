@@ -4,6 +4,7 @@ import {LAYERS, useUi, type LayerId} from '../state/ui';
 import {Analysis} from './analysis';
 import {Analyst} from './analyst';
 import {IncidentOverview} from './overview';
+import {POSTERIOR_THUMB, SCAR_THUMB} from './ramps';
 import {Card, Pending} from './ui';
 import {WeatherCard} from './weather';
 
@@ -15,11 +16,11 @@ const svgThumb = (body: string) =>
 
 const THUMBS: Partial<Record<LayerId, string>> = {
   terrain: 'linear-gradient(135deg,#6f7d4f,#a99e6c)',
-  burnScar: 'linear-gradient(135deg,#3a1f17,#a3381e)',
+  // Both fire-related thumbnails come from the shader's ramps (ramps.ts), as the map draws them.
+  burnScar: SCAR_THUMB,
   fireSpread: 'linear-gradient(135deg,#f08a2b,#d4521f)',
   perimeters: `${svgThumb("<path d='M6 9 17 5 23 13 17 23 7 20Z' fill='none' stroke='#fff7ec' stroke-width='1.6'/>")} #8f8a7c`,
-  // Same stops as the heat layer (POSTERIOR_RAMP in analysis.tsx): deep red where the posterior is highest.
-  ignition: 'radial-gradient(circle,#c70f1a 0 18%,#ff6b1a 40%,#ffd65c 70%)',
+  ignition: POSTERIOR_THUMB,
   spine: `${svgThumb("<path d='M4 22 12 15 18 12 24 5' fill='none' stroke='#f2b233' stroke-width='2' stroke-dasharray='3 2'/>")} #8f8a7c`,
   wind: 'linear-gradient(135deg,#d6dadb,#eef0ee)',
   structures: 'linear-gradient(135deg,#8d8d86,#b9b7ae)',
@@ -100,7 +101,7 @@ function Evidence({fire}: {fire: FireData}) {
   );
 }
 
-const SUBTABS = ['Layers', 'Analysis', 'Evidence', 'Notes'] as const;
+const SUBTABS = ['Layers', 'Analysis', 'Evidence', 'Analyst'] as const;
 
 function IncidentRail({fire}: {fire: FireData}) {
   const [sub, setSub] = useState<(typeof SUBTABS)[number]>('Layers');
@@ -126,7 +127,7 @@ function IncidentRail({fire}: {fire: FireData}) {
         {sub === 'Layers' && <LayersList />}
         {sub === 'Analysis' && <Analysis fire={fire} />}
         {sub === 'Evidence' && <Evidence fire={fire} />}
-        {sub === 'Notes' && <Analyst fire={fire} />}
+        {sub === 'Analyst' && <Analyst fire={fire} />}
       </section>
       <IncidentOverview fire={fire} />
       <WeatherCard fire={fire} />
@@ -142,14 +143,12 @@ export function Rail({fire}: {fire: FireData}) {
       {tab === 'incident' && <IncidentRail fire={fire} />}
       {tab === 'drones' && (
         <Card title="Drone footage">
-          <Pending>
-            Recorded footage with Sentinel boxes and SAM 3.1 masks is stream C's work and is not started in this build.
-          </Pending>
+          <Pending>Drone footage is not available in this build.</Pending>
         </Card>
       )}
       {tab === 'resources' && (
         <Card title="Resources">
-          <Pending>Aircraft, engines and crews are not in this build.</Pending>
+          <Pending>Aircraft, engines and crews are not available in this build.</Pending>
         </Card>
       )}
     </aside>

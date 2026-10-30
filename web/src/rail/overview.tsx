@@ -26,7 +26,24 @@ export function IncidentOverview({fire}: {fire: FireData}) {
   return (
     <Card title="Incident Overview">
       <div className="py-2">
-        <Row k="Incident" v={fire.aoi.name} />
+        <Row
+          k="Incident"
+          v={
+            o.incident?.url ? (
+              <a
+                href={o.incident.url}
+                target="_blank"
+                rel="noreferrer"
+                title="CAL FIRE incident page"
+                className="underline decoration-hairline underline-offset-2"
+              >
+                {fire.aoi.name} ↗
+              </a>
+            ) : (
+              fire.aoi.name
+            )
+          }
+        />
         <Row k="Location" v={fire.aoi.location} />
         <Row k="Replay window" v={`${formatDate(w0, tz)} – ${formatDate(w1, tz)}`} />
         <Row

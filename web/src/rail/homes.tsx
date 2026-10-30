@@ -3,6 +3,7 @@ import type {FireData} from '../data/fire';
 import {useFireJson, type Exposure, type ExposureStats, type Structures} from '../data/files';
 import {useTime} from '../state/time';
 import {useUi} from '../state/ui';
+import {ExposureTimeline} from './exposure-timeline';
 import {meters, pctFine, stamp} from './fmt';
 import {Button, Chip, Missing, SubHead} from './ui';
 
@@ -108,6 +109,7 @@ function HomeDetail({fire, id}: {fire: FireData; id: number}) {
           <KV k="To wildland" v={row.dist != null ? meters(row.dist) : null} />
         </>
       )}
+      <ExposureTimeline fire={fire} lon={lon} lat={lat} arrivalMs={arrivalMs} />
 
       <div className="mt-2 flex flex-wrap gap-1.5">
         <Button onClick={() => requestFlyTo(lon, lat)}>Fly to</Button>
