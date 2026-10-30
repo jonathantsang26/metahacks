@@ -69,6 +69,15 @@ describe('arrival_at', () => {
     expect(call('arrival_at', {lon: -120, lat: 36}).result.covered).toBe(false);
   });
 
+  it('a point only the final perimeter covers gets an upper bound, not an arrival time', () => {
+    // arrival.png green = 32 here: no timed perimeter covers this cell.
+    const {result, cites} = call('arrival_at', {lon: -118.086531, lat: 34.235283});
+    expect(result).toMatchObject({burned: true, arrival_time_known: false, inside_final_perimeter: true});
+    expect(result.t).toBeUndefined();
+    expect(result.burned_by_latest.t).toMatch(/Z$/);
+    expect(cites[0].label).toMatch(/at the latest/);
+  });
+
   it('rejects bad arguments without registering cites', () => {
     const runner = createToolRunner(store);
     const out = call('arrival_at', {lon: 'west'}, runner);

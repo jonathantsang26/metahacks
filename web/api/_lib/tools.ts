@@ -150,6 +150,9 @@ const placeLookup: Impl = (args, {store}) => {
   };
 };
 
+/** arrival.png's green value for cells only the final perimeter covers (step 06), as 0–1. */
+const LATE_CONFIDENCE = 32 / 255;
+
 const arrivalAt: Impl = (args, {store, tz}) => {
   const [lon, lat] = lonLat(args);
   const raster = store.arrival();
@@ -168,6 +171,22 @@ const arrivalAt: Impl = (args, {store, tz}) => {
     };
   }
   const st = stamp(roundToMinute(s.ms), tz);
+  if (s.confidence <= LATE_CONFIDENCE) {
+    // Step 06 gives cells that only the final perimeter covers the last observation's time:
+    // an upper bound, not an arrival time.
+    return {
+      result: {
+        lon,
+        lat,
+        burned: true,
+        arrival_time_known: false,
+        burned_by_latest: st,
+        inside_final_perimeter: inside,
+        note: 'Inside the final perimeter but outside every timed perimeter, so the arrival time is not resolved: the fire reached this point by the time above at the latest.'
+      },
+      cites: [{layer: 'arrival', t: st.t, lon, lat, label: `Burned by ${st.t_local} at the latest (time not resolved)`}]
+    };
+  }
   const start = store.aoi().official.incident?.start_utc;
   return {
     result: {
