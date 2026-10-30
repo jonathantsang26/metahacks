@@ -113,10 +113,10 @@ A separate runner agent executed the repository's documented commands in a clean
 
 const RUN_PROMPT = `You are the command runner for a judging panel. Run each command below in order, in the git worktree at ${wt.run} only, each with a Bash timeout of 600000 ms. Do not edit tracked files and do not try to fix failures: record them.
   1. cd ${wt.run}/pipeline && uv sync && make test
-  2. cd ${wt.run}/pipeline && make eval EVAL_DIR=${wt.run}/../eval-out-run
-     then compare ${wt.run}/../eval-out-run/ignition_holdout.json with the committed ${wt.run}/web/public/data/eaton/eval/ignition_holdout.json (python3 -c that loads both and prints any differing values).
-  3. cd ${wt.run}/pipeline && make eval QUICK=1 EVAL_DIR=${wt.run}/../eval-out-run-quick
-     then print ${wt.run}/../eval-out-run-quick/ignition_check.json.
+  2. cd ${wt.run}/pipeline && make eval EVAL_DIR=/tmp/ember-judge-r${round}-run
+     then compare /tmp/ember-judge-r${round}-run/ignition_holdout.json with the committed ${wt.run}/web/public/data/eaton/eval/ignition_holdout.json (python3 -c that loads both and prints any differing values).
+  3. cd ${wt.run}/pipeline && make eval QUICK=1 EVAL_DIR=/tmp/ember-judge-r${round}-quick
+     then print /tmp/ember-judge-r${round}-quick/ignition_check.json.
   4. cd ${wt.run}/web && export PATH="${node_bin}:$PATH" && node --version && npm ci && npm test && npm run build
   5. cd ${wt.run}/web && export PATH="${node_bin}:$PATH" && npm run eval:analyst -- --truth
 Return a plain-text log (not JSON): for each command, the exact command, its exit code, its wall time, and the last 25 lines of its output, then the comparison results verbatim. Report facts only, no scores.`

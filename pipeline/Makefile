@@ -5,10 +5,12 @@
 #   make test   offline unit + contract tests against committed outputs (TEST_FIRES=eaton,palisades)
 #   make eval   offline, 5-15 min: the real ignition hold-out (its own length-to-breadth selection,
 #               the committed calibration); reproduces eval/ignition_holdout.json exactly. QUICK=1 instead
-#               recomputes the first 2 synthetic cases and checks them against the committed ones
-#               (eval/ignition_check.json), about 6 min.
-#               EVAL_DIR=/some/dir writes there instead of overwriting the committed results
-#   make eval-full  the whole synthetic benchmark (30 cases, both scenarios) and the wind ablation; ~1-2 h
+#               recomputes the first 2 synthetic cases, compares them with eval/ignition_synthetic.json
+#               and writes the result to ignition_check.json, about 8 min.
+#               EVAL_DIR=/some/dir writes there instead of overwriting the committed results (quoted, so
+#               paths with spaces work)
+#   make eval-full  the whole synthetic benchmark (30 cases, both scenarios) and the wind ablation;
+#               about 70 min for Eaton and 100 min for Palisades on a 10-core laptop
 
 FIRE ?=
 TEST_FIRES ?= eaton,palisades
@@ -60,10 +62,10 @@ test:
 	TEST_FIRES=$(TEST_FIRES) uv run pytest -q tests
 
 eval:
-	EVAL_DIR=$(EVAL_DIR) $(RUN) steps.s11_ignition --eval-only $(if $(QUICK),--cases 2 --check,--cases 0)
+	EVAL_DIR="$(EVAL_DIR)" $(RUN) steps.s11_ignition --eval-only $(if $(QUICK),--cases 2 --check,--cases 0)
 
 eval-full:
-	EVAL_DIR=$(EVAL_DIR) $(RUN) steps.s11_ignition --eval-only --ablation
+	EVAL_DIR="$(EVAL_DIR)" $(RUN) steps.s11_ignition --eval-only --ablation
 
 # Thursday checkpoint: both Meta models answer a real request (needs MODEL_API_KEY).
 smoke-meta:
