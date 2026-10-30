@@ -40,7 +40,7 @@ These are what let the streams work in parallel. The producer writes files to `w
 | `weather.json` | `{hourly: [{t, wind_mph, wind_dir_deg, gust_mph, temp_c, rh_pct}], daily: [{date, erc, bi, fm100}], source}` |
 | `severity.png` | Same bounds as `dem.png`. Red channel = dNBR scaled to 0–255; 0 = no data. |
 | `fuel.png` + `fuel_classes.json` | Class index per pixel, and `{index: label}` for the hover readout |
-| `trees.json` | `[[lon, lat, height_m, arrival_code], ...]`, ≤ 40k entries |
+| `trees.json` | `[[lon, lat, height_m], ...]`, ≤ 40k entries. B samples `arrival.png` per tree to char it. |
 | `structures.geojson` | Points, `properties: {id, damage, structure_type, roof, eaves, vents, siding}`. **No address, APN, year built or owner fields.** |
 | `exposure.json` / `exposure_stats.json` | Per structure: `{id, arrival_t, wind_mph, gust_mph, dist_to_burn_m, slope_deg, fuel}`. Stats: `{feature, bins: [{exposure, n, destroyed, rate, ci95}]}` |
 | `events.json` | `[{id, kind: "ignition"\|"rapid_growth"\|"spot_fire"\|"ridge_crossing"\|"containment", label, t, lon, lat, source}]` |
