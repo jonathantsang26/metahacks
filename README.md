@@ -57,3 +57,4 @@ Pick another fire with `make FIRE=palisades all` and open `/?fire=palisades`.
 
 - [`docs/spec/BUILD.md`](docs/spec/BUILD.md): architecture, data pipeline, models, evaluation plan, schedule
 - [`docs/spec/DESIGN.md`](docs/spec/DESIGN.md): UI specification
+- [`docs/spec/WORKSTREAMS.md`](docs/spec/WORKSTREAMS.md): the three parallel workstreams, their file and API contracts, and a day plan for each

@@ -293,11 +293,10 @@ dock/side/                 KeyEvents, Detections, AirOpsLog
 | **Mon Nov 2** | **Drones tab as a footage player**: PiP + HUD, Sentinel boxes + SAM masks, and Detections. Homes panel. 9c if it was a go. Analyst eval (step 15). Evidence tab. 2D mode if time allows. **Feature freeze at 11 pm.** | A 3-minute run-through works end to end |
 | **Tue Nov 3** | Polish only. Record the demo video; write the README (Real vs Sim, every eval number, which Meta models do what, prior-work disclosure) and the submission form. **Submit by 6 pm.** | Submitted. The official close is Wed Nov 4, 5 pm PST, which leaves buffer. |
 
-**Suggested split** (adjust to who's actually on the team):
-1. pipeline + forensic model + house-level analysis (Python)
-2. 3D stage + fire layer (deck.gl)
-3. panels, dock, charts, plus the analyst UI and `api/analyst` (React/TS)
-4. **Ben** on vision: the Sentinel + SAM 3.1 pipeline and its evals, footage, and the story/video. Sentinel is his detector.
+**Team split**: three parallel streams, sized to the Claude plans. They are defined in [WORKSTREAMS.md](WORKSTREAMS.md), together with the file and API contracts between them and a day-by-day table per stream.
+- **A: Data & forensics** (20x)
+- **B: Web app** (20x)
+- **C: Vision & story** (5x)
 
 ## 10. Demo video beats (about 2.5–3 min)
 

@@ -1,0 +1,115 @@
+# WORKSTREAMS.md: three parallel streams
+
+The build is split three ways so three people (and their Claude Code sessions) can work at once without blocking each other:
+
+- **A** and **B** are the heavy streams, with long agentic coding sessions and lots of iteration. They fit the **Claude Max 20x** plans.
+- **C** is the lighter stream. Its work is mostly running scripts, API calls and evals, plus writing. It fits the **5x** plan.
+
+Sentinel is Ben's detector, so C is the natural stream for him. If Ben is on a 20x plan, he can take A or B instead, and whoever has the 5x plan takes C.
+
+| Stream | Plan | Owns | One-line goal |
+|---|---|---|---|
+| **A: Data & forensics** | 20x | `pipeline/` (except vision steps), `web/api/` | Turn public data into every file the app reads; the ignition back-trace; the analyst's backend |
+| **B: Web app** | 20x | `web/src/` | Everything rendered in the browser: map, fire, panels, charts, analyst chat, footage player |
+| **C: Vision & story** | 5x | `pipeline/steps/s12*.py`, `s09c_*.py`, `pipeline/tools/`, `footage/`, submission text | Sentinel + SAM 3.1 on drone footage with eval numbers; the demo video and submission |
+
+**Start a session** in any stream with: *"Read docs/spec/BUILD.md §0, then docs/spec/WORKSTREAMS.md §<A|B|C>, then do today's row for my stream."*
+
+**Git**: each stream works on its own branch (`a/data`, `b/web`, `c/vision`). Merge to `main` once a day, after `cd web && npm run build` passes. Change a contract (§1) only by editing this file in the same commit, and tell the other two.
+
+---
+
+## 1. Contracts between streams
+
+These are what let the streams work in parallel. The producer writes files to `web/public/data/<fire>/`. The consumer codes against the shape below, using a hand-written sample file until the real one lands. All times are **UTC ISO-8601** strings, and all coordinates are `[lon, lat]`.
+
+### Already exists (steps 01–02)
+`aoi.json`, `dem.json`, `dem.png`, `base_stylized.jpg`, `hillshade.png`, `final_perimeter.geojson`, `manifest.json`. Their shapes are in `web/src/data/fire.ts`.
+
+### A → B (data files)
+
+| File | Shape |
+|---|---|
+| `arrival.png` | Same bounds as `dem.png`, row 0 = north. Red channel: 1–254 → `(code−1)/253` of `aoi.window_utc`, 255 → never burned (BUILD.md §3). If step 06 changes the window, it rewrites `aoi.json` too. |
+| `isochrones.geojson` | LineStrings, `properties: {t}`, every 15 min. The perimeter at time t, used in 2D. |
+| `perimeters.geojson` | Polygons, `properties: {t, acres, source}`. The observed perimeters, for the Evidence tab. |
+| `hotspots.geojson` | Points, `properties: {t, frp, confidence, satellite}` |
+| `series.json` | `{t: string[], area_acres: number[], ros_chains_hr: number[]}`, hourly. Feeds the Fire Area and Rate of Spread charts. |
+| `spine.geojson` | One LineString from the ignition point to the head, plus Point waypoints with `properties: {t, label}` |
+| `profile.json` | `{distance_km: number[], elevation_m: number[], t: (string\|null)[]}` along the spine. Feeds the Elevation Profile chart. |
+| `weather.json` | `{hourly: [{t, wind_mph, wind_dir_deg, gust_mph, temp_c, rh_pct}], daily: [{date, erc, bi, fm100}], source}` |
+| `severity.png` | Same bounds as `dem.png`. Red channel = dNBR scaled to 0–255; 0 = no data. |
+| `fuel.png` + `fuel_classes.json` | Class index per pixel, and `{index: label}` for the hover readout |
+| `trees.json` | `[[lon, lat, height_m, arrival_code], ...]`, ≤ 40k entries |
+| `structures.geojson` | Points, `properties: {id, damage, structure_type, roof, eaves, vents, siding}`. **No address, APN, year built or owner fields.** |
+| `exposure.json` / `exposure_stats.json` | Per structure: `{id, arrival_t, wind_mph, gust_mph, dist_to_burn_m, slope_deg, fuel}`. Stats: `{feature, bins: [{exposure, n, destroyed, rate, ci95}]}` |
+| `events.json` | `[{id, kind: "ignition"\|"rapid_growth"\|"spot_fire"\|"ridge_crossing"\|"containment", label, t, lon, lat, source}]` |
+| `ignition.json` + `ignition_posterior.png` | `{map: {lon, lat, t}, region90: GeoJSON Polygon, holdout: {hour_n, distance_m, time_error_min, first_perimeter_iou}}`. The PNG's red channel = posterior, 0–255. |
+
+### A → B (analyst API): `POST /api/analyst`
+- **Request**: `{question: string, history?: {role, content}[], mode?: "answer" | "report"}`
+- **Response**: `{paragraphs: [{text: string, cites: [{layer, t, lon, lat, label}]}], tool_calls: [{name, args}]}`
+- **Rules**:
+  - A paragraph with no cite is dropped before it is returned.
+  - The model is `muse-spark-1.3` on `https://api.meta.ai/v1`, and the key stays server-side.
+  - The response never states a cause and never includes addresses.
+
+### C → B (footage files): `web/public/data/<fire>/footage/`
+
+| File | Shape |
+|---|---|
+| `clips.json` | `[{id, title, src, fps, width, height, source, note}]`. `note` is shown in the PiP, e.g. `"FLAME 2 · prescribed burn · not this fire"`. |
+| `detections/<id>.json` | Sentinel boxes: `[{frame, box: [x1, y1, x2, y2], cls: "fire"\|"smoke", conf}]` in source pixels |
+| `masks/<id>.json` | SAM 3.1: `[{frame, object_id, prompt, bounds: [left, top, right, bottom], size: [w, h], path, conf}]`. `path` comes from `meta_sam_parser.decode_mask_to_svg_path` and is in the mask raster's own coordinates (`size`), not source pixels. `bounds` is the record's `SegmentationMaskBounds` in source pixels. B draws it with `translate(left, top) scale((right−left)/w, (bottom−top)/h)`. |
+| `../eval/*.json` | `sentinel.json`, `sam_video.json`, `sam_structures.json`, `analyst.json`: `{metric: value, n, method, date}` |
+
+**Footage licensing**: FLAME 2 has no stated license. Don't commit its clips to this public repo until that's checked. Until then, `src` can point to a local file, and the team's own drone footage is safe to publish.
+
+---
+
+## 2. Stream A: Data & forensics (20x)
+
+**You own** `pipeline/` (except `s12*`, `s09c`, `tools/`) and `web/api/`. **You deliver** every A → B file in §1, plus the analyst endpoint.
+
+| Day | Do | Done when |
+|---|---|---|
+| Thu | Request the FIRMS MAP_KEY; submit the LANDFIRE LFPS job (FBFM40 + EVT, pre-fire). Steps 01–02 are already done. | Both requests sent |
+| Fri | Step 05 perimeters (NIFC 2025 archive, keyed on `DateCurrent`), 07 weather, 08 severity, 09 structures/roads/labels (dropping the private fields), and 04 FIRMS once the key arrives. Step 03 when LANDFIRE returns. Commit **sample** versions of `arrival.png`, `series.json` and `events.json` early, so B can build against real shapes. | `make all` produces those files for Eaton |
+| Sat | Step 06 arrival + isochrones, then `series.json`, `spine.geojson`, `profile.json`; step 10 events | B's map burns with real arrival times |
+| Sun | Step 11 ignition back-trace + temporal hold-out; step 09b exposure join + stats; `web/api/analyst.ts` with tools reading `public/data` | `curl` to `/api/analyst` returns cited paragraphs |
+| Mon | Step 15: 15 questions with answers computed by the pipeline, scored through the endpoint. Fix data bugs B finds. Complete `manifest.json` for the Evidence tab. | All eval numbers in `eval/` |
+| Tue | Numbers into the README; bug fixes only | — |
+
+**Watch for**: sparse perimeters on the first night (lean on FIRMS); keeping `arrival.png` and `aoi.json` in sync; DINS privacy.
+
+## 3. Stream B: Web app (20x)
+
+**You own** `web/src/`. **You consume** A's files and API, and C's footage files. Build against sample files first, and never wait on a real one.
+
+| Day | Do | Done when |
+|---|---|---|
+| Thu | Shell done (header, rail, dock, timeline, hover readout, fire shader path A). | Done |
+| Fri | Replace the synthetic arrival with a `arrival.png` loader (fall back to the synthetic one if missing); add tree instances, peak/place labels, a structures layer, and wire the layer toggles to real layers | Layers panel toggles real layers |
+| Sat | Perimeter at time t (contour or isochrones), spine + waypoints + spread arrows, the three Incident charts from `series.json`/`profile.json` with past-solid/future-faded styling, Key Events from `events.json` that highlight as t passes | Scrubbing moves map, charts and events together |
+| Sun | Notes tab: the analyst chat with citation chips that fly the camera and set t (DESIGN §9). Analysis tab: ignition heatmap and hold-out stat, plus the Homes panel. Weather card from `weather.json`. 2D polish. | Click a citation and the camera flies to it |
+| Mon | Drones tab as a footage player: clip list, PiP with HUD, Sentinel boxes + SAM mask paths in sync with video time, the Detections list, Full camera view. **Feature freeze 11 pm.** | 3-minute run-through works end to end |
+| Tue | Polish; help C record the demo | — |
+
+**Watch for**: `fireTime` is normalized to `aoi.window_utc`, so re-read `aoi.json` whenever A changes it; keep every simulated element labelled `SIM`; times are computed in `America/Los_Angeles` (PST in January).
+
+## 4. Stream C: Vision & story (5x)
+
+**You own** `pipeline/steps/s12_sentinel.py`, `s12c_sam_video.py`, `s09c_sam_structures.py`, `pipeline/tools/`, `footage/` (gitignored), and the submission text. **You deliver** C → B footage files, the eval numbers, the demo video and the README/submission write-up.
+
+This stream is light on Claude usage by design. Most of the time goes to downloads, API runs, evals and editing. Keep sessions short and scoped to one step.
+
+| Day | Do | Done when |
+|---|---|---|
+| Thu | Get the Meta Model API key, put it in `.env`, and run `make smoke-meta ARGS="--image <fire photo>"`. Request SAM 3 Hugging Face access (fallback only). Start the FLAME 2 download (13.6 GB). | **Both Meta models answered a real request** |
+| Fri | Step 12/12b: Sentinel (`vendor/sentinel-app`, `fire_yolov8n.pt`) on a FLAME 2 sample, scored against its fire/smoke frame labels. Step 12c: SAM 3.1 on the same sample, using the hosted API. Go/no-go on post-fire aerial imagery for 9c. | Two precision/recall numbers in `eval/` |
+| Sat | Trim 3–4 clips to ≤ 30 s (MP4, H.264). Produce `clips.json`, `detections/`, `masks/`. Shoot your own drone b-roll (TRUST/Part 107, B4UFLY, never over people). | B can load the footage files |
+| Sun | Step 9c if it's a go (SAM `destroyed building` vs DINS); otherwise draft the analyst eval questions with A. Write the demo script (BUILD.md §10). | Script and shot list ready |
+| Mon | Rehearse with B; draft the README's Real-vs-Sim table and eval section, and the submission form text | Draft README reviewed |
+| Tue | Record and edit the demo video; finalize the README and submission; **submit by 6 pm** | Submitted |
+
+**Watch for**: SAM video calls are billed per frame (≥ 50 frames per request), so cache every response and never call it live in the demo. If Sentinel scores poorly on top-down footage, say so, pick clips where it works, and consider a quick fine-tune with Sentinel's `model_trainer.py` on FLAME 2 frames.
