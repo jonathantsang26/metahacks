@@ -46,6 +46,11 @@ A round is approved when all three hold:
 ## Mechanics
 
 - **What gets judged:** the committed `HEAD` of the branch, checked out into a separate git worktree, never the working tree.
-- **Who runs commands:** only the "works" agent runs commands that write files: `make test` and `make eval` (offline, against committed outputs) plus `cd web && npm ci && npm run build`. `make all` needs network and is optional.
-- **Models:** the dimension agents and the adversarial agent run on Haiku 5.5, and the final judge runs on Fable 5.1.
+- **Who runs commands:** a runner agent, in its own worktree, runs the documented offline commands: `make test`, `make eval` and `make eval QUICK=1` (against committed outputs), and `cd web && npm ci && npm test && npm run build`. It returns the raw log, which the "works" scorer judges. The adversarial agent may run commands in its own worktree. `make all` needs network and is optional.
+- **Models:** the dimension agents, the runner and the adversarial agent run on Haiku 5.5, and the final judge runs on Fable 5.1.
+- **Harness:** [`judge-round.js`](judge-round.js) is the workflow script. It does the weighted arithmetic and the approval rule in code. An agent whose structured output fails validation is retried once; one that still fails counts as 0.
 - **Round records:** each round's raw results are saved to `docs/judge/rounds/round-N.json`.
+
+**Harness changes** (the rubric itself is unchanged):
+- **After round 1:** two of seven scoring agents failed on output formatting and were counted as 0. That was a harness fault, not a measurement, so agents now get one retry.
+- **The "works" agent is split** into a runner (raw command log) and a scorer, so a formatting failure can't erase what the commands showed.
