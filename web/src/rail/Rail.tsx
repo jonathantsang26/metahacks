@@ -1,38 +1,37 @@
-import {useState, type ReactNode} from 'react';
+import {useEffect, useState} from 'react';
 import type {FireData} from '../data/fire';
-import {formatDate} from '../lib/format';
-import {useTime} from '../state/time';
-import {LAYERS, useUi} from '../state/ui';
+import {LAYERS, useUi, type LayerId} from '../state/ui';
+import {Analysis} from './analysis';
+import {Analyst} from './analyst';
+import {IncidentOverview} from './overview';
+import {Card, Pending} from './ui';
+import {WeatherCard} from './weather';
 
-/** Card with a title row (DESIGN.md §5). */
-export function Card({title, aside, children}: {title: ReactNode; aside?: ReactNode; children: ReactNode}) {
-  return (
-    <section className="mx-2 mt-2 overflow-hidden rounded-md bg-card shadow-[0_0_0_1px_var(--hairline)]">
-      <div className="flex items-center justify-between bg-section px-3 py-2">
-        <h2 className="text-base font-semibold">{title}</h2>
-        {aside}
-      </div>
-      {children}
-    </section>
-  );
-}
+export {Card} from './ui';
 
-function Pending({children}: {children: ReactNode}) {
-  return <div className="px-3 py-6 text-center text-sm text-muted">{children}</div>;
-}
+/** A 28×28 SVG drawing as a CSS background layer, for thumbnails a gradient cannot draw. */
+const svgThumb = (body: string) =>
+  `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'>${body}</svg>`)}") center/100% no-repeat,`;
 
-const THUMBS: Record<string, string> = {
+const THUMBS: Partial<Record<LayerId, string>> = {
   terrain: 'linear-gradient(135deg,#6f7d4f,#a99e6c)',
   imagery: 'linear-gradient(135deg,#9a9a92,#c8c6bd)',
   burnScar: 'linear-gradient(135deg,#3a1f17,#a3381e)',
   fireSpread: 'linear-gradient(135deg,#f08a2b,#d4521f)',
-  ignition: 'radial-gradient(circle,#ffd27a 0 18%,#c8321f 45%)',
+  perimeters: `${svgThumb("<path d='M6 9 17 5 23 13 17 23 7 20Z' fill='none' stroke='#fff7ec' stroke-width='1.6'/>")} #8f8a7c`,
+  // Same stops as the heat layer (POSTERIOR_RAMP in analysis.tsx): deep red where the posterior is highest.
+  ignition: 'radial-gradient(circle,#c70f1a 0 18%,#ff6b1a 40%,#ffd65c 70%)',
+  spine: `${svgThumb("<path d='M4 22 12 15 18 12 24 5' fill='none' stroke='#f2b233' stroke-width='2' stroke-dasharray='3 2'/>")} #8f8a7c`,
   wind: 'linear-gradient(135deg,#d6dadb,#eef0ee)',
   suppression: 'linear-gradient(135deg,#cdb79a,#b4442f)',
   structures: 'linear-gradient(135deg,#8d8d86,#b9b7ae)',
   roads: 'linear-gradient(135deg,#d9d6cc,#bcb8ab)',
+  labels: 'linear-gradient(135deg,#ebe8de,#d6d2c6)',
   boundaries: 'linear-gradient(135deg,#e3e0d6,#cfcabd)'
 };
+
+/** User-facing wording for a layer's `pending` note where the shared text is planning shorthand. */
+const PENDING_TEXT: Partial<Record<LayerId, string>> = {suppression: 'not in this build'};
 
 function LayersList() {
   const {layers, setLayer} = useUi();
@@ -41,8 +40,9 @@ function LayersList() {
       {LAYERS.map(({id}) => {
         const l = layers[id];
         const active = l.ready && l.visible;
+        const pending = PENDING_TEXT[id] ?? l.pending;
         return (
-          <li key={id} className="flex items-center gap-2.5 px-3 py-1.5" title={l.ready ? undefined : l.pending}>
+          <li key={id} className="flex items-center gap-2.5 px-3 py-1.5" title={l.ready ? undefined : pending}>
             <input
               type="checkbox"
               checked={l.visible}
@@ -53,7 +53,7 @@ function LayersList() {
             <span className="h-7 w-7 shrink-0 rounded-sm" style={{background: THUMBS[id], opacity: l.ready ? 1 : 0.45}} />
             <span className={`flex-1 truncate text-sm ${active ? 'text-ink' : 'text-muted'}`}>
               {l.label}
-              {!l.ready && <span className="ml-1 font-mono text-2xs">· {l.pending}</span>}
+              {!l.ready && <span className="ml-1 font-mono text-2xs">· {pending}</span>}
             </span>
             {l.opacity !== null && (
               <>
@@ -76,65 +76,6 @@ function LayersList() {
         );
       })}
     </ul>
-  );
-}
-
-function Row({k, v}: {k: string; v: ReactNode}) {
-  return (
-    <div className="flex gap-3 px-3 py-[3px] text-sm">
-      <span className="w-[104px] shrink-0 text-muted">{k}</span>
-      <span className="min-w-0 flex-1">{v}</span>
-    </div>
-  );
-}
-
-function IncidentOverview({fire}: {fire: FireData}) {
-  const {start, end} = useTime();
-  const tz = fire.aoi.timezone;
-  const o = fire.aoi.official;
-  return (
-    <Card title="Incident Overview" aside={<span className="text-sm text-muted">Edit</span>}>
-      <div className="py-2">
-        <Row k="Incident" v={fire.aoi.name} />
-        <Row k="Location" v={fire.aoi.location} />
-        <Row k="Replay window" v={`${formatDate(start, tz)} – ${formatDate(end, tz)}`} />
-        <Row k="Ignition (est.)" v={<span className="text-muted">pending · step 11</span>} />
-        <Row
-          k="Final acres"
-          v={o.final_acres ? `${Math.round(o.final_acres).toLocaleString()} acres · CAL FIRE` : '—'}
-        />
-        <Row
-          k="Contained"
-          v={o.containment_date ? `${formatDate(Date.parse(o.containment_date + 'T12:00:00Z'), tz)} · CAL FIRE` : '—'}
-        />
-        <Row k="Cause" v={<span className="font-medium">Not assessed by this tool</span>} />
-        <Row
-          k="Analysis status"
-          v={
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-muted" /> Scaffold · data steps 1–2
-            </span>
-          }
-        />
-      </div>
-    </Card>
-  );
-}
-
-function WeatherCard() {
-  const cells = ['Wind', 'Temp', 'RH', 'Fuel Moisture', 'ERC', 'Flame Length'];
-  return (
-    <Card title={<>Weather &amp; Fire Behavior <span className="text-sm font-normal text-muted">(at cursor)</span></>}>
-      <div className="grid grid-cols-3 gap-y-3 px-3 py-3">
-        {cells.map(c => (
-          <div key={c}>
-            <div className="text-xs text-muted">{c}</div>
-            <div className="text-base font-semibold text-muted">—</div>
-          </div>
-        ))}
-      </div>
-      <div className="border-t border-hairline px-3 py-1.5 text-xs text-muted">Hourly Open-Meteo + gridMET land in step 07</div>
-    </Card>
   );
 }
 
@@ -169,6 +110,11 @@ const SUBTABS = ['Layers', 'Analysis', 'Evidence', 'Notes'] as const;
 
 function IncidentRail({fire}: {fire: FireData}) {
   const [sub, setSub] = useState<(typeof SUBTABS)[number]>('Layers');
+  const selected = useUi(s => s.selectedStructure);
+  // Picking a structure on the map opens Analysis → Homes, where its record is shown.
+  useEffect(() => {
+    if (selected !== null) setSub('Analysis');
+  }, [selected]);
   return (
     <>
       <section className="mx-2 mt-2 overflow-hidden rounded-md bg-card shadow-[0_0_0_1px_var(--hairline)]">
@@ -184,12 +130,12 @@ function IncidentRail({fire}: {fire: FireData}) {
           ))}
         </div>
         {sub === 'Layers' && <LayersList />}
-        {sub === 'Analysis' && <Pending>Ignition back-trace and house-level outcomes land Sunday (steps 09b, 11).</Pending>}
+        {sub === 'Analysis' && <Analysis fire={fire} />}
         {sub === 'Evidence' && <Evidence fire={fire} />}
-        {sub === 'Notes' && <Pending>The Muse Spark analyst with cited answers lands Sunday (web/api/analyst).</Pending>}
+        {sub === 'Notes' && <Analyst fire={fire} />}
       </section>
       <IncidentOverview fire={fire} />
-      <WeatherCard />
+      <WeatherCard fire={fire} />
     </>
   );
 }
@@ -201,13 +147,15 @@ export function Rail({fire}: {fire: FireData}) {
     <aside className="w-[308px] shrink-0 overflow-y-auto border-l border-hairline bg-rail pb-3">
       {tab === 'incident' && <IncidentRail fire={fire} />}
       {tab === 'drones' && (
-        <Card title="Drone footage" aside={<span className="text-xs text-muted">Monday</span>}>
-          <Pending>Recorded footage with Sentinel boxes and SAM 3.1 masks (steps 12, 12c).</Pending>
+        <Card title="Drone footage">
+          <Pending>
+            Recorded footage with Sentinel boxes and SAM 3.1 masks is stream C's work and is not started in this build.
+          </Pending>
         </Card>
       )}
       {tab === 'resources' && (
-        <Card title="Resources" aside={<span className="text-xs text-muted">Could tier</span>}>
-          <Pending>Aircraft, engines and crews are a stretch goal (BUILD.md §9).</Pending>
+        <Card title="Resources">
+          <Pending>Aircraft, engines and crews are not in this build.</Pending>
         </Card>
       )}
     </aside>
