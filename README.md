@@ -51,7 +51,7 @@ The build is split into three streams ([`WORKSTREAMS.md`](docs/spec/WORKSTREAMS.
 - Placeholder triangles from the incident-reporting system are removed.
 - Cumulative footprints are clipped to the final perimeter.
 
-Each cell's arrival is then interpolated by distance between consecutive footprints. The first interval is seeded from CAL FIRE's reported start time and location. For Palisades, whose first map is 26 h in, that seeded interval covers about half the burned area. Times are observed only at the perimeter times, so the layer is labelled MODELED.
+Each cell's arrival is then interpolated by distance between consecutive footprints. The first interval is seeded from CAL FIRE's reported start time and location. For Eaton the reported point lies outside the first mapped perimeter, so the seed is that perimeter's nearest cell, 1.7 km away (`arrival_meta.json` records this). For Palisades, whose first map is 26 h in, that seeded interval covers about half the burned area. Times are observed only at the perimeter times, so the layer is labelled MODELED.
 
 **Wind field** ([`s07_weather.py`](pipeline/steps/s07_weather.py)). HRRR is sampled hourly on a grid of points about 3 km apart over each fire area: 4×6 for Eaton, 5×7 for Palisades. Each model is compared with the nearest airport station at the station's own location: HRRR, ERA5 and ECMWF IFS. HRRR tracks hourly wind and humidity better than ERA5 at both stations, which is why it drives the spread model. `wind_field.json` is published for the app.
 
@@ -71,8 +71,8 @@ Each cell's arrival is then interpolated by distance between consecutive footpri
 - **Fire shape per fit:** the ellipse's length-to-breadth cap is chosen per fit, from 1 to 8, by loss on the real perimeters. With realistic winds, Anderson's curve makes the model fire far narrower than these fires were (spotting and gusts that swing direction widen a real fire), and the cap is how the fit corrects for that. Eaton's fit picks 1, a round fire, so wind no longer sets its shape; Palisades picks 1.5. The hold-out chooses its own cap without the held-out perimeters.
 
 **Calibrated uncertainty and the identifiability rule.** The relative likelihood over all candidates gives a posterior heatmap, a 90% radius and a 90% start-time interval.
-- **Not hand-tuned:** the temperature is calibrated on each fire's own synthetic fires. Half the cases pick it; coverage is reported on the other half.
-- **Matched to the fit it serves:** the hold-out and the product fit use different observations, so each gets its own calibration.
+- **Not hand-tuned:** the temperature is calibrated on each fire's own synthetic fires. Half the cases pick it; coverage is reported on the other half. Where no temperature tried reaches 90% on the calibration half (the Palisades hold-out), the widest is used and `RESULTS.md` flags it.
+- **Matched to the fit it serves:** the hold-out and the product fit use different observations, so each gets its own calibration. Both calibrations invert with the product fit's shape cap; the hold-out picks its own cap, which matches for Eaton (1) but not for Palisades (8 vs 1.5).
 - **When the start time is withheld:** if the interval is wider than 6 h, or k sits at the model's ceiling. The timeline then omits the estimated start and the analyst declines to give one.
 - **Inputs to the rule:** it looks only at the fit, never at CAL FIRE's reference. The synthetic benchmark does borrow the real fire's observation delays, measured from CAL FIRE's reported start.
 
@@ -83,7 +83,7 @@ Each cell's arrival is then interpolated by distance between consecutive footpri
 - a perturbed length-to-breadth cap;
 - ±1-cell mapping noise.
 
-The spread-rate range is deliberately wide and centred on the fuel table itself (k log-uniform 0.25–4, i.e. its base rates off by up to 4× either way); it is not set from a real fit. Each case is inverted twice: on every footprint, as the app does, and with the first two held out, as in the real hold-out. `make eval QUICK=1` recomputes the first cases and checks that they match the committed ones exactly.
+The spread-rate range is centred on the fuel table itself: k log-uniform 0.25–4, i.e. its base rates off by up to 4× either way. It has not always been: commit `0eab9dc` drew k from 4–16 to resemble the real Eaton fit of the time (k ≈ 11), and `66e8516` moved it to 0.25–4 when the HRRR fit brought Eaton's k to 0.42. Other design choices (the shape cap, the start-time lags) were also diagnosed on the real Eaton grid, so the real Eaton hold-out is a sanity check rather than an independent test. The real Palisades fits (k 22.6 in the hold-out, 76.8 at the ceiling in the full fit) lie outside the synthetic range, so Palisades' synthetic coverage describes slower fires than the real one. Each case is inverted twice: on every footprint, as the app does, and with the first two held out, as in the real hold-out. `make eval QUICK=1` recomputes the first cases and checks that they match the committed ones exactly.
 
 **House-level exposure** ([`s09b_exposure.py`](pipeline/steps/s09b_exposure.py)). Each residence within about 100 m of the burn gets three exposure values:
 - **Arrival time.** Homes just outside the burned cells take the nearest burned cell's time, and are flagged.
@@ -168,7 +168,7 @@ Requires Python 3.11+ with [uv](https://docs.astral.sh/uv/), and Node 20.19+ (`w
 cd pipeline && uv sync
 make test                                        # pipeline tests on the Eaton and Palisades outputs, incl. README headline drift
 make eval EVAL_DIR=/tmp/ember-eval               # re-run the real Eaton hold-out; matches eval/ignition_holdout.json (5-15 min)
-make eval QUICK=1 EVAL_DIR=/tmp/ember-eval-quick # recompute 2 synthetic cases and check them against the committed ones (about 6 min)
+make eval QUICK=1 EVAL_DIR=/tmp/ember-eval-quick # recompute 2 synthetic cases and check them against the committed ones (about 8 min)
 make report                                      # regenerate docs/RESULTS.md and the README headline table
 
 cd ../web && npm ci
@@ -178,7 +178,7 @@ npm run eval:analyst -- --truth --fire palisades # print an analyst eval's groun
 npm run dev                                      # the app at http://localhost:5173 (?fire=palisades); no key needed
 ```
 
-With network access, `make all` rebuilds every output from the public sources (`make FIRE=palisades all` for Palisades). `make eval-full` reruns the whole synthetic benchmark and the wind ablation, which takes one to two hours per fire.
+With network access, `make all` rebuilds every output from the public sources (`make FIRE=palisades all` for Palisades). `make eval-full` reruns the whole synthetic benchmark and the wind ablation: about 70 min for Eaton and 100 min for Palisades on a 10-core laptop ([`docs/reproduction/`](docs/reproduction)).
 
 With a Meta key in `.env` (`cp .env.example .env`):
 - `npm run ask -- "When did the fire reach Lake Avenue?"` asks the analyst one question.
