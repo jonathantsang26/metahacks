@@ -122,6 +122,9 @@ def holdout_section(fire) -> list[str]:
             ]
     rows += [f"| IoU with held-out perimeter {x['t']} | {x['iou']:.2f} | – |" for x in h["held_out"]]
     rows.append("")
+    if after_held_out(h):
+        rows += [f"The hold-out estimate starts at {est['t']}, after the held-out perimeters, which it therefore predicts as "
+                 "unburned: its start time is not a credible back-trace, and the start-time error above is not a result.", ""]
     if "timing" in est:
         rows += [timing_line("Hold-out fit", est["timing"]), ""]
     if ign:
@@ -137,6 +140,23 @@ def holdout_section(fire) -> list[str]:
             rows += ["", timing_line("Full fit", ign["timing"])]
         rows.append("")
     return rows
+
+
+def after_held_out(h: dict) -> bool:
+    """True when the hold-out estimate starts after a perimeter it was held out against: the fit
+    then predicts that perimeter unburned, so its start time is not a credible back-trace."""
+    return h["estimate"]["t"] > min(x["t"] for x in h["held_out"])
+
+
+def holdout_time(h: dict) -> str:
+    e = h["errors"]
+    text = f"{fmt_min(e['backtrace_time_error_min'])} ({fmt_min(e['baseline_time_error_min'])})"
+    notes = []
+    if after_held_out(h):
+        notes.append("the estimate is later than the held-out perimeters, so not a credible start")
+    if not h["estimate"].get("timing", {"identifiable": True})["identifiable"]:
+        notes.append("withheld as not identifiable")
+    return text + (f"; {', and '.join(notes)}" if notes else "")
 
 
 def timing_line(what: str, tm: dict) -> str:
@@ -296,7 +316,7 @@ def headline(fires) -> list[str]:
         f"| 90% radius / interval contains the truth, on synthetic cases the calibration never saw | {cells(coverage)} |",
         f"| Unseen synthetic cases where the app would show a start time | {cells(shown)} |",
         f"| Real fire: estimated start time | {cells(real_start)} |",
-        f"| Real hold-out: start-time error vs CAL FIRE (baseline) | {cells(lambda f: fmt_min(hold(f)['errors']['backtrace_time_error_min']) + ' (' + fmt_min(hold(f)['errors']['baseline_time_error_min']) + ')')} |",
+        f"| Real hold-out: start-time error vs CAL FIRE (baseline) | {cells(lambda f: holdout_time(hold(f)))} |",
         f"| CAL FIRE's reported point, distance outside the first mapped footprint | {cells(outside)} |",
         f"| Real fit with the HRRR wind field vs the old single ERA5 point (footprint IoU, spread-rate scale k) | {cells(wind)} |",
         f"| Hourly wind vs the nearest airport station: HRRR vs ERA5 | {cells(station)} |",

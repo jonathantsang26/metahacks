@@ -74,6 +74,8 @@ Full fit: **start time not identifiable**: 90% start-time interval is 9.9 h wide
 | IoU with held-out perimeter 2025-01-08T20:34:03Z | 0.00 | – |
 | IoU with held-out perimeter 2025-01-08T21:24:23Z | 0.00 | – |
 
+The hold-out estimate starts at 2025-01-09T10:27:04Z, after the held-out perimeters, which it therefore predicts as unburned: its start time is not a credible back-trace, and the start-time error above is not a result.
+
 Hold-out fit: **start time not identifiable**: 90% start-time interval is 44.5 h wide (limit 6 h). The timeline omits the estimated start.
 
 Full fit (5 of 11 perimeters, those within 48 h of the first): estimate 34.07007, -118.52781 at 2025-01-08T19:17:41Z, spread-rate scale k = 76.8, length-to-breadth cap 1.5, 90% radius 8,847 m, 90% start interval 2025-01-07T21:56:24Z – 2025-01-08T20:13:58Z, 50,293 candidates; modeled vs observed footprint IoU 0.43, 0.58, 0.29, 0.29, 0.30.
