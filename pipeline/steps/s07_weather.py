@@ -684,7 +684,7 @@ def main() -> None:
         url="https://mesonet.agron.iastate.edu/request/download.phtml", status="REAL",
         attribution="Iowa Environmental Mesonet, Iowa State University",
         notes=(f"{station['distance_km']} km from the AOI center, {station['coverage']:.0%} hourly coverage. "
-               f"vs reanalysis center: wind bias {cmp_center['wind_bias_mph']} mph, r={cmp_center['wind_corr']}; "
+               f"vs HRRR at the AOI center: wind bias {cmp_center['wind_bias_mph']} mph, r={cmp_center['wind_corr']}; "
                f"RH bias {cmp_center['rh_bias_pct']}%, r={cmp_center['rh_corr']}; n={cmp_center['n_hours']} h. "
                "Skipped nearer stations: " + (", ".join(f"{c['station']} ({c['coverage']:.0%} coverage)"
                                                          for c in candidates

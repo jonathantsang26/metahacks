@@ -52,7 +52,7 @@
       "url": "",
       "status": "MODELED",
       "attribution": "",
-      "notes": "Forward run from the estimate; IoU vs observed footprints [0.492, 0.648, 0.287, 0.292, 0.304].",
+      "notes": "Forward run from the estimate; IoU vs observed footprints [0.431, 0.585, 0.287, 0.292, 0.304].",
       "retrieved": "2026-10-30"
     },
     {
@@ -70,7 +70,7 @@
       "url": "",
       "status": "MODELED",
       "attribution": "",
-      "notes": "Back-trace over 44,523 candidates; 90% radius 2478 m.",
+      "notes": "Back-trace over 50,293 candidates; 90% radius 8847 m.",
       "retrieved": "2026-10-30"
     },
     {
@@ -138,11 +138,11 @@
     },
     {
       "layer": "Weather (hourly)",
-      "source": "ERA5 / ERA5-Land reanalysis via Open-Meteo",
-      "url": "https://open-meteo.com/en/docs/historical-weather-api",
+      "source": "NOAA HRRR (3 km) via the Open-Meteo historical forecast archive",
+      "url": "https://open-meteo.com/en/docs/historical-forecast-api",
       "status": "REAL",
-      "attribution": "Open-Meteo.com (CC BY 4.0); contains modified Copernicus Climate Change Service information",
-      "notes": "models=era5_seamless at cell [-118.6, 34.1] for [-118.593219, 34.079604]; 3\u00d73 grid gives 2/9 distinct wind series. Window peak gust 35.6 mph, min RH 10.0%. ECMWF IFS 9 km (sensitivity only) peaks at 54 mph at the same point.",
+      "attribution": "Open-Meteo.com (CC BY 4.0); NOAA NCEP High-Resolution Rapid Refresh",
+      "notes": "A weather model's analysis and short-range forecast, not observations. At SMO: hourly wind r = 0.85 (ERA5 0.75), RH r = 0.88 (ERA5 0.49), peak gust 49.7 mph vs station 55.2 (ERA5 35.6). Window peak gust at the AOI center 64.0 mph, min RH 8.0%.",
       "retrieved": "2026-10-30"
     },
     {
@@ -151,7 +151,16 @@
       "url": "https://mesonet.agron.iastate.edu/request/download.phtml",
       "status": "REAL",
       "attribution": "Iowa Environmental Mesonet, Iowa State University",
-      "notes": "15.0 km from the AOI center, 100% hourly coverage. vs reanalysis center: wind bias 2.0 mph, r=0.75; RH bias -2.2%, r=0.26; n=156 h. Skipped nearer stations: none",
+      "notes": "15.0 km from the AOI center, 100% hourly coverage. vs HRRR at the AOI center: wind bias 7.0 mph, r=0.66; RH bias -9.4%, r=0.36; n=156 h. Skipped nearer stations: none",
+      "retrieved": "2026-10-30"
+    },
+    {
+      "layer": "Wind field",
+      "source": "NOAA HRRR (3 km) via the Open-Meteo historical forecast archive",
+      "url": "https://open-meteo.com/en/docs/historical-forecast-api",
+      "status": "REAL",
+      "attribution": "Open-Meteo.com (CC BY 4.0); NOAA NCEP High-Resolution Rapid Refresh",
+      "notes": "5\u00d77 points across the AOI (28 distinct series); peak gusts range 54.4\u201370.7 mph across points; drives the spread model, interpolated bilinearly per cell.",
       "retrieved": "2026-10-30"
     }
   ]
