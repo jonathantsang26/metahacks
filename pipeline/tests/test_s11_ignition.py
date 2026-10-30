@@ -37,8 +37,13 @@ def test_backtrace_recovers_a_known_ignition_on_real_terrain(fire):
 def test_uncertainty_is_calibrated_and_gates_the_timeline(fire):
     ign = fire.read_json("ignition.json")
     assert ign["r90_m"] >= 0 and ign["t90"][0] <= ign["t90"][1]
-    cal = fire.read_json("eval/ignition_synthetic.json")["calibration"]
-    assert cal["tau_h"] in s11.TAUS_H and cal["calibration_cases"] + cal["test_cases"] >= 5
+    syn = fire.read_json("eval/ignition_synthetic.json")
+    for key in ("calibration", "calibration_all_observations"):
+        cal = syn[key]
+        assert cal["tau_h"] in s11.TAUS_H and cal["calibration_cases"] + cal["test_cases"] >= 5
+    # The product fit uses all observations, so it uses the temperature calibrated on that scenario.
+    assert ign["calibration"]["tau_h"] == syn["calibration_all_observations"]["tau_h"]
+    assert all("all_observations" in c for c in syn["cases"])
     # The timeline shows an estimated start only when the back-trace pins it down.
     shown = any(e["kind"] == "ignition_estimate" for e in fire.read_json("events.json"))
     assert shown == ign["timing"]["identifiable"]

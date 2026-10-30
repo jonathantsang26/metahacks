@@ -326,6 +326,17 @@ def synthetic_case(model: Model, schedule: np.ndarray, rng: np.random.Generator,
     if len(masks) < HOLDOUT_N + 2:
         return None
     fit, _ = holdout_split(masks, np.array(times))
+    return {
+        "case": case, "truth": {"row": truth_rc[0], "col": truth_rc[1], "t0_h": round(t0, 3), "k": round(k_true, 3)},
+        # The stress test (the first two footprints held out, as in the real hold-out) ...
+        **score_fit(model, fit, truth_rc, t0),
+        # ... and the deployed case: every footprint, as the product's full fit uses them.
+        "all_observations": score_fit(model, weighted(masks, times), truth_rc, t0),
+    }
+
+
+def score_fit(model: Model, fit: sp.Observations, truth_rc: tuple[int, int], t0: float) -> dict:
+    """Invert one synthetic fit and score it against the truth, with coverage at every temperature."""
     est = invert(model, fit, fit.masks[0])
     base_rc = centroid_baseline(fit.masks[0])
     base_t = area_backcast_baseline(fit, model.grid.cell_area_m2)
@@ -337,7 +348,6 @@ def synthetic_case(model: Model, schedule: np.ndarray, rng: np.random.Generator,
                               "distance": bool(err_m <= u["r90_m"]),
                               "time": bool(u["t90_h"][0] - 1e-6 <= t0 <= u["t90_h"][1] + 1e-6)}
     return {
-        "case": case, "truth": {"row": truth_rc[0], "col": truth_rc[1], "t0_h": round(t0, 3), "k": round(k_true, 3)},
         "estimate": {"row": est["row"], "col": est["col"], "t0_h": round(est["t0_h"], 3), "k": round(est["k"], 3)},
         "backtrace_dist_m": round(err_m, 1),
         "baseline_dist_m": round(dist_m(model.grid, base_rc, truth_rc), 1),
@@ -432,14 +442,22 @@ def main() -> None:
                                 "holdout_first_n": HOLDOUT_N, "schedule_h_after_ignition": [round(float(s), 2) for s in schedule],
                                 "start_lags_h": [round(float(v), 2) for v in LAGS_H], "k_grid": [round(float(v), 2) for v in K_GRID],
                                 "truth_perturbation": f"per-fuel R0 x U(0.75,1.3), wind x U(0.85,1.15), k log-uniform in {list(K_TRUE_RANGE)}, ±1-cell perimeter noise"},
-                     "summary": summarize(cases), "calibration": calibrate(cases), "cases": cases}
+                     "summary": summarize(cases), "calibration": calibrate(cases),
+                     "summary_all_observations": summarize([c["all_observations"] for c in cases]),
+                     "calibration_all_observations": calibrate([c["all_observations"] for c in cases]),
+                     "cases": cases}
         syn_path.write_text(json.dumps(synthetic, indent=2) + "\n")
         print("synthetic:", json.dumps(synthetic["summary"]))
+        print("synthetic, all observations:", json.dumps(synthetic["summary_all_observations"]))
     else:
         synthetic = json.loads(syn_path.read_text())
+    # Each fit gets the temperature calibrated on synthetic cases with the same observations: the
+    # hold-out on cases with the first two footprints held out, the product on cases with all of them.
     cal = synthetic.get("calibration") or {"tau_h": TAU_H}
-    tau = float(cal["tau_h"])
-    print("calibration:", json.dumps({k: cal[k] for k in cal if k != "by_tau"}))
+    cal_all = synthetic.get("calibration_all_observations") or cal
+    tau, tau_all = float(cal["tau_h"]), float(cal_all["tau_h"])
+    for name, c in (("calibration (hold-out)", cal), ("calibration (all observations)", cal_all)):
+        print(f"{name}:", json.dumps({k: c[k] for k in c if k != "by_tau"}))
 
     # Real hold-out: never sees the first two footprints or the CAL FIRE reference.
     fit, held = holdout_split(masks, times)
@@ -483,8 +501,8 @@ def main() -> None:
 
     # Product: best estimate using every observation in the fit horizon.
     full = weighted(masks, times)
-    best = invert(model, full, full.masks[0], tau)
-    unc = uncertainty(best, grid, tau)
+    best = invert(model, full, full.masks[0], tau_all)
+    unc = uncertainty(best, grid, tau_all)
     tm = timing(best, unc)
     region, n_cells, area_km2 = credible_region(best["posterior"], grid)
     modeled = sp.arrival(model.terrain, model.wind, (best["row"], best["col"]), best["t0_h"], k=best["k"])
@@ -506,12 +524,13 @@ def main() -> None:
         "loss_h": round(best["loss_h"], 3), "candidates_evaluated": best["evaluated"],
         "observations_used": len(masks), "first_observation": iso_h(model, times[0]),
         "modeled_vs_observed_iou": agreement,
-        "calibration": {k: cal[k] for k in cal if k != "by_tau"},
+        "calibration": {k: cal_all[k] for k in cal_all if k != "by_tau"},
         "holdout": {k: holdout[k] for k in ("held_out", "errors") if k in holdout},
-        "synthetic_summary": synthetic["summary"],
+        "synthetic_summary": synthetic.get("summary_all_observations", synthetic["summary"]),
+        "synthetic_summary_holdout": synthetic["summary"],
         "model_card": "Elliptical rate-of-spread model with per-fuel base rates (ESA WorldCover classes), "
                       "power-law wind and tan²-slope terms, single-point ERA5 wind; no spotting, crown fire, "
-                      f"suppression or spatial wind. Relative posterior over evaluated candidates, tau = {tau:g} h "
+                      f"suppression or spatial wind. Relative posterior over evaluated candidates, tau = {tau_all:g} h "
                       "(calibrated on this fire's synthetic cases).",
     })
     for layer, notes in (("Ignition probability", f"Back-trace over {best['evaluated']:,} candidates; 90% radius {unc['r90_m']:.0f} m."),

@@ -31,34 +31,48 @@ def synthetic_section(fire) -> list[str]:
     syn = read(fire, "eval/ignition_synthetic.json")
     if not syn:
         return [f"*No synthetic benchmark for {fire.name} yet.*", ""]
-    s, c = syn["summary"], syn["config"]
-    d, t = s["distance_m"], s["start_time_error_min"]
-    return [
-        f"**{fire.name}**: {s['n']} synthetic ignitions; observation delays after ignition "
-        f"{', '.join(f'{x:g}' for x in c['schedule_h_after_ignition'])} h; first {c['holdout_first_n']} held out.",
+    c = syn["config"]
+    scenarios = [("all perimeters (as the app fits)", syn.get("summary_all_observations"), syn.get("calibration_all_observations")),
+                 (f"first {c['holdout_first_n']} held out (stress test)", syn["summary"], syn.get("calibration"))]
+    rows = [
+        f"**{fire.name}**: {syn['summary']['n']} synthetic ignitions; observation delays after ignition "
+        f"{', '.join(f'{x:g}' for x in c['schedule_h_after_ignition'])} h.",
         "",
-        "| Metric | Back-trace median | Back-trace p90 | Baseline median | Baseline p90 | Back-trace better |",
-        "|---|---|---|---|---|---|",
-        f"| Ignition location error | {d['backtrace']['median']:,.0f} m | {d['backtrace']['p90']:,.0f} m | "
-        f"{d['baseline_first_footprint_centroid']['median']:,.0f} m | {d['baseline_first_footprint_centroid']['p90']:,.0f} m | "
-        f"{s['backtrace_beats_baseline']['distance']:.0%} of cases |",
-        f"| Start-time error | {fmt_min(t['backtrace']['median'])} | {fmt_min(t['backtrace']['p90'])} | "
-        f"{fmt_min(t['baseline_area_backcast']['median'])} | {fmt_min(t['baseline_area_backcast']['p90'])} | "
-        f"{s['backtrace_beats_baseline']['time']:.0%} of cases |",
+        "| Metric | Fit on | Back-trace median | Back-trace p90 | Baseline median | Baseline p90 | Back-trace better |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for label, s, _ in scenarios:
+        if not s:
+            continue
+        d = s["distance_m"]
+        rows.append(f"| Ignition location error | {label} | {d['backtrace']['median']:,.0f} m | {d['backtrace']['p90']:,.0f} m | "
+                    f"{d['baseline_first_footprint_centroid']['median']:,.0f} m | {d['baseline_first_footprint_centroid']['p90']:,.0f} m | "
+                    f"{s['backtrace_beats_baseline']['distance']:.0%} of cases |")
+    for label, s, _ in scenarios:
+        if not s:
+            continue
+        t = s["start_time_error_min"]
+        rows.append(f"| Start-time error | {label} | {fmt_min(t['backtrace']['median'])} | {fmt_min(t['backtrace']['p90'])} | "
+                    f"{fmt_min(t['baseline_area_backcast']['median'])} | {fmt_min(t['baseline_area_backcast']['p90'])} | "
+                    f"{s['backtrace_beats_baseline']['time']:.0%} of cases |")
+    rows += [
         "",
         f"Truth physics differs from the inverted model: {c['truth_perturbation']}. "
         "Location baseline = centroid of the first footprint the fit sees; time baseline = linear back-extrapolation of sqrt(area).",
         "",
-    ] + calibration_lines(syn.get("calibration"))
+    ]
+    for label, _, cal in scenarios:
+        rows += calibration_lines(cal, label)
+    return rows
 
 
-def calibration_lines(cal) -> list[str]:
+def calibration_lines(cal, label: str) -> list[str]:
     if not cal:
         return []
     t = cal["test_coverage"]
     reached = "" if cal["reached_on_calibration_half"] else " (the 90% target was not reached on the calibration half; this is the widest setting tried)"
     return [
-        f"Uncertainty calibration: posterior temperature tau = {cal['tau_h']:g} h, chosen on the {cal['calibration_cases']} "
+        f"Uncertainty calibration, {label}: posterior temperature tau = {cal['tau_h']:g} h, chosen on the {cal['calibration_cases']} "
         f"even-numbered cases{reached}. On the {cal['test_cases']} odd-numbered cases it never saw, the 90% radius "
         f"(median {cal['median_test_r90_m']:,.0f} m) contains the true ignition in {t['distance']:.0%} of cases and the "
         f"90% start-time interval (median width {cal['median_test_t90_width_h']:g} h) contains the true start in {t['time']:.0%}.",
