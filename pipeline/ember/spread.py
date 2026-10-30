@@ -252,38 +252,39 @@ def _arrival(seed_r, seed_c, t0, r0, waf, up_e, up_n, tan_s, dx, dy,
 
 
 @njit(cache=True)
-def _loss(arr, inside_idx, inside_ptr, band_idx, band_ptr, obs_t, cap):
-    """Mean hinge violation in hours over all observations.
+def _loss(arr, inside_idx, inside_ptr, band_idx, band_ptr, obs_t, obs_w, cap):
+    """Weighted mean hinge violation in hours over all observations.
 
-    Cells inside an observed footprint should have arrived by its time; cells in the band just
-    outside should not have. Unreached cells count as `cap` hours late.
+    Cells inside an observed footprint should have arrived by its time; cells in a band just
+    outside should not have. Unreached cells count as `cap` hours late. The loss is zero at the
+    truth for perfect observations (tests/test_spread.py). A two-sided "edge" term (|A − T| on the
+    mapped perimeter) was tried and rejected: flanks that stalled against slow fuel burned hours
+    before the observation, so it biased the start time.
     """
     total = 0.0
     K = obs_t.shape[0]
     for k in range(K):
         t = obs_t[k]
         s_in = 0.0
-        cnt = inside_ptr[k + 1] - inside_ptr[k]
         for i in range(inside_ptr[k], inside_ptr[k + 1]):
             a = arr[inside_idx[i]]
-            late = a - t
-            if late > cap or not np.isfinite(a):
-                late = cap
+            late = a - t if np.isfinite(a) else cap
             if late > 0:
-                s_in += late
+                s_in += min(late, cap)
         s_out = 0.0
-        cnt_b = band_ptr[k + 1] - band_ptr[k]
         for i in range(band_ptr[k], band_ptr[k + 1]):
             early = t - arr[band_idx[i]]
             if early > 0:
                 s_out += min(early, cap)
-        total += (s_in / max(cnt, 1)) + (s_out / max(cnt_b, 1))
-    return total / max(K, 1)
+        n_i = max(inside_ptr[k + 1] - inside_ptr[k], 1)
+        n_b = max(band_ptr[k + 1] - band_ptr[k], 1)
+        total += obs_w[k] * (s_in / n_i + s_out / n_b)
+    return total / max(obs_w.sum(), 1e-12)
 
 
 @njit(cache=True, parallel=True)
 def _batch_losses(cands, r0, waf, up_e, up_n, tan_s, dx, dy, wind_u, wind_v, wind_t0, wind_dt,
-                  t_stop, offsets, passed, inside_idx, inside_ptr, band_idx, band_ptr, obs_t, cap):
+                  t_stop, offsets, passed, inside_idx, inside_ptr, band_idx, band_ptr, obs_t, obs_w, cap):
     """cands: (M, 4) rows of (row, col, t0_hours, k). Returns (M,) losses."""
     M = cands.shape[0]
     H, W = r0.shape
@@ -292,7 +293,7 @@ def _batch_losses(cands, r0, waf, up_e, up_n, tan_s, dx, dy, wind_u, wind_v, win
         out = np.empty(H * W)
         _arrival(int(cands[m, 0]), int(cands[m, 1]), cands[m, 2], r0, waf, up_e, up_n, tan_s,
                  dx, dy, wind_u, wind_v, wind_t0, wind_dt, cands[m, 3], t_stop, offsets, passed, out)
-        losses[m] = _loss(out, inside_idx, inside_ptr, band_idx, band_ptr, obs_t, cap)
+        losses[m] = _loss(out, inside_idx, inside_ptr, band_idx, band_ptr, obs_t, obs_w, cap)
     return losses
 
 
@@ -317,6 +318,11 @@ class Observations:
     masks: list[np.ndarray]
     t_h: np.ndarray
     band_m: float = 1500.0
+    weights: np.ndarray | None = None  # per-observation loss weights (default: equal)
+
+    @property
+    def w(self) -> np.ndarray:
+        return np.ones(len(self.t_h)) if self.weights is None else np.asarray(self.weights, float)
 
     def packed(self, terrain: Terrain):
         """Flat index lists for the loss kernel: burnable cells inside, and a band outside."""
@@ -344,12 +350,12 @@ def batch_losses(terrain: Terrain, wind: Wind, obs: Observations, cands: np.ndar
     return _batch_losses(np.ascontiguousarray(cands, np.float64), terrain.r0, terrain.waf,
                          terrain.up_e, terrain.up_n, terrain.tan_slope, terrain.dx, terrain.dy,
                          wind.u_mph, wind.v_mph, wind.t0_h, wind.dt_h, t_stop, OFFSETS, PASSED,
-                         ins, ip, bnd, bp, obs.t_h.astype(np.float64), float(cap_h))
+                         ins, ip, bnd, bp, obs.t_h.astype(np.float64), obs.w, float(cap_h))
 
 
 def loss(arr: np.ndarray, terrain: Terrain, obs: Observations, cap_h: float = 24.0, packed=None) -> float:
     ins, ip, bnd, bp = packed if packed is not None else obs.packed(terrain)
-    return float(_loss(arr.ravel(), ins, ip, bnd, bp, obs.t_h.astype(np.float64), float(cap_h)))
+    return float(_loss(arr.ravel(), ins, ip, bnd, bp, obs.t_h.astype(np.float64), obs.w, float(cap_h)))
 
 
 def iou(a: np.ndarray, b: np.ndarray) -> float:

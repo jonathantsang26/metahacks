@@ -11,7 +11,7 @@ FIRE ?=
 RUN := FIRE=$(FIRE) uv run python -m
 
 .PHONY: all aoi dem landcover firms perimeters arrival weather severity vectors exposure events ignition \
-        test eval smoke-meta clean-cache
+        test eval report smoke-meta clean-cache
 
 all: aoi dem landcover firms perimeters weather severity vectors arrival ignition events exposure
 
@@ -64,3 +64,6 @@ smoke-meta:
 
 clean-cache:
 	rm -rf raw work
+
+report:
+	uv run python -m tools.report
