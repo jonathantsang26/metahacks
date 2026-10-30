@@ -1,4 +1,4 @@
-import {copyFileSync, mkdirSync, mkdtempSync, readFileSync} from 'node:fs';
+import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {describe, expect, it} from 'vitest';
@@ -160,6 +160,21 @@ describe('ignition_summary and exposure_stats', () => {
     const {result, cites} = call('ignition_summary', {});
     expect(result.disclaimer).toMatch(/not an investigated origin/);
     expect(cites.some(c => c.layer === 'ignition')).toBe(true);
+  });
+
+  it('withholds the start time when the back-trace cannot identify it', () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'analyst-'));
+    const dir = path.join(root, 'public', 'data', 'eaton');
+    mkdirSync(dir, {recursive: true});
+    copyFileSync('public/data/eaton/aoi.json', path.join(dir, 'aoi.json'));
+    const ig = JSON.parse(readFileSync('public/data/eaton/ignition.json', 'utf8'));
+    ig.timing = {identifiable: false, reasons: ['90% start-time interval is 30.0 h wide (limit 6 h)'], interval90_width_h: 30};
+    writeFileSync(path.join(dir, 'ignition.json'), JSON.stringify(ig));
+    const {result, cites} = call('ignition_summary', {}, createToolRunner(new FireStore('eaton', root)));
+    expect(result.estimate.t).toBeUndefined();
+    expect(result.estimate.start_time).toMatch(/not identifiable/);
+    expect(JSON.stringify(result.estimate)).not.toContain(ig.map.t);
+    expect(cites.find(c => c.layer === 'ignition')?.t).toBeUndefined();
   });
 
   it.runIf(store.has('exposure_stats.json'))('returns contrasts with the association caveat', () => {

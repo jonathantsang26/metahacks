@@ -249,8 +249,9 @@ def main() -> None:
 
     add_source(
         fire, layer="Fire progression (arrival time)", source="Interpolated from timed NIFC perimeters",
-        url="", status="REAL",
-        notes=f"{len(masks)} observed footprints; first interval seeded by {seed_source}; "
+        url="", status="MODELED",
+        notes=f"Observed only at the {len(masks)} perimeter times; interpolated by distance between them; "
+              f"first interval seeded by {seed_source}; "
               f"{int(late.sum())} cells only in the final perimeter; {n_refined} hotspot refinements.",
     )
     gaps = [iv["to_h"] - iv["from_h"] for iv in intervals]

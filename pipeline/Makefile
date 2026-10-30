@@ -2,12 +2,13 @@
 # Outputs land in ../web/public/data/$(FIRE)/.
 #
 #   make all    full regeneration (needs network; FIRMS needs FIRMS_MAP_KEY, others are no-key)
-#   make test   offline unit + contract tests against committed outputs
+#   make test   offline unit + contract tests against committed outputs (TEST_FIRES=eaton,palisades)
 #   make eval   offline benchmarks (synthetic ignition recovery, Eaton hold-out) → ../web/public/data/<fire>/eval/
 #               QUICK=1 runs the first 5 synthetic cases (identical to the first 5 of the full run);
 #               EVAL_DIR=/some/dir writes there instead of overwriting the committed results
 
 FIRE ?=
+TEST_FIRES ?= eaton,palisades
 RUN := FIRE=$(FIRE) uv run python -m
 
 .PHONY: all aoi dem landcover firms perimeters arrival weather severity vectors exposure events ignition \
@@ -53,7 +54,7 @@ exposure: arrival vectors weather
 	$(RUN) steps.s09b_exposure
 
 test:
-	uv run pytest -q tests
+	TEST_FIRES=$(TEST_FIRES) uv run pytest -q tests
 
 eval:
 	EVAL_DIR=$(EVAL_DIR) $(RUN) steps.s11_ignition --eval-only $(if $(QUICK),--cases 5,)

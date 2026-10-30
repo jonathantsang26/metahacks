@@ -49,6 +49,20 @@ def synthetic_section(fire) -> list[str]:
         f"Truth physics differs from the inverted model: {c['truth_perturbation']}. "
         "Location baseline = centroid of the first footprint the fit sees; time baseline = linear back-extrapolation of sqrt(area).",
         "",
+    ] + calibration_lines(syn.get("calibration"))
+
+
+def calibration_lines(cal) -> list[str]:
+    if not cal:
+        return []
+    t = cal["test_coverage"]
+    reached = "" if cal["reached_on_calibration_half"] else " (the 90% target was not reached on the calibration half; this is the widest setting tried)"
+    return [
+        f"Uncertainty calibration: posterior temperature tau = {cal['tau_h']:g} h, chosen on the {cal['calibration_cases']} "
+        f"even-numbered cases{reached}. On the {cal['test_cases']} odd-numbered cases it never saw, the 90% radius "
+        f"(median {cal['median_test_r90_m']:,.0f} m) contains the true ignition in {t['distance']:.0%} of cases and the "
+        f"90% start-time interval (median width {cal['median_test_t90_width_h']:g} h) contains the true start in {t['time']:.0%}.",
+        "",
     ]
 
 
@@ -65,20 +79,37 @@ def holdout_section(fire) -> list[str]:
         "| | Back-trace | Baseline |",
         "|---|---|---|",
     ]
+    est = h["estimate"]
     if e:
+        yes = lambda b: "yes" if b else "no"
         rows += [
             f"| Distance to CAL FIRE's reported location | {e['backtrace_distance_m']:,.0f} m | {e['baseline_distance_m']:,.0f} m |",
-            f"| Start time vs CAL FIRE's official start | {e['backtrace_time_error_min']:+,.0f} min | {e['baseline_time_error_min']:+,.0f} min |",
+            f"| Start time vs CAL FIRE's official start | {fmt_min(e['backtrace_time_error_min'])} | {fmt_min(e['baseline_time_error_min'])} |",
         ]
+        if "reference_within_r90" in e:
+            rows += [
+                f"| Reported location inside the 90% radius ({est['r90_m']:,.0f} m) | {yes(e['reference_within_r90'])} | – |",
+                f"| Official start inside the 90% interval ({est['t90'][0]} – {est['t90'][1]}) | {yes(e['reference_within_t90'])} | – |",
+            ]
     rows += [f"| IoU with held-out perimeter {x['t']} | {x['iou']:.2f} | – |" for x in h["held_out"]]
     rows.append("")
+    if "timing" in est:
+        rows += [timing_line("Hold-out fit", est["timing"]), ""]
     if ign:
         rows.append(f"Full fit (all perimeters): estimate {ign['map']['lat']:.5f}, {ign['map']['lon']:.5f} at {ign['map']['t']}, "
-                    f"spread-rate scale k = {ign['map']['k']}, 90% region {ign['region90_km2']} km², "
-                    f"{ign['candidates_evaluated']:,} candidates; modeled vs observed footprint IoU "
-                    f"{', '.join(f'{v:.2f}' for v in ign['modeled_vs_observed_iou'])}.")
+                    f"spread-rate scale k = {ign['map']['k']}, 90% radius {ign.get('r90_m', 0):,.0f} m, "
+                    f"90% start interval {' – '.join(ign.get('t90', []))}, {ign['candidates_evaluated']:,} candidates; "
+                    f"modeled vs observed footprint IoU {', '.join(f'{v:.2f}' for v in ign['modeled_vs_observed_iou'])}.")
+        if "timing" in ign:
+            rows += ["", timing_line("Full fit", ign["timing"])]
         rows.append("")
     return rows
+
+
+def timing_line(what: str, tm: dict) -> str:
+    if tm["identifiable"]:
+        return f"{what}: start time identifiable (90% interval {tm['interval90_width_h']:g} h wide)."
+    return f"{what}: **start time not identifiable**: {'; '.join(tm['reasons'])}. The timeline omits the estimated start."
 
 
 def exposure_section(fire) -> list[str]:

@@ -149,7 +149,10 @@ function buildQuestions(): {questions: Question[]; skipped: {id: string; reason:
     const p = label('Echo Mountain', 'peak');
     return value(destroyedWithin(p.lon, p.lat, 1000));
   });
-  add('ignition_1', `When does the model ignition estimate put the start of the fire?${T}`, 'ignition.json', () => time(Date.parse(read<{map: {t: string}}>('ignition.json').map.t)));
+  add('ignition_1', `When does the model ignition estimate put the start of the fire?${T}`, 'ignition.json', () => {
+    const ig = read<{map: {t: string}; timing?: {identifiable: boolean}}>('ignition.json');
+    return ig.timing?.identifiable === false ? null : time(Date.parse(ig.map.t));
+  });
   add('exposure_1', `What is the odds ratio of destruction for fine-mesh or no vents versus coarse or unscreened vents?${N}`, 'exposure_stats.json', () => {
     if (!has('exposure_stats.json')) return null;
     const c = read<{contrasts: {feature: string; or: number | null}[]}>('exposure_stats.json').contrasts.find(x => x.feature === 'vents');

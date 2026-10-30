@@ -27,8 +27,11 @@ type StructureProps = Record<string, string | number | null>;
 type Structures = {features: {geometry: {coordinates: number[]}; properties: StructureProps}[]};
 type Ignition = {
   map: {lon: number; lat: number; t: string};
+  r90_m?: number;
+  t90?: [string, string];
+  timing?: {identifiable: boolean; reasons: string[]; interval90_width_h: number};
   region90_km2?: number;
-  holdout?: {held_out?: {t: string; iou: number}[]; errors?: Record<string, number>};
+  holdout?: {held_out?: {t: string; iou: number}[]; errors?: Record<string, number | boolean>};
   synthetic_summary?: unknown;
   model_card?: string;
 };
@@ -427,8 +430,17 @@ const ignitionSummary: Impl = (_args, {store, tz}) => {
     cites.push({layer: 'ignition', label: 'Ignition estimate (not available)'});
     return {result: {available: false, reported_start: reported, note: 'ignition.json has not been produced; the data doesn’t show a model estimate.'}, cites};
   }
-  const est = {...stamp(Date.parse(ig.map.t), tz), lon: ig.map.lon, lat: ig.map.lat};
-  cites.unshift({layer: 'ignition', t: est.t, lon: est.lon, lat: est.lat, label: 'Ignition (est.), model estimate'});
+  // When the back-trace cannot pin down the start time, the model never sees one to repeat.
+  const timed = ig.timing?.identifiable ?? true;
+  const where = {lon: ig.map.lon, lat: ig.map.lat, radius90_m: ig.r90_m ?? null};
+  const est = timed
+    ? {...stamp(Date.parse(ig.map.t), tz), ...where, interval90: ig.t90 ? ig.t90.map(t => stamp(Date.parse(t), tz)) : null}
+    : {...where, start_time: 'not identifiable from the data', why: ig.timing?.reasons ?? []};
+  cites.unshift(
+    timed
+      ? {layer: 'ignition', t: ig.map.t, lon: ig.map.lon, lat: ig.map.lat, label: 'Ignition (est.), model estimate'}
+      : {layer: 'ignition', lon: ig.map.lon, lat: ig.map.lat, label: 'Ignition location (est.), start time not identifiable'}
+  );
   return {
     result: {
       disclaimer:

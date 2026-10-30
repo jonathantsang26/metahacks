@@ -5,8 +5,9 @@ Inputs:  aoi.json, series.json + spine.geojson + profile.json (06), work/<fire>/
          hotspots.geojson (04, optional)
 Outputs: events.json  [{id, kind, label, t, lon, lat, source, date_only?}] sorted by time
 
-Kinds: reported_start, ignition_estimate, rapid_growth, spot_fire, ridge_crossing, peak_gust,
-containment. Each event records the file or service it was derived from.
+Kinds: reported_start, ignition_estimate (only when step 11 pins the start time down),
+rapid_growth, spot_fire, ridge_crossing, peak_gust, containment. Each event records the file or
+service it was derived from.
 
 Run: uv run python -m steps.s10_events
 """
@@ -95,9 +96,15 @@ def main() -> None:
                             inc["reported_location"], "CAL FIRE incidents API"))
     ign = fire.out_dir / "ignition.json"
     if ign.exists():
-        m = json.loads(ign.read_text())["map"]
-        events.append(event("ignition_estimate", "Ignition (est.)", m["t"], (m["lon"], m["lat"]),
-                            "ignition.json (back-trace estimate)"))
+        est = json.loads(ign.read_text())
+        m = est["map"]
+        # A start time goes on the timeline only when the back-trace pins it down; otherwise the
+        # location stays in ignition.json and the timeline says nothing it cannot support.
+        if est.get("timing", {}).get("identifiable", True):
+            events.append(event("ignition_estimate", "Ignition (est.)", m["t"], (m["lon"], m["lat"]),
+                                "ignition.json (back-trace estimate)"))
+        else:
+            print("ignition estimate left off the timeline:", "; ".join(est["timing"]["reasons"]))
     events.append(rapid_growth(fire, grid, w0))
     for e in (first_spot(fire, w1), ridge_crossing(fire)):
         if e:

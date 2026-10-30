@@ -43,8 +43,8 @@ These are what let the streams work in parallel. The producer writes files to `w
 | `trees.json` | `[[lon, lat, height_m], ...]`, ≤ 40k entries. B samples `arrival.png` per tree to char it. |
 | `structures.geojson` | Points, `properties: {id, damage, structure_type, roof, eaves, vents, siding}`. **No address, APN, year built or owner fields.** |
 | `exposure.json` / `exposure_stats.json` | `exposure.json` is columnar: `{fields, id[], arrival_t[], gust_mph[], dist_wildland_m[], slope_deg[], exposed[]}`. `exposure_stats.json` is `{n, destroyed, gust_split_mph, strata: [{stratum, n, destroyed, rate, ci95}], contrasts: [{feature, label, n, or, ci95, unknown_rate, by_stratum}], regression: {n, terms, dropped_constant}, caveat, wildland_definition}`. |
-| `events.json` | `[{id, kind, label, t, lon, lat, source, date_only?}]`, sorted by `t`. `kind` is one of `reported_start`, `ignition_estimate`, `rapid_growth`, `spot_fire`, `ridge_crossing`, `peak_gust` or `containment`. |
-| `ignition.json` + `ignition_posterior.png` | `{map: {lon, lat, t}, region90: GeoJSON Polygon, holdout: {hour_n, distance_m, time_error_min, first_perimeter_iou}}`. The PNG's red channel = posterior, 0–255. |
+| `events.json` | `[{id, kind, label, t, lon, lat, source, date_only?}]`, sorted by `t`. `kind` is one of `reported_start`, `ignition_estimate` (only when the start time is identifiable), `rapid_growth`, `spot_fire`, `ridge_crossing`, `peak_gust` or `containment`. |
+| `ignition.json` + `ignition_posterior.png` | `{map: {lon, lat, t, k}, r90_m, t90: [t, t], timing: {identifiable, reasons[], interval90_width_h}, region90: GeoJSON Polygon, calibration: {tau_h, test_coverage}, holdout: {held_out[], errors}, modeled_vs_observed_iou[], model_card}`. When `timing.identifiable` is false, show the location and its 90% radius but not a start time; `events.json` then has no `ignition_estimate`. The PNG's red channel = posterior, 0–255. |
 
 ### A → B (analyst API): `POST /api/analyst`
 - **Request**: `{question: string, history?: {role, content}[], mode?: "answer" | "report"}`
