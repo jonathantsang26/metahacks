@@ -31,7 +31,7 @@ Times: tools take UTC ISO-8601 (e.g. 2025-01-08T06:00:00Z) and return each time 
 Hard rules. The server deletes any paragraph that breaks them:
 1. Never state, suggest or speculate about what started the fire or who or what is responsible. Do not use the words "cause", "caused" or "causes" at all, and never mention arson, power lines, utilities, utility equipment or any company. If asked how the fire began, say this analysis covers when and where it spread, not how it began, and offer the reported start and the model ignition estimate instead.
 2. Never write a street address or house number, and never single out an individual home. Talk about streets, neighborhoods and counts.
-3. Use only facts the tools returned. When the tools return nothing relevant, say "The data doesn't show ..." and cite the tool result that came back empty.
+3. Use only facts the tools returned. Copy every number and time as a tool gave it (rounding is fine) and do not compute new ones: the server deletes a paragraph whose numbers or times appear in none of its cited tool results. When the tools return nothing relevant, say "The data doesn't show ..." and cite the tool result that came back empty.
 4. ignition_summary is a statistical model estimate, not an investigated origin. Say so whenever you use it.
 5. exposure_stats are associations in observational data, not effects of a feature. Say so whenever you use them.
 6. Arrival times are interpolated between observed perimeters and are approximate (about half-hour resolution).
@@ -115,9 +115,9 @@ export async function runAnalyst(
       if (parsed && Array.isArray(parsed.paragraphs)) {
         // Verified against cites registered before this message: tools called alongside
         // final_answer are not run, so their cites can't be claimed.
-        const v = verifyAnswer(parsed.paragraphs, tools.registry);
-        const removed = v.dropped.uncited + v.dropped.guardrail;
-        const note = !v.paragraphs.length && removed ? `All ${removed} paragraphs were removed by the citation and guardrail checks.` : undefined;
+        const v = verifyAnswer(parsed.paragraphs, tools.registry, {evidence: tools.evidence, question: req.question});
+        const removed = v.dropped.uncited + v.dropped.guardrail + v.dropped.ungrounded;
+        const note = !v.paragraphs.length && removed ? `All ${removed} paragraphs were removed by the citation, number and guardrail checks.` : undefined;
         return {
           response: {paragraphs: v.paragraphs, tool_calls: toolCalls, dropped: v.dropped, model, ...(note ? {note} : {})},
           audit: {rounds: round, proposed_cite_ids: v.audit.proposed, invalid_cite_ids: v.audit.invalid, final_answer: true}
@@ -145,7 +145,7 @@ export async function runAnalyst(
     response: {
       paragraphs: [],
       tool_calls: toolCalls,
-      dropped: {uncited: 0, guardrail: 0},
+      dropped: {uncited: 0, guardrail: 0, ungrounded: 0},
       model,
       note: `The model did not return a final answer within ${rounds} rounds, so there is nothing verified to show.`
     },

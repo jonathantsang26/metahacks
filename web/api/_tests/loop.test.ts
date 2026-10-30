@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import {describe, expect, it} from 'vitest';
 import {handleAnalyst, parseRequest} from '../analyst.js';
 import {MAX_ROUNDS, runAnalyst, type ChatClient, type ChatReply, type ChatRequest} from '../_lib/analyst.js';
@@ -35,7 +36,13 @@ function lastCites(req: ChatRequest): {id: string; label: string}[] {
   return msg ? (JSON.parse(String(msg.content)) as {cites: {id: string; label: string}[]}).cites : [];
 }
 
+function allCites(req: ChatRequest): {id: string; label: string}[] {
+  return req.messages.filter(m => m.role === 'tool').flatMap(m => (JSON.parse(String(m.content)) as {cites?: {id: string; label: string}[]}).cites ?? []);
+}
+
 const store = new FireStore('eaton');
+const weather = JSON.parse(readFileSync('public/data/eaton/weather.json', 'utf8')) as {hourly: {t: string; gust_mph: number}[]};
+const gustAt = (t: string) => weather.hourly.find(h => h.t === t)!.gust_mph;
 const ask = (question: string): AnalystRequest => ({question, fire: 'eaton', history: [], mode: 'answer'});
 
 describe('runAnalyst tool loop', () => {
@@ -57,7 +64,7 @@ describe('runAnalyst tool loop', () => {
     expect(response.paragraphs).toHaveLength(1);
     expect(response.paragraphs[0].cites[0]).toMatchObject({layer: 'arrival', label: expect.stringMatching(/^First burn/)});
     expect(response.paragraphs[0].cites[0].t).toMatch(/^2025-01-/);
-    expect(response.dropped).toEqual({uncited: 1, guardrail: 1});
+    expect(response.dropped).toEqual({uncited: 1, guardrail: 1, ungrounded: 0});
     expect(response.tool_calls).toEqual([
       {name: 'place_lookup', args: {name: 'Lake Ave'}},
       {name: 'street_fire_timeline', args: {name: 'Lake Ave'}}
@@ -86,12 +93,23 @@ describe('runAnalyst tool loop', () => {
   it('answers every parallel tool call before asking again', async () => {
     const chat = fakeChat([
       () => tools(call('a1', 'weather_at', {t: '2025-01-08T07:00:00Z'}), call('a2', 'fire_state_at', {t: '2025-01-08T07:00:00Z'})),
-      req => final([{text: 'Gusts reached 45.9 mph as the fire grew.', cite_ids: lastCites(req).map(c => c.id)}])
+      req => final([{text: `Gusts reached ${gustAt('2025-01-08T07:00:00Z')} mph as the fire grew.`, cite_ids: allCites(req).map(c => c.id)}])
     ]);
     const {response} = await runAnalyst(ask('Wind and size at 11 PM?'), {chat, store});
     const msgs = chat.requests[1].messages.filter(m => m.role === 'tool');
     expect(msgs.map(m => (m as {tool_call_id: string}).tool_call_id)).toEqual(['a1', 'a2']);
     expect(response.paragraphs).toHaveLength(1);
+  });
+
+  it('drops a paragraph whose number is not in its cited tool output', async () => {
+    const chat = fakeChat([
+      () => tools(call('a1', 'weather_at', {t: '2025-01-08T07:00:00Z'})),
+      req => final([{text: `Gusts reached ${gustAt('2025-01-08T07:00:00Z') + 40} mph.`, cite_ids: lastCites(req).map(c => c.id)}])
+    ]);
+    const {response} = await runAnalyst(ask('How windy was it?'), {chat, store});
+    expect(response.paragraphs).toEqual([]);
+    expect(response.dropped.ungrounded).toBe(1);
+    expect(response.note).toMatch(/number/);
   });
 
   it('reports bad tool arguments to the model and keeps going', async () => {

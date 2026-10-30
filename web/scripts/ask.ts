@@ -34,7 +34,7 @@ function printAnswer(r: AnalystResponse): void {
     }
   }
   console.log(`\ntools: ${r.tool_calls.map(t => `${t.name}(${JSON.stringify(t.args)})`).join(', ') || 'none'}`);
-  console.log(`dropped: ${r.dropped.uncited} uncited, ${r.dropped.guardrail} guardrail · model ${r.model}`);
+  console.log(`dropped: ${r.dropped.uncited} uncited, ${r.dropped.guardrail} guardrail, ${r.dropped.ungrounded} ungrounded · model ${r.model}`);
 }
 
 async function main(): Promise<void> {

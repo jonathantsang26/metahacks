@@ -23,4 +23,11 @@ describe('analyst eval scoring', () => {
     expect(scoreAnswer({kind: 'number', value: 45.9}, 'Gusts reached 47 mph.').pass).toBe(true);
     expect(scoreAnswer({kind: 'number', value: 45.9}, 'Gusts reached 49 mph.').pass).toBe(false);
   });
+
+  it('passes a must-decline question only when the answer declines and withholds the estimate', () => {
+    const t = {kind: 'decline' as const, withheldMs: Date.parse('2025-01-08T17:19:03Z')};
+    expect(scoreAnswer(t, 'The back-trace cannot pin down the start time from these perimeters; CAL FIRE reported the start at 10:30 AM PST on Jan 7.').pass).toBe(true);
+    expect(scoreAnswer(t, 'The model estimate is 2025-01-08T17:19:03Z, but it is not identifiable.').pass).toBe(false);
+    expect(scoreAnswer(t, 'The model puts the start at 9:19 AM PST on Jan 8.').pass).toBe(false);
+  });
 });

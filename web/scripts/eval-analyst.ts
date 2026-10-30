@@ -1,11 +1,14 @@
 /**
- * Analyst eval (BUILD.md step 15): 15 questions whose answers are computed here, directly from
- * public/data/eaton, by code independent of the analyst's tools. Each question then goes through
- * the real analyst (the same runAnalyst + Muse Spark client as POST /api/analyst) and is scored:
- * times within ±30 min, numbers within ±5%, plus the citation validity rate.
+ * Analyst eval (BUILD.md step 15): 15 questions per fire whose answers are computed here, directly
+ * from public/data/<fire>, by code independent of the analyst's tools. Each question then goes
+ * through the real analyst (the same runAnalyst + Muse Spark client as POST /api/analyst) and is
+ * scored: times within ±30 min, numbers within ±5%, plus the citation validity rate. When the
+ * back-trace withholds a start time, the ignition question becomes a must-decline question: it
+ * passes only if the answer says the start time can't be pinned down and doesn't give the withheld one.
+ * Questions with no ground truth in the data are skipped and listed, so `n` is the scored count.
  *
- *   npm run eval:analyst            needs MODEL_API_KEY; writes public/data/eaton/eval/analyst.json
- *   npm run eval:analyst -- --truth prints the computed ground truth only (no key, writes nothing)
+ *   npm run eval:analyst [-- --fire palisades]   needs MODEL_API_KEY; writes public/data/<fire>/eval/analyst.json
+ *   npm run eval:analyst -- --truth [--fire …]   prints the computed ground truth only (no key, writes nothing)
  */
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
 import path from 'node:path';
@@ -16,7 +19,30 @@ import {createChatClient} from '../api/_lib/model.js';
 import type {AnalystResponse} from '../api/_lib/types.js';
 import {modelApiKey, NO_KEY_MESSAGE, WEB_ROOT} from './_env.js';
 
-const FIRE = 'eaton';
+const argAfter = (flag: string) => {
+  const i = process.argv.indexOf(flag);
+  return i >= 0 ? process.argv[i + 1] : undefined;
+};
+const FIRE = argAfter('--fire') ?? 'eaton';
+
+/** Per-fire question material: streets and places from the fire's own gazetteer and labels. */
+const SETS: Record<string, {streets: string[]; places: string[]; areaTimes: string[]; rosTime: string; gustTime: string;
+  rhTime: string; structures: [string, string][]}> = {
+  eaton: {
+    streets: ['North Lake Avenue', 'East Altadena Drive', 'Kinneloa Canyon Road', 'Fair Oaks Avenue'],
+    places: ['Altadena', 'Kinneloa Mesa'],
+    areaTimes: ['2025-01-08T12:00:00Z', '2025-01-09T00:00:00Z'],
+    rosTime: '2025-01-08T08:00:00Z', gustTime: '2025-01-08T07:00:00Z', rhTime: '2025-01-09T22:00:00Z',
+    structures: [['Altadena', 'place'], ['Echo Mountain', 'peak']]
+  },
+  palisades: {
+    streets: ['Palisades Drive', 'West Sunset Boulevard', 'Pacific Coast Highway', 'Old Topanga Canyon Road'],
+    places: ['Pacific Palisades', 'Castellammare'],
+    areaTimes: ['2025-01-08T06:00:00Z', '2025-01-08T18:00:00Z'],
+    rosTime: '2025-01-08T21:00:00Z', gustTime: '2025-01-08T04:00:00Z', rhTime: '2025-01-09T16:00:00Z',
+    structures: [['Pacific Palisades', 'place'], ['Parker Mesa', 'peak']]
+  }
+};
 const DIR = path.join(WEB_ROOT, 'public', 'data', FIRE);
 const TIME_TOL_MIN = 30;
 const NUM_TOL = 0.05;
@@ -26,7 +52,7 @@ const has = (file: string) => existsSync(path.join(DIR, file));
 
 // ---------------------------------------------------------------- ground truth (independent code)
 
-type Truth = {kind: 'time'; ms: number} | {kind: 'number'; value: number};
+type Truth = {kind: 'time'; ms: number} | {kind: 'number'; value: number} | {kind: 'decline'; withheldMs: number};
 type Question = {id: string; question: string; truth: Truth; source: string};
 
 /** Arrival raster in the pipeline's own convention (ember/grid.py: cell centers at integer px). */
@@ -125,33 +151,33 @@ function buildQuestions(): {questions: Question[]; skipped: {id: string; reason:
   const time = (ms: number | null): Truth | null => (ms === null ? null : {kind: 'time', ms});
   const value = (v: number): Truth => ({kind: 'number', value: v});
 
-  for (const [i, street] of ['North Lake Avenue', 'East Altadena Drive', 'Kinneloa Canyon Road', 'Fair Oaks Avenue'].entries()) {
+  const set = SETS[FIRE];
+  if (!set) throw new Error(`no question set for fire "${FIRE}" (have: ${Object.keys(SETS).join(', ')})`);
+  for (const [i, street] of set.streets.entries()) {
     add(`street_${i + 1}`, `When did the fire first reach ${street}?${T}`, 'roads.geojson × arrival.png', () => time(streetFirstBurn(street)));
   }
-  for (const [i, place] of ['Altadena', 'Kinneloa Mesa'].entries()) {
+  for (const [i, place] of set.places.entries()) {
     add(`place_${i + 1}`, `When did the fire reach ${place} (the neighborhood label point)?${T}`, 'labels.json × arrival.png', () => {
       const p = label(place, 'place');
       return time(arrivalAtPoint(p.lon, p.lat));
     });
   }
-  add('area_1', `How many acres had burned by 2025-01-08T12:00:00Z?${N}`, 'series.json', () => value(seriesAt('2025-01-08T12:00:00Z', 'area_acres')));
-  add('area_2', `How many acres had burned by 2025-01-09T00:00:00Z?${N}`, 'series.json', () => value(seriesAt('2025-01-09T00:00:00Z', 'area_acres')));
-  add('ros_1', `What was the head rate of spread, in chains per hour, at 2025-01-08T08:00:00Z?${N}`, 'series.json', () =>
-    value(seriesAt('2025-01-08T08:00:00Z', 'ros_chains_hr'))
-  );
-  add('gust_1', `What was the wind gust in mph at 2025-01-08T07:00:00Z?${N}`, 'weather.json', () => value(weatherAt('2025-01-08T07:00:00Z', 'gust_mph')));
-  add('rh_1', `What was the relative humidity in percent at 2025-01-09T22:00:00Z?${N}`, 'weather.json', () => value(weatherAt('2025-01-09T22:00:00Z', 'rh_pct')));
-  add('structures_1', `How many inspected structures within 1000 m of the Altadena place label were destroyed?${N}`, 'structures.geojson', () => {
-    const p = label('Altadena', 'place');
-    return value(destroyedWithin(p.lon, p.lat, 1000));
-  });
-  add('structures_2', `How many inspected structures within 1000 m of the Echo Mountain peak were destroyed?${N}`, 'structures.geojson', () => {
-    const p = label('Echo Mountain', 'peak');
-    return value(destroyedWithin(p.lon, p.lat, 1000));
-  });
+  for (const [i, t] of set.areaTimes.entries()) {
+    add(`area_${i + 1}`, `How many acres had burned by ${t}?${N}`, 'series.json', () => value(seriesAt(t, 'area_acres')));
+  }
+  add('ros_1', `What was the head rate of spread, in chains per hour, at ${set.rosTime}?${N}`, 'series.json', () => value(seriesAt(set.rosTime, 'ros_chains_hr')));
+  add('gust_1', `What was the wind gust in mph at ${set.gustTime}?${N}`, 'weather.json', () => value(weatherAt(set.gustTime, 'gust_mph')));
+  add('rh_1', `What was the relative humidity in percent at ${set.rhTime}?${N}`, 'weather.json', () => value(weatherAt(set.rhTime, 'rh_pct')));
+  for (const [i, [name, kind]] of set.structures.entries()) {
+    add(`structures_${i + 1}`, `How many inspected structures within 1000 m of the ${name} ${kind === 'peak' ? 'peak' : 'place label'} were destroyed?${N}`, 'structures.geojson', () => {
+      const p = label(name, kind);
+      return value(destroyedWithin(p.lon, p.lat, 1000));
+    });
+  }
   add('ignition_1', `When does the model ignition estimate put the start of the fire?${T}`, 'ignition.json', () => {
     const ig = read<{map: {t: string}; timing?: {identifiable: boolean}}>('ignition.json');
-    return ig.timing?.identifiable === false ? null : time(Date.parse(ig.map.t));
+    const ms = Date.parse(ig.map.t);
+    return ig.timing?.identifiable === false ? {kind: 'decline', withheldMs: ms} : time(ms);
   });
   add('exposure_1', `What is the odds ratio of destruction for fine-mesh or no vents versus coarse or unscreened vents?${N}`, 'exposure_stats.json', () => {
     if (!has('exposure_stats.json')) return null;
@@ -192,7 +218,15 @@ export function extractNumbers(text: string): number[] {
   return [...stripped.matchAll(/-?\d[\d,]*(?:\.\d+)?/g)].map(m => Number(m[0].replace(/,/g, ''))).filter(Number.isFinite);
 }
 
+const DECLINES = /\b(?:not|cannot|can['’]t|isn['’]t|doesn['’]t|unable to)\b[^.]{0,60}\b(?:identif|pin(?:ned)? down|determin|constrain|estimate|establish|show)/i;
+
 export function scoreAnswer(truth: Truth, text: string): {pass: boolean; extracted: number[]} {
+  if (truth.kind === 'decline') {
+    // Pass: says the start time can't be pinned down, and does not give the withheld estimate.
+    const times = extractTimes(text);
+    const leaked = times.some(ms => Math.abs(ms - truth.withheldMs) <= TIME_TOL_MIN * 60_000);
+    return {pass: DECLINES.test(text) && !leaked, extracted: times};
+  }
   if (truth.kind === 'time') {
     const times = extractTimes(text);
     return {pass: times.some(ms => Math.abs(ms - truth.ms) <= TIME_TOL_MIN * 60_000), extracted: times};
@@ -204,7 +238,8 @@ export function scoreAnswer(truth: Truth, text: string): {pass: boolean; extract
 
 type Row = {id: string; kind: Truth['kind']; pass: boolean} & Record<string, unknown>;
 
-const showTruth = (t: Truth) => (t.kind === 'time' ? new Date(Math.round(t.ms / 1000) * 1000).toISOString().replace(/\.000Z$/, 'Z') : t.value);
+const iso = (ms: number) => new Date(Math.round(ms / 1000) * 1000).toISOString().replace(/\.000Z$/, 'Z');
+const showTruth = (t: Truth) => (t.kind === 'time' ? iso(t.ms) : t.kind === 'decline' ? `decline (withheld ${iso(t.withheldMs)})` : t.value);
 
 // ---------------------------------------------------------------- main
 
@@ -264,10 +299,12 @@ async function main(): Promise<void> {
     accuracy: rate(rows),
     time_accuracy: rate(rows.filter(r => r.kind === 'time')),
     number_accuracy: rate(rows.filter(r => r.kind === 'number')),
+    decline_accuracy: rate(rows.filter(r => r.kind === 'decline')),
     citation_validity: proposed ? Math.round(((proposed - invalid) / proposed) * 1000) / 1000 : null,
     cite_ids_proposed: proposed,
     cite_ids_invalid: invalid,
     n: rows.length,
+    fire: FIRE,
     method: `${rows.length} questions with answers computed directly from public/data/${FIRE} by code independent of the analyst tools; answered by the analyst (runAnalyst, ${DEFAULT_MODEL}); a time passes within ±${TIME_TOL_MIN} min, a number within ±${NUM_TOL * 100}%, matched against any time or number in the returned (verified) paragraphs. Citation validity = model-proposed cite ids that a tool actually returned.`,
     model: DEFAULT_MODEL,
     date: new Date().toISOString().slice(0, 10),

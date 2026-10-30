@@ -338,7 +338,7 @@ const weatherAt: Impl = (args, {store, tz}) => {
       rh_pct: h.rh_pct,
       ...(daily ? {daily_fire_danger: daily} : {}),
       source: w.source,
-      note: 'Single-point reanalysis, not a station reading. Gust is the max of the preceding hour; direction is where the wind blows FROM.',
+      note: 'Weather model (NOAA HRRR, 3 km) at the fire area center, not a station reading. Gust is the max of the preceding hour; direction is where the wind blows FROM.',
       ...timeNote(assumedUtc)
     },
     cites: [{layer: 'weather', t: st.t, lon, lat, label: `Wind ${h.wind_mph} mph from ${compass(h.wind_dir_deg)}, gusts ${h.gust_mph} mph, RH ${h.rh_pct}%`}]
@@ -579,9 +579,11 @@ export const FINAL_ANSWER_TOOL: ChatCompletionFunctionTool = fn(
 
 export type ToolRun = {content: string; args: unknown; ok: boolean};
 
-/** Runs tools for one analyst request and registers every cite they return under a fresh id. */
+/** Runs tools for one analyst request and registers every cite they return under a fresh id,
+ * with the tool output behind it (the evidence the verifier checks numbers against). */
 export function createToolRunner(store: FireStore) {
   const registry = new Map<string, Cite>();
+  const evidence = new Map<string, unknown>();
   const tz = store.aoi().timezone;
   let next = 1;
 
@@ -606,12 +608,14 @@ export function createToolRunner(store: FireStore) {
     const cites = out.cites.map(c => {
       const cite: Cite = {id: `c${next++}`, ...c};
       registry.set(cite.id, cite);
-      return cite.t ? {...cite, t_local: localLabel(Date.parse(cite.t), tz)} : cite;
+      const shown = cite.t ? {...cite, t_local: localLabel(Date.parse(cite.t), tz)} : cite;
+      evidence.set(cite.id, {result: out.result, cite: shown});
+      return shown;
     });
     return {content: JSON.stringify({result: out.result, cites}), args, ok: true};
   }
 
-  return {run, registry};
+  return {run, registry, evidence};
 }
 
 export type ToolRunner = ReturnType<typeof createToolRunner>;

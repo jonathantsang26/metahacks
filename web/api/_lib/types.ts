@@ -18,7 +18,7 @@ export type Paragraph = {text: string; cites: Cite[]};
 export type AnalystResponse = {
   paragraphs: Paragraph[];
   tool_calls: {name: string; args: unknown}[];
-  dropped: {uncited: number; guardrail: number};
+  dropped: {uncited: number; guardrail: number; ungrounded: number};
   model: string;
   /** Present only when nothing survived: no final answer, or every paragraph was removed. */
   note?: string;

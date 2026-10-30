@@ -19,7 +19,14 @@ const CAUSE_PATTERNS: RegExp[] = [
   /\b(?:downed|arcing)\s+(?:power\s+)?(?:lines?|wires?|conductors?)\b/i,
   /\bEdison\b/i,
   /\bSCE\b/,
-  /\b(?:lightning|campfire|cigarette|fireworks)\b/i
+  /\b(?:lightning|campfire|cigarette|fireworks)\b/i,
+  /\battribut(?:e|ed|es|ing|able)\s+to\b/i,
+  /\bblam(?:e|ed|es|ing)\b/i,
+  /\bresponsible\s+for\b/i,
+  /\b(?:originated|began|started)\s+(?:from|with)\b/i,
+  /\borigin\s+of\s+the\s+fire\b/i,
+  /\bshort[\s-]?circuit(?:ed|s)?\b/i,
+  /\belectrical\s+short\b/i
 ];
 
 const STREET_SUFFIX =
@@ -43,9 +50,66 @@ export function containsAddress(text: string): boolean {
   return false;
 }
 
+/** The tool output behind each cite id, and the question, for checking numbers in the prose. */
+export type Grounding = {evidence: ReadonlyMap<string, unknown>; question?: string};
+
+const MONTH = '(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\.?';
+const CLOCK = /\b(\d{1,2}):(\d{2})(?:\s*([ap])\.?\s*m\b\.?)?/gi;
+const DATES = new RegExp(`\\b\\d{4}-\\d{2}-\\d{2}(?:T[\\d:]+Z?)?\\b|\\b${MONTH}\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s*\\d{4})?|\\b(?:19|20)\\d{2}\\b`, 'gi');
+const NUMBER = /(?<![\w.])(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?(\s*%)?(?![\w])/g;
+
+function collect(value: unknown, numbers: number[], strings: string[]): void {
+  if (typeof value === 'number' && Number.isFinite(value)) numbers.push(value);
+  else if (typeof value === 'string') {
+    strings.push(value);
+    for (const m of value.replace(CLOCK, ' ').matchAll(NUMBER)) numbers.push(Number((m[1] + (m[2] ?? '')).replace(/,/g, '')));
+  } else if (Array.isArray(value)) value.forEach(v => collect(v, numbers, strings));
+  else if (value && typeof value === 'object') Object.values(value).forEach(v => collect(v, numbers, strings));
+}
+
+/** v (written with `decimals` places) is x rounded: to those places, or to 2+ significant figures. */
+function roundsTo(x: number, v: number, decimals: number): boolean {
+  if (Math.abs(x - v) <= 0.5 * 10 ** -decimals + 1e-9) return true;
+  if (v === 0 || x === 0) return false;
+  for (let sig = 2; sig <= 6; sig++) {
+    const p = 10 ** (Math.floor(Math.log10(Math.abs(x))) - sig + 1);
+    if (Math.abs(Math.round(x / p) * p - v) <= 1e-9 * Math.abs(v)) return true;
+  }
+  return false;
+}
+
+/**
+ * Numbers and clock times in the prose that appear in none of the paragraph's cited tool outputs
+ * (nor in the question). Rounding is allowed; percentages may come from fractions; integers up to
+ * 10 are exempt, since prose counts ("two perimeters") are rarely the claim being made.
+ */
+export function ungroundedNumbers(text: string, cites: Cite[], g: Grounding): string[] {
+  const numbers: number[] = [];
+  const strings: string[] = [];
+  for (const c of cites) collect([g.evidence.get(c.id), c], numbers, strings);
+  collect(g.question ?? '', numbers, strings);
+  const haystack = strings.join(' | ').toLowerCase();
+  const bad: string[] = [];
+  for (const m of text.matchAll(CLOCK)) {
+    const [, h, mm, ap] = m;
+    const local = `${Number(h)}:${mm}${ap ? ` ${ap.toLowerCase()}m` : ''}`;
+    const utc = `t${h.padStart(2, '0')}:${mm}`;
+    if (!haystack.includes(local) && !haystack.includes(utc)) bad.push(m[0].trim());
+  }
+  const prose = text.replace(CLOCK, ' ').replace(DATES, ' ');
+  for (const m of prose.matchAll(NUMBER)) {
+    const v = Number(m[1].replace(/,/g, '') + (m[2] ?? ''));
+    const decimals = m[2] ? m[2].length - 1 : 0;
+    if (!m[3] && !m[2] && v <= 10) continue;
+    const ok = numbers.some(x => roundsTo(x, v, decimals) || (m[3] && Math.abs(x) <= 1 && roundsTo(100 * x, v, decimals)));
+    if (!ok) bad.push(m[0].trim());
+  }
+  return bad;
+}
+
 export type Verified = {
   paragraphs: Paragraph[];
-  dropped: {uncited: number; guardrail: number};
+  dropped: {uncited: number; guardrail: number; ungrounded: number};
   /** Every cite id the model proposed, and the ones that no tool had returned. */
   audit: {proposed: number; invalid: number};
 };
@@ -54,10 +118,12 @@ const INLINE_CITE = /\s*[[(]\s*(c\d+(?:\s*[,;]\s*c\d+)*)\s*[\])]/gi;
 
 /**
  * Guardrails run first (cause or address → dropped.guardrail), then citations: only ids in the
- * registry survive, and a paragraph left with none is dropped (dropped.uncited).
+ * registry survive, and a paragraph left with none is dropped (dropped.uncited). With grounding,
+ * a paragraph whose numbers or times appear in none of its cited tool outputs is dropped too
+ * (dropped.ungrounded): a cite has to support the numbers, not just exist.
  */
-export function verifyAnswer(raw: unknown, registry: ReadonlyMap<string, Cite>): Verified {
-  const out: Verified = {paragraphs: [], dropped: {uncited: 0, guardrail: 0}, audit: {proposed: 0, invalid: 0}};
+export function verifyAnswer(raw: unknown, registry: ReadonlyMap<string, Cite>, grounding?: Grounding): Verified {
+  const out: Verified = {paragraphs: [], dropped: {uncited: 0, guardrail: 0, ungrounded: 0}, audit: {proposed: 0, invalid: 0}};
   const list: RawParagraph[] = Array.isArray(raw) ? raw : [];
   for (const p of list) {
     if (!p || typeof p !== 'object') continue;
@@ -76,6 +142,7 @@ export function verifyAnswer(raw: unknown, registry: ReadonlyMap<string, Cite>):
     out.audit.invalid += unique.length - cites.length;
     if (mentionsCause(text) || containsAddress(text)) out.dropped.guardrail++;
     else if (!cites.length) out.dropped.uncited++;
+    else if (grounding && ungroundedNumbers(text, cites, grounding).length) out.dropped.ungrounded++;
     else out.paragraphs.push({text, cites});
   }
   return out;
