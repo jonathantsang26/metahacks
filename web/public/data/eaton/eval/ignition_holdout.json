@@ -9,37 +9,68 @@
     {
       "t": "2025-01-08T07:06:14Z",
       "observed_cells": 571,
-      "predicted_cells": 13,
-      "iou": 0.023
+      "predicted_cells": 168,
+      "iou": 0.232
     },
     {
       "t": "2025-01-08T07:12:13Z",
       "observed_cells": 1077,
-      "predicted_cells": 17,
-      "iou": 0.015
+      "predicted_cells": 191,
+      "iou": 0.15
     }
   ],
   "estimate": {
     "lonlat": [
-      -118.093656,
-      34.201708
+      -118.094686,
+      34.195745
     ],
-    "t": "2025-01-08T06:18:59Z",
-    "k": 11.314,
-    "r90_m": 3014.2,
+    "t": "2025-01-08T04:37:36Z",
+    "k": 0.5,
+    "lb_max": 1.0,
+    "r90_m": 1199.5,
     "t90": [
-      "2025-01-07T18:33:59Z",
-      "2025-01-08T09:51:33Z"
+      "2025-01-08T03:12:44Z",
+      "2025-01-08T09:09:07Z"
     ],
     "timing": {
-      "identifiable": false,
-      "reasons": [
-        "90% start-time interval is 15.3 h wide (limit 6 h)"
-      ],
-      "interval90_width_h": 15.29
+      "identifiable": true,
+      "reasons": [],
+      "interval90_width_h": 5.94
     },
-    "tau_h": 9.6
+    "tau_h": 1.2
   },
+  "lb_selection": [
+    {
+      "lb_max": 1.0,
+      "loss_h": 3.253,
+      "k": 0.5
+    },
+    {
+      "lb_max": 1.25,
+      "loss_h": 3.3591,
+      "k": 1.414
+    },
+    {
+      "lb_max": 1.5,
+      "loss_h": 3.6741,
+      "k": 2.0
+    },
+    {
+      "lb_max": 2.0,
+      "loss_h": 4.1024,
+      "k": 4.0
+    },
+    {
+      "lb_max": 3.0,
+      "loss_h": 4.4347,
+      "k": 6.667
+    },
+    {
+      "lb_max": 8.0,
+      "loss_h": 5.2648,
+      "k": 16.0
+    }
+  ],
   "baselines": {
     "first_fit_footprint_centroid_lonlat": [
       -118.093907,
@@ -58,11 +89,12 @@
     "note": "Reported incident location, not an investigated origin."
   },
   "errors": {
-    "backtrace_distance_m": 2264.5,
+    "backtrace_distance_m": 2503.5,
     "baseline_distance_m": 2460.5,
-    "backtrace_time_error_min": 241.0,
+    "backtrace_time_error_min": 139.6,
     "baseline_time_error_min": -1854.2,
-    "reference_within_r90": true,
-    "reference_within_t90": true
+    "reference_within_r90": false,
+    "reference_outside_first_fit_footprint_m": 1141.8,
+    "reference_within_t90": false
   }
 }

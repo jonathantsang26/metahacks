@@ -11,21 +11,28 @@ the start time is reported only when that interval is narrow and the spread rate
 model's ceiling.
 
 Evaluation (all written under eval/):
-  * Synthetic recovery benchmark: known ignitions on the real terrain, fuels and hourly wind,
-    simulated with perturbed physics (per-fuel rates ±25–30%, wind ±15%) and noisy perimeters
-    (±1 cell), observed on the fire's real perimeter schedule; the first two observations are
-    held out, exactly as for the real fire. Errors are compared with naive baselines.
+  * Synthetic recovery benchmark: known ignitions on the real terrain, fuels and HRRR wind field,
+    simulated with physics that differs from the inverted model in kind, not just in parameters
+    (per-fuel rates ±25–30%, a smooth patchy fuel field the model never sees, wind speed ±15%,
+    direction ±15° and timing ±1.5 h) and noisy perimeters (±1 cell), observed on the fire's real
+    perimeter schedule. Each case is inverted twice: on every footprint (what the product does) and
+    with the first two held out (as in the real hold-out). Errors are compared with naive baselines.
+  * Wind ablation: the real fits with the HRRR field, with HRRR averaged to one uniform wind, and
+    with the single ERA5 point the pipeline used before.
   * Real hold-out: fit only on perimeters after the first two, then predict the held-out
     footprints and compare the estimate with CAL FIRE's official start time and reported
     incident location (a reported location, not an investigated origin; never a fitting input).
 
-Inputs:  perimeters.geojson (05), weather.json (07), work/<fire>/landcover.npy (03),
-         work/<fire>/elevation.npy (02), aoi.json
+Inputs:  perimeters.geojson (05), wind_field.json (07; weather.json if absent),
+         work/<fire>/landcover.npy (03), work/<fire>/elevation.npy (02), aoi.json
 Outputs: ignition.json, ignition_posterior.png (R = relative posterior 0–255),
          modeled_arrival.png (same encoding as arrival.png), eval/ignition_synthetic.json,
-         eval/ignition_holdout.json
+         eval/ignition_holdout.json, eval/wind_ablation.json
 
-Run: uv run python -m steps.s11_ignition [--eval-only] [--cases 20]
+Run: uv run python -m steps.s11_ignition [--eval-only] [--cases 30] [--check]
+  --cases 0   reuse the committed synthetic cases (summaries and calibration are recomputed)
+  --check     recompute the first --cases synthetic cases, compare them with the committed ones
+              (eval/ignition_check.json), and keep the committed calibration
 """
 
 from __future__ import annotations
@@ -39,7 +46,7 @@ from datetime import timedelta
 
 import numpy as np
 from PIL import Image
-from scipy.ndimage import binary_dilation, binary_erosion
+from scipy.ndimage import binary_dilation, binary_erosion, gaussian_filter
 from shapely.geometry import box, mapping
 from shapely.ops import unary_union
 
@@ -52,12 +59,23 @@ from steps.s06_arrival import encode, iso, parse_t
 FACTOR = 6                  # model cell = 6 analysis cells (~95 m)
 FIT_HORIZON_H = 48          # fit observations within 48 h of the first one
 HOLDOUT_N = 2               # the first two observations are held out in evaluation
-K_GRID = 0.5 * np.sqrt(2) ** np.arange(15)   # 0.5 … 64: ERA5 point wind understates channelled gusts
+K_GRID = 0.25 * np.sqrt(2) ** np.arange(17)  # 0.25 … 64: spread-rate scale on top of the fuel table
 LAGS_H = 0.5 * np.sqrt(2) ** np.arange(16)   # start 0.5 … 90 h before the first fitted footprint
-K_TRUE_RANGE = (4.0, 16.0)  # synthetic truth spread-rate scale, log-uniform
+K_TRUE_RANGE = (0.25, 4.0)  # synthetic truth spread-rate scale, log-uniform: the fuel table off by up to 4× either way
 EARLY_WEIGHT_H = 6.0       # observation weight 1 / (1 + Δt / 6 h): early footprints pin the start time
 TAU_H = 0.15                # default temperature of the relative likelihood, in loss hours
-TAUS_H = (0.15, 0.3, 0.6, 1.2, 2.4, 4.8, 9.6, 19.2, 38.4)  # candidates for the per-fire calibration
+TAUS_H = (0.05, 0.1, 0.15, 0.3, 0.6, 1.2, 2.4, 4.8, 9.6, 19.2, 38.4)  # candidates for the per-fire calibration
+DEFAULT_CASES = 30
+# Structural model error in the synthetic truth (things the inverted model does not represent).
+PATCHY_FUEL_SIGMA = 0.25    # log-std of a smooth per-cell rate field
+PATCHY_FUEL_SCALE_CELLS = 4  # its correlation length, in model cells (~400 m)
+WIND_ROTATION_DEG = 15.0
+WIND_SHIFT_H = 1.5
+# Length-to-breadth cap of the spread ellipse, chosen per fit by loss on the real perimeters.
+# Large wind-driven fires spread wider than Anderson's curve predicts (spotting, gusts that swing
+# direction); the cap is how far the model is allowed to elongate the fire.
+LB_CHOICES = (1.0, 1.25, 1.5, 2.0, 3.0, 8.0)
+LB_TRUE_SPREAD = 1.25       # synthetic truth uses the chosen cap × / ÷ up to this factor
 COVERAGE = 0.9
 TIMING_MAX_WIDTH_H = 6.0    # report a start time only when its 90% interval is at most this wide
 EARTH_M_PER_DEG = 111_320.0
@@ -80,6 +98,7 @@ class Model:
     terrain: sp.Terrain
     wind: sp.Wind
     w0: object          # window start (datetime)
+    lb: float = sp.LB_MAX  # length-to-breadth cap
 
 
 def fixture_path(fire) -> Path:
@@ -116,11 +135,25 @@ def build_model(fire) -> Model:
 
     aoi = fire.read_json("aoi.json")
     w0 = parse_t(aoi["window_utc"][0])
-    hourly = fire.read_json("weather.json")["hourly"]
-    t_h = np.array([(parse_t(h["t"]) - w0).total_seconds() / 3600 for h in hourly])
-    wind = sp.Wind.from_hourly(t_h, np.array([h["wind_mph"] for h in hourly], float),
-                               np.array([h["wind_dir_deg"] for h in hourly], float))
-    return Model(grid, terrain, wind, w0)
+    return Model(grid, terrain, load_wind(fire, w0), w0)
+
+
+def load_wind(fire, w0, variant: str = "field") -> sp.Wind:
+    """The spread model's wind: the HRRR field (default), its domain mean ("uniform"), or the
+    single ERA5 point ("era5"). Falls back to the weather.json point when there is no field."""
+    path = fire.out_dir / "wind_field.json"
+    if not path.exists():
+        hourly = fire.read_json("weather.json")["hourly"]
+        t_h = np.array([(parse_t(h["t"]) - w0).total_seconds() / 3600 for h in hourly])
+        return sp.Wind.from_hourly(t_h, np.array([h["wind_mph"] for h in hourly], float),
+                                   np.array([h["wind_dir_deg"] for h in hourly], float))
+    f = json.loads(path.read_text())
+    t_h = np.array([(parse_t(t) - w0).total_seconds() / 3600 for t in f["t"]])
+    if variant == "era5":
+        ref = f["reference"]
+        return sp.Wind.from_field(t_h, np.array(ref["u_mph"])[:, None], np.array(ref["v_mph"])[:, None], 1, 1)
+    wind = sp.Wind.from_field(t_h, np.array(f["u_mph"]).T, np.array(f["v_mph"]).T, f["rows"], f["cols"])
+    return wind.mean() if variant == "uniform" else wind
 
 
 def observations(fire, model: Model):
@@ -155,7 +188,8 @@ def lattice(mask: np.ndarray) -> tuple[np.ndarray, int]:
     return np.stack([rows[keep], cols[keep]], axis=1), step
 
 
-def invert(model: Model, obs: sp.Observations, candidate_mask: np.ndarray, tau_h: float = TAU_H) -> dict:
+def invert(model: Model, obs: sp.Observations, candidate_mask: np.ndarray, tau_h: float = TAU_H,
+           lb_grid=None) -> dict:
     """Two-stage search over (cell, t0, k); returns the MAP, the relative posterior per cell, and
     every evaluated candidate with its loss (for uncertainty summaries at any temperature)."""
     terr = model.terrain
@@ -164,18 +198,19 @@ def invert(model: Model, obs: sp.Observations, candidate_mask: np.ndarray, tau_h
     t_first = float(obs.t_h[0])
     t_min = model.wind.t0_h  # no wind before the weather series starts
 
+    lb_grid = lb_grid or (model.lb,)
     cells, step = lattice(burnable)
     radius = max(2, step // 2 + 1)  # stage 2 covers the gaps between lattice points
     # Log-spaced lags: the start-time uncertainty grows with how long before the first map it was.
     t0s = t_first - LAGS_H[t_first - LAGS_H >= t_min]
-    grid1 = np.array([(r, c, t, k) for r, c in cells for t in t0s for k in K_GRID], float)
+    grid1 = np.array([(r, c, t, k, lb) for r, c in cells for t in t0s for k in K_GRID for lb in lb_grid], float)
     loss1 = sp.batch_losses(terr, model.wind, obs, grid1, packed=packed)
 
     # Stage 2: refine the 8 best distinct (cell, k) combinations.
     order = np.argsort(loss1)
     seeds, seen = [], set()
     for i in order:
-        key = (int(grid1[i, 0]), int(grid1[i, 1]), grid1[i, 3])
+        key = (int(grid1[i, 0]), int(grid1[i, 1]), grid1[i, 3], grid1[i, 4])
         if key not in seen:
             seen.add(key)
             seeds.append(grid1[i])
@@ -183,7 +218,7 @@ def invert(model: Model, obs: sp.Observations, candidate_mask: np.ndarray, tau_h
             break
     rr, cc = np.nonzero(burnable)
     fine = []
-    for r, c, t, k in seeds:
+    for r, c, t, k, lb in seeds:
         near = (np.abs(rr - r) <= radius) & (np.abs(cc - c) <= radius)
         stride = max(1, radius // 3)
         sel = near & (rr % stride == 0) & (cc % stride == 0) if stride > 1 else near
@@ -192,7 +227,7 @@ def invert(model: Model, obs: sp.Observations, candidate_mask: np.ndarray, tau_h
         for r2, c2 in zip(rr[sel], cc[sel]):
             for t2 in t2s:
                 for k2 in (k / 1.2, k, k * 1.2):
-                    fine.append((r2, c2, t2, k2))
+                    fine.append((r2, c2, t2, k2, lb))
     grid2 = np.unique(np.array(fine, float), axis=0)
     loss2 = sp.batch_losses(terr, model.wind, obs, grid2, packed=packed)
 
@@ -200,8 +235,19 @@ def invert(model: Model, obs: sp.Observations, candidate_mask: np.ndarray, tau_h
     losses = np.concatenate([loss1, loss2])
     best = cands[np.argmin(losses)]
     return {"row": int(best[0]), "col": int(best[1]), "t0_h": float(best[2]), "k": float(best[3]),
-            "loss_h": float(losses.min()), "posterior": cell_posterior(cands, losses, terr.shape, tau_h),
+            "lb_max": float(best[4]), "loss_h": float(losses.min()), "posterior": cell_posterior(cands, losses, terr.shape, tau_h),
             "evaluated": int(len(cands)), "cands": cands, "losses": losses}
+
+
+def select_lb(model: Model, obs: sp.Observations, candidate_mask: np.ndarray, tau_h: float = TAU_H) -> tuple[dict, list[dict]]:
+    """Invert once per length-to-breadth cap and keep the cap with the lowest loss."""
+    table, best = [], None
+    for lb in LB_CHOICES:
+        est = invert(model, obs, candidate_mask, tau_h, lb_grid=(lb,))
+        table.append({"lb_max": lb, "loss_h": round(est["loss_h"], 4), "k": round(est["k"], 3)})
+        if best is None or est["loss_h"] < best["loss_h"]:
+            best = est
+    return best, table
 
 
 def weights(losses: np.ndarray, tau_h: float) -> np.ndarray:
@@ -237,8 +283,8 @@ def timing(est: dict, unc: dict) -> dict:
     if width > TIMING_MAX_WIDTH_H:
         reasons.append(f"90% start-time interval is {width:.1f} h wide (limit {TIMING_MAX_WIDTH_H:g} h)")
     if est["k"] >= K_GRID[-1]:
-        reasons.append("spread-rate scale is at the model's ceiling: the reanalysis wind is too weak to grow the "
-                       "observed footprints, so start time and spread rate trade off")
+        reasons.append("spread-rate scale is at the model's ceiling: the modeled wind and fuels cannot grow the "
+                       "observed footprints fast enough, so start time and spread rate trade off")
     return {"identifiable": not reasons, "reasons": reasons, "interval90_width_h": round(width, 2)}
 
 
@@ -303,17 +349,23 @@ def synthetic_case(model: Model, schedule: np.ndarray, rng: np.random.Generator,
     i = rng.integers(len(rows))
     truth_rc = (int(rows[i]), int(cols[i]))
     t0 = float(rng.uniform(2.0, 8.0))
-    # Fast, wind-driven fires like the ones this tool targets: the real Eaton fit needs k ≈ 11.
     k_true = float(np.exp(rng.uniform(np.log(K_TRUE_RANGE[0]), np.log(K_TRUE_RANGE[1]))))
 
-    # Truth physics differs from the model used for inversion (model error).
+    # Truth physics differs from the model used for inversion, in parameters and in kind.
     r0_true = terr.r0.copy()
     for rate in np.unique(terr.r0[terr.r0 > 0]):
         r0_true[terr.r0 == rate] *= rng.uniform(0.75, 1.3)
+    patch = gaussian_filter(rng.normal(size=terr.shape), PATCHY_FUEL_SCALE_CELLS)
+    r0_true *= np.exp(PATCHY_FUEL_SIGMA * patch / max(patch.std(), 1e-12))  # fuel patchiness the model never sees
     true_terr = sp.Terrain(r0_true, terr.waf, terr.up_e, terr.up_n, terr.tan_slope, terr.dx, terr.dy)
     scale = rng.uniform(0.85, 1.15)
-    true_wind = sp.Wind(model.wind.u_mph * scale, model.wind.v_mph * scale, model.wind.t0_h, model.wind.dt_h)
-    truth = sp.arrival(true_terr, true_wind, truth_rc, t0, k=k_true, t_stop_h=t0 + schedule[-1] + 1)
+    theta = np.radians(rng.uniform(-WIND_ROTATION_DEG, WIND_ROTATION_DEG))
+    u, v = model.wind.u_mph * scale, model.wind.v_mph * scale
+    true_wind = sp.Wind(u * np.cos(theta) + v * np.sin(theta), -u * np.sin(theta) + v * np.cos(theta),
+                        model.wind.t0_h, model.wind.dt_h, model.wind.rows, model.wind.cols
+                        ).shifted(rng.uniform(-WIND_SHIFT_H, WIND_SHIFT_H))
+    lb_true = max(1.0, model.lb * float(np.exp(rng.uniform(-np.log(LB_TRUE_SPREAD), np.log(LB_TRUE_SPREAD)))))
+    truth = sp.arrival(true_terr, true_wind, truth_rc, t0, k=k_true, t_stop_h=t0 + schedule[-1] + 1, lb_max=lb_true)
 
     masks, times = [], []
     for off in schedule:
@@ -327,7 +379,8 @@ def synthetic_case(model: Model, schedule: np.ndarray, rng: np.random.Generator,
         return None
     fit, _ = holdout_split(masks, np.array(times))
     return {
-        "case": case, "truth": {"row": truth_rc[0], "col": truth_rc[1], "t0_h": round(t0, 3), "k": round(k_true, 3)},
+        "case": case, "truth": {"row": truth_rc[0], "col": truth_rc[1], "t0_h": round(t0, 3), "k": round(k_true, 3),
+                                "lb_max": round(lb_true, 3)},
         # The stress test (the first two footprints held out, as in the real hold-out) ...
         **score_fit(model, fit, truth_rc, t0),
         # ... and the deployed case: every footprint, as the product's full fit uses them.
@@ -371,7 +424,15 @@ def calibrate(cases: list[dict]) -> dict:
               for t in TAUS_H}
     ok = [t for t in TAUS_H if cover(cal, t, "distance") >= COVERAGE and cover(cal, t, "time") >= COVERAGE]
     tau = ok[0] if ok else TAUS_H[-1]
+    # Selective prediction: which unseen cases would the product show a start time for, and how good is it then?
+    shown = [c for c in test if c["coverage_by_tau"][str(tau)]["t90_width_h"] <= TIMING_MAX_WIDTH_H
+             and c["estimate"]["k"] < K_GRID[-1]]
     return {"tau_h": tau, "target": COVERAGE, "reached_on_calibration_half": bool(ok),
+            "test_start_time_shown": {
+                "cases": len(shown), "of": len(test),
+                "median_time_err_min": round(float(np.median([c["backtrace_time_err_min"] for c in shown])), 1) if shown else None,
+                "max_time_err_min": round(float(max(c["backtrace_time_err_min"] for c in shown)), 1) if shown else None,
+                "interval_contains_truth": round(float(np.mean([c["coverage_by_tau"][str(tau)]["time"] for c in shown])), 2) if shown else None},
             "calibration_cases": len(cal), "test_cases": len(test),
             "test_coverage": by_tau[str(tau)]["test"],
             "median_test_r90_m": round(float(np.median([c["coverage_by_tau"][str(tau)]["r90_m"] for c in test])), 1) if test else None,
@@ -406,11 +467,78 @@ def iso_h(model: Model, t_h: float) -> str:
     return iso(model.w0 + timedelta(hours=float(t_h)))
 
 
+TRUTH_PERTURBATION = (f"per-fuel R0 x U(0.75,1.3); smooth patchy fuel field, log-std {PATCHY_FUEL_SIGMA}, "
+                      f"~{PATCHY_FUEL_SCALE_CELLS} cells; wind speed x U(0.85,1.15), direction ±{WIND_ROTATION_DEG:g}°, "
+                      f"timing ±{WIND_SHIFT_H:g} h; k log-uniform in {list(K_TRUE_RANGE)}; ±1-cell perimeter noise")
+
+
+def with_summaries(synthetic: dict) -> dict:
+    """(Re)compute every summary and calibration from the stored cases."""
+    cases = synthetic["cases"]
+    synthetic.update({
+        "summary": summarize(cases), "calibration": calibrate(cases),
+        "summary_all_observations": summarize([c["all_observations"] for c in cases]),
+        "calibration_all_observations": calibrate([c["all_observations"] for c in cases]),
+    })
+    synthetic["cases"] = synthetic.pop("cases")  # keep the long list last in the file
+    return synthetic
+
+
+def check_against(cases: list[dict], committed: dict) -> dict:
+    """Case-by-case comparison of freshly computed synthetic cases with the committed ones."""
+    keys = ("backtrace_dist_m", "backtrace_time_err_min", "baseline_dist_m", "baseline_time_err_min")
+    rows = []
+    for c, ref in zip(cases, committed["cases"]):
+        diff = max(abs(c[k] - ref[k]) for k in keys)
+        diff = max(diff, max(abs(c["all_observations"][k] - ref["all_observations"][k]) for k in keys))
+        rows.append({"case": c["case"], "max_abs_diff": round(float(diff), 3),
+                     "estimate": c["estimate"], "committed_estimate": ref["estimate"]})
+    return {"cases_checked": len(rows), "identical": all(r["max_abs_diff"] == 0 for r in rows), "cases": rows}
+
+
+def wind_ablation(fire, model: Model, masks, times) -> dict:
+    """The real fit with the HRRR field, HRRR as one uniform wind and the single ERA5 point, all at
+    the fire's chosen length-to-breadth cap; plus the pipeline before HRRR (ERA5 point, cap 8)."""
+    full = weighted(masks, times)
+    out = {}
+    variants = [("field", model.lb), ("uniform", model.lb), ("era5", model.lb), ("era5", sp.LB_MAX)]
+    for variant, lb in variants:
+        if variant != "field" and not (fire.out_dir / "wind_field.json").exists():
+            continue
+        m = Model(model.grid, model.terrain, load_wind(fire, model.w0, variant), model.w0, lb)
+        est = invert(m, full, full.masks[0])
+        arr = sp.arrival(m.terrain, m.wind, (est["row"], est["col"]), est["t0_h"], k=est["k"], lb_max=lb)
+        ious = [round(sp.iou(arr <= t, mk), 3) for mk, t in zip(masks, times)]
+        key = variant if lb == model.lb else f"{variant}_lb{lb:g}"
+        out[key] = {"wind": variant, "lb_max": lb, "k": round(est["k"], 3), "k_at_ceiling": bool(est["k"] >= K_GRID[-1]),
+                    "loss_h": round(est["loss_h"], 3), "t": iso_h(model, est["t0_h"]),
+                    "lonlat": [round(float(v), 6) for v in model.grid.to_lonlat(est["col"], est["row"])],
+                    "iou_by_observation": ious, "mean_iou": round(float(np.mean(ious)), 3)}
+        print(f"wind ablation {key}: {json.dumps(out[key])}")
+    return {"note": "Full fit on every footprint in the fit horizon; IoU = modeled vs observed footprint at each "
+                    "observation time. field = HRRR 3 km grid, interpolated per cell; uniform = HRRR domain mean; "
+                    f"era5 = the single ERA5 point. All at this fire's length-to-breadth cap ({model.lb:g}) except "
+                    f"era5_lb{sp.LB_MAX:g}, which is the pipeline before HRRR.", "variants": out}
+
+
+def outside_first_footprint_m(grid: Grid, mask: np.ndarray, rc: tuple[int, int]) -> float:
+    """How far a cell lies outside a footprint (0 if inside)."""
+    from scipy.ndimage import distance_transform_edt
+    px, py = grid.pixel_m
+    r, c = (int(round(v)) for v in rc)
+    if not (0 <= r < mask.shape[0] and 0 <= c < mask.shape[1]):
+        return float("nan")
+    return float(distance_transform_edt(~mask, sampling=(py, px))[r, c])
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--eval-only", action="store_true", help="only (re)write eval/*.json")
-    ap.add_argument("--cases", type=int, default=20,
-                    help="synthetic benchmark cases (0 = reuse the calibration in eval/ignition_synthetic.json)")
+    ap.add_argument("--cases", type=int, default=DEFAULT_CASES,
+                    help="synthetic benchmark cases (0 = reuse the committed cases; summaries are recomputed)")
+    ap.add_argument("--check", action="store_true",
+                    help="recompute the first --cases cases, compare with the committed ones, keep the committed calibration")
+    ap.add_argument("--ablation", action="store_true", help="also write eval/wind_ablation.json (with --eval-only)")
     args = ap.parse_args()
 
     fire = load_fire()
@@ -422,11 +550,22 @@ def main() -> None:
     ref_t = (parse_t(inc["start_utc"]) - model.w0).total_seconds() / 3600 if inc else None
     eval_dir = Path(os.environ.get("EVAL_DIR") or fire.out_dir / "eval")
     eval_dir.mkdir(parents=True, exist_ok=True)
+    committed_path = fire.out_dir / "eval" / "ignition_synthetic.json"
+
+    # The fire's length-to-breadth cap, chosen on every footprint (the product fit). The synthetic
+    # benchmark inverts with it; the hold-out chooses its own without the first two footprints.
+    full = weighted(masks, times)
+    product, lb_table = None, None
+    if args.check:
+        model.lb = float(json.loads(committed_path.read_text())["config"]["lb_max"])
+    elif args.cases > 0 or not args.eval_only:
+        product, lb_table = select_lb(model, full, full.masks[0])
+        model.lb = product["lb_max"]
+        print(f"length-to-breadth cap {model.lb:g}: {json.dumps(lb_table)}")
 
     # Synthetic recovery benchmark on this fire's terrain, wind and observation schedule: each
     # synthetic fire is observed with the same delays after ignition as the real one was. It also
     # calibrates the posterior temperature used for every uncertainty this step reports.
-    syn_path = eval_dir / "ignition_synthetic.json"
     if args.cases > 0:
         schedule = times - (ref_t if inc else float(times[0]) - 4.0)
         schedule = schedule[schedule > 0]
@@ -438,41 +577,50 @@ def main() -> None:
             if c:
                 cases.append(c)
             i += 1
-        synthetic = {"config": {"cases": args.cases, "seed": 20250107, "model_cell_m": round(grid.pixel_m[0], 1),
-                                "holdout_first_n": HOLDOUT_N, "schedule_h_after_ignition": [round(float(s), 2) for s in schedule],
-                                "start_lags_h": [round(float(v), 2) for v in LAGS_H], "k_grid": [round(float(v), 2) for v in K_GRID],
-                                "truth_perturbation": f"per-fuel R0 x U(0.75,1.3), wind x U(0.85,1.15), k log-uniform in {list(K_TRUE_RANGE)}, ±1-cell perimeter noise"},
-                     "summary": summarize(cases), "calibration": calibrate(cases),
-                     "summary_all_observations": summarize([c["all_observations"] for c in cases]),
-                     "calibration_all_observations": calibrate([c["all_observations"] for c in cases]),
-                     "cases": cases}
-        syn_path.write_text(json.dumps(synthetic, indent=2) + "\n")
-        print("synthetic:", json.dumps(synthetic["summary"]))
-        print("synthetic, all observations:", json.dumps(synthetic["summary_all_observations"]))
+        if args.check:
+            committed = json.loads(committed_path.read_text())
+            check = check_against(cases, committed)
+            (eval_dir / "ignition_check.json").write_text(json.dumps(check, indent=2) + "\n")
+            print(f"check: {check['cases_checked']} cases, identical to the committed ones: {check['identical']}")
+            synthetic = with_summaries(committed)
+        else:
+            synthetic = with_summaries({
+                "config": {"cases": args.cases, "seed": 20250107, "model_cell_m": round(grid.pixel_m[0], 1),
+                           "holdout_first_n": HOLDOUT_N, "schedule_h_after_ignition": [round(float(s), 2) for s in schedule],
+                           "start_lags_h": [round(float(v), 2) for v in LAGS_H], "k_grid": [round(float(v), 2) for v in K_GRID],
+                           "taus_h": list(TAUS_H), "wind": f"{model.wind.rows}×{model.wind.cols} wind points",
+                           "lb_max": model.lb, "lb_selection": lb_table,
+                           "truth_perturbation": TRUTH_PERTURBATION},
+                "cases": cases})
     else:
-        synthetic = json.loads(syn_path.read_text())
+        src = eval_dir / "ignition_synthetic.json"
+        synthetic = with_summaries(json.loads((src if src.exists() else committed_path).read_text()))
+    (eval_dir / "ignition_synthetic.json").write_text(json.dumps(synthetic, indent=2) + "\n")
+    print("synthetic:", json.dumps(synthetic["summary"]))
+    print("synthetic, all observations:", json.dumps(synthetic["summary_all_observations"]))
     # Each fit gets the temperature calibrated on synthetic cases with the same observations: the
     # hold-out on cases with the first two footprints held out, the product on cases with all of them.
-    cal = synthetic.get("calibration") or {"tau_h": TAU_H}
-    cal_all = synthetic.get("calibration_all_observations") or cal
+    cal = synthetic["calibration"]
+    cal_all = synthetic["calibration_all_observations"]
     tau, tau_all = float(cal["tau_h"]), float(cal_all["tau_h"])
     for name, c in (("calibration (hold-out)", cal), ("calibration (all observations)", cal_all)):
         print(f"{name}:", json.dumps({k: c[k] for k in c if k != "by_tau"}))
 
     # Real hold-out: never sees the first two footprints or the CAL FIRE reference.
     fit, held = holdout_split(masks, times)
-    est = invert(model, fit, fit.masks[0], tau)
+    est, holdout_lb = select_lb(model, fit, fit.masks[0], tau)
     unc = uncertainty(est, grid, tau)
-    pred = sp.arrival(model.terrain, model.wind, (est["row"], est["col"]), est["t0_h"], k=est["k"])
+    pred = sp.arrival(model.terrain, model.wind, (est["row"], est["col"]), est["t0_h"], k=est["k"], lb_max=est["lb_max"])
     holdout = {
         "fit_observations": [iso_h(model, t) for t in fit.t_h],
         "held_out": [{"t": iso_h(model, t), "observed_cells": int(m.sum()),
                       "predicted_cells": int((pred <= t).sum()), "iou": round(sp.iou(pred <= t, m), 3)}
                      for m, t in held],
         "estimate": {"lonlat": [round(float(v), 6) for v in grid.to_lonlat(est["col"], est["row"])],
-                     "t": iso_h(model, est["t0_h"]), "k": round(est["k"], 3),
+                     "t": iso_h(model, est["t0_h"]), "k": round(est["k"], 3), "lb_max": est["lb_max"],
                      "r90_m": round(unc["r90_m"], 1), "t90": [iso_h(model, t) for t in unc["t90_h"]],
                      "timing": timing(est, unc), "tau_h": tau},
+        "lb_selection": holdout_lb,
         "baselines": {
             "first_fit_footprint_centroid_lonlat": [round(float(v), 6) for v in grid.to_lonlat(*centroid_baseline(fit.masks[0])[::-1])],
             "area_backcast_t": iso_h(model, area_backcast_baseline(fit, grid.cell_area_m2)),
@@ -491,21 +639,26 @@ def main() -> None:
             "backtrace_time_error_min": round((est["t0_h"] - ref_t) * 60, 1),
             "baseline_time_error_min": round((area_backcast_baseline(fit, grid.cell_area_m2) - ref_t) * 60, 1),
             "reference_within_r90": bool(d_ref <= unc["r90_m"]),
+            # The search is confined to the first fitted footprint; a reference outside it can't be reached.
+            "reference_outside_first_fit_footprint_m": round(outside_first_footprint_m(grid, fit.masks[0], (ref_r, ref_c)), 1),
             "reference_within_t90": bool(unc["t90_h"][0] <= ref_t <= unc["t90_h"][1]),
         }
     (eval_dir / "ignition_holdout.json").write_text(json.dumps(holdout, indent=2) + "\n")
     print("holdout:", json.dumps(holdout.get("errors", {})), [h["iou"] for h in holdout["held_out"]],
           json.dumps(holdout["estimate"]["timing"]))
     if args.eval_only:
+        if args.ablation:
+            (eval_dir / "wind_ablation.json").write_text(json.dumps(wind_ablation(fire, model, masks, times), indent=2) + "\n")
         return
 
-    # Product: best estimate using every observation in the fit horizon.
-    full = weighted(masks, times)
-    best = invert(model, full, full.masks[0], tau_all)
+    # Product: best estimate using every observation in the fit horizon (already inverted above,
+    # when the length-to-breadth cap was chosen); its posterior uses the all-observations temperature.
+    best = product
+    best["posterior"] = cell_posterior(best["cands"], best["losses"], model.terrain.shape, tau_all)
     unc = uncertainty(best, grid, tau_all)
     tm = timing(best, unc)
     region, n_cells, area_km2 = credible_region(best["posterior"], grid)
-    modeled = sp.arrival(model.terrain, model.wind, (best["row"], best["col"]), best["t0_h"], k=best["k"])
+    modeled = sp.arrival(model.terrain, model.wind, (best["row"], best["col"]), best["t0_h"], k=best["k"], lb_max=best["lb_max"])
     agreement = [round(sp.iou(modeled <= t, m), 3) for m, t in zip(masks, times)]
     fine = Grid.for_fire(fire)
     w1 = parse_t(aoi["window_utc"][1])
@@ -518,21 +671,27 @@ def main() -> None:
     lon, lat = grid.to_lonlat(best["col"], best["row"])
     fire.write_json("ignition.json", {
         "map": {"lon": round(float(lon), 6), "lat": round(float(lat), 6),
-                "t": iso_h(model, best["t0_h"]), "k": round(best["k"], 3)},
+                "t": iso_h(model, best["t0_h"]), "k": round(best["k"], 3), "lb_max": best["lb_max"]},
+        "lb_selection": lb_table,
         "r90_m": round(unc["r90_m"], 1), "t90": [iso_h(model, t) for t in unc["t90_h"]], "timing": tm,
         "region90": region, "region90_cells": n_cells, "region90_km2": round(area_km2, 2),
         "loss_h": round(best["loss_h"], 3), "candidates_evaluated": best["evaluated"],
         "observations_used": len(masks), "first_observation": iso_h(model, times[0]),
+        "perimeters_total": len(fire.read_json("perimeters.geojson")["features"]), "fit_horizon_h": FIT_HORIZON_H,
+        "wind": f"{model.wind.rows}×{model.wind.cols} HRRR points" if model.wind.rows * model.wind.cols > 1 else "single point",
         "modeled_vs_observed_iou": agreement,
         "calibration": {k: cal_all[k] for k in cal_all if k != "by_tau"},
         "holdout": {k: holdout[k] for k in ("held_out", "errors") if k in holdout},
+        "reference_outside_first_footprint_m": (round(outside_first_footprint_m(grid, masks[0], grid.to_px(*inc["reported_location"])[::-1]), 1)
+                                                if inc else None),
         "synthetic_summary": synthetic.get("summary_all_observations", synthetic["summary"]),
         "synthetic_summary_holdout": synthetic["summary"],
         "model_card": "Elliptical rate-of-spread model with per-fuel base rates (ESA WorldCover classes), "
-                      "power-law wind and tan²-slope terms, single-point ERA5 wind; no spotting, crown fire, "
-                      f"suppression or spatial wind. Relative posterior over evaluated candidates, tau = {tau_all:g} h "
+                      "power-law wind and tan²-slope terms, HRRR 3 km wind field interpolated per cell; no spotting, "
+                      f"crown fire or suppression. Relative posterior over evaluated candidates, tau = {tau_all:g} h "
                       "(calibrated on this fire's synthetic cases).",
     })
+    (eval_dir / "wind_ablation.json").write_text(json.dumps(wind_ablation(fire, model, masks, times), indent=2) + "\n")
     for layer, notes in (("Ignition probability", f"Back-trace over {best['evaluated']:,} candidates; 90% radius {unc['r90_m']:.0f} m."),
                          ("Fire spread (modeled)", f"Forward run from the estimate; IoU vs observed footprints {agreement}.")):
         add_source(fire, layer=layer, source="Sentinel Ember back-trace (pipeline step 11)", url="", status="MODELED", notes=notes)

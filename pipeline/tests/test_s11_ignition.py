@@ -50,11 +50,15 @@ def test_uncertainty_is_calibrated_and_gates_the_timeline(fire):
 
 
 def test_calibrate_picks_the_smallest_covering_temperature():
-    cases = [{"coverage_by_tau": {str(t): {"r90_m": 100 * t, "t90_width_h": t, "distance": t >= 0.6, "time": t >= 1.2}
-                                  for t in s11.TAUS_H}} for _ in range(10)]
+    cases = [{"coverage_by_tau": {str(t): {"r90_m": 100 * t, "t90_width_h": t * (1 + i), "distance": t >= 0.6, "time": t >= 1.2}
+                                  for t in s11.TAUS_H},
+              "estimate": {"k": 2.0}, "backtrace_time_err_min": 10.0 * i} for i in range(10)]
     cal = s11.calibrate(cases)
     assert cal["tau_h"] == 1.2 and cal["reached_on_calibration_half"]
     assert cal["test_coverage"] == {"distance": 1.0, "time": 1.0}
+    # Selective metrics on the odd (unseen) cases: widths 1.2 × (2, 4, 6, 8, 10) h → cases 1 and 3 are within 6 h.
+    shown = cal["test_start_time_shown"]
+    assert shown["cases"] == 2 and shown["of"] == 5 and shown["median_time_err_min"] == 20.0
 
 
 def test_weighted_quantile():
@@ -62,3 +66,33 @@ def test_weighted_quantile():
     assert s11.weighted_quantile(v, w, 0.5) == 1.0
     assert s11.weighted_quantile(v, w, 0.6) == 2.0
     assert s11.weighted_quantile(v, w, 0.95) == 3.0
+
+
+def test_length_to_breadth_cap_is_the_lowest_loss(fire):
+    ign = fire.read_json("ignition.json")
+    table = ign["lb_selection"]
+    assert sorted(r["lb_max"] for r in table) == sorted(s11.LB_CHOICES)
+    assert ign["map"]["lb_max"] == min(table, key=lambda r: r["loss_h"])["lb_max"]
+    # The hold-out chooses its own cap, without the held-out footprints.
+    hold = fire.read_json("eval/ignition_holdout.json")
+    assert hold["estimate"]["lb_max"] == min(hold["lb_selection"], key=lambda r: r["loss_h"])["lb_max"]
+    syn = fire.read_json("eval/ignition_synthetic.json")
+    assert syn["config"]["lb_max"] == ign["map"]["lb_max"]
+
+
+def test_wind_ablation_is_recorded(fire):
+    ab = fire.read_json("eval/wind_ablation.json")["variants"]
+    assert {"field", "uniform", "era5"} <= ab.keys()
+    n_obs = fire.read_json("ignition.json")["observations_used"]
+    for v in ab.values():
+        assert 0 <= v["mean_iou"] <= 1 and len(v["iou_by_observation"]) == n_obs
+
+
+def test_check_reports_identical_and_different_cases():
+    def case(i, d):
+        scores = {"backtrace_dist_m": d, "backtrace_time_err_min": 10.0, "baseline_dist_m": 500.0, "baseline_time_err_min": 60.0}
+        return {"case": i, "estimate": {"row": 1}, **scores, "all_observations": dict(scores)}
+    committed = {"cases": [case(0, 100.0), case(1, 200.0)]}
+    assert s11.check_against([case(0, 100.0), case(1, 200.0)], committed)["identical"]
+    diff = s11.check_against([case(0, 100.0), case(1, 250.0)], committed)
+    assert not diff["identical"] and diff["cases"][1]["max_abs_diff"] == 50.0

@@ -1,0 +1,85 @@
+{
+  "note": "Full fit on every footprint in the fit horizon; IoU = modeled vs observed footprint at each observation time. field = HRRR 3 km grid, interpolated per cell; uniform = HRRR domain mean; era5 = the single ERA5 point. All at this fire's length-to-breadth cap (1.5) except era5_lb8, which is the pipeline before HRRR.",
+  "variants": {
+    "field": {
+      "wind": "field",
+      "lb_max": 1.5,
+      "k": 76.8,
+      "k_at_ceiling": true,
+      "loss_h": 5.054,
+      "t": "2025-01-08T19:17:41Z",
+      "lonlat": [
+        -118.527805,
+        34.070072
+      ],
+      "iou_by_observation": [
+        0.431,
+        0.585,
+        0.287,
+        0.292,
+        0.304
+      ],
+      "mean_iou": 0.38
+    },
+    "uniform": {
+      "wind": "uniform",
+      "lb_max": 1.5,
+      "k": 76.8,
+      "k_at_ceiling": true,
+      "loss_h": 5.069,
+      "t": "2025-01-08T19:31:45Z",
+      "lonlat": [
+        -118.531926,
+        34.082023
+      ],
+      "iou_by_observation": [
+        0.324,
+        0.573,
+        0.287,
+        0.292,
+        0.304
+      ],
+      "mean_iou": 0.356
+    },
+    "era5": {
+      "wind": "era5",
+      "lb_max": 1.5,
+      "k": 76.8,
+      "k_at_ceiling": true,
+      "loss_h": 5.124,
+      "t": "2025-01-08T18:34:03Z",
+      "lonlat": [
+        -118.529865,
+        34.07434
+      ],
+      "iou_by_observation": [
+        0.498,
+        0.593,
+        0.287,
+        0.292,
+        0.304
+      ],
+      "mean_iou": 0.395
+    },
+    "era5_lb8": {
+      "wind": "era5",
+      "lb_max": 8.0,
+      "k": 76.8,
+      "k_at_ceiling": true,
+      "loss_h": 5.255,
+      "t": "2025-01-08T17:19:03Z",
+      "lonlat": [
+        -118.531926,
+        34.082023
+      ],
+      "iou_by_observation": [
+        0.492,
+        0.647,
+        0.287,
+        0.292,
+        0.304
+      ],
+      "mean_iou": 0.404
+    }
+  }
+}

@@ -20,25 +20,58 @@
   ],
   "estimate": {
     "lonlat": [
-      -118.56592,
-      34.052999
+      -118.547378,
+      34.071779
     ],
-    "t": "2025-01-09T17:31:20Z",
-    "k": 45.255,
-    "r90_m": 1108.0,
+    "t": "2025-01-09T10:27:04Z",
+    "k": 22.627,
+    "lb_max": 8.0,
+    "r90_m": 7919.8,
     "t90": [
-      "2025-01-09T13:17:47Z",
-      "2025-01-09T19:38:47Z"
+      "2025-01-08T01:38:29Z",
+      "2025-01-09T22:11:21Z"
     ],
     "timing": {
       "identifiable": false,
       "reasons": [
-        "90% start-time interval is 6.4 h wide (limit 6 h)"
+        "90% start-time interval is 44.5 h wide (limit 6 h)"
       ],
-      "interval90_width_h": 6.35
+      "interval90_width_h": 44.55
     },
-    "tau_h": 0.15
+    "tau_h": 38.4
   },
+  "lb_selection": [
+    {
+      "lb_max": 1.0,
+      "loss_h": 2.5057,
+      "k": 32.0
+    },
+    {
+      "lb_max": 1.25,
+      "loss_h": 2.5205,
+      "k": 76.8
+    },
+    {
+      "lb_max": 1.5,
+      "loss_h": 2.499,
+      "k": 26.667
+    },
+    {
+      "lb_max": 2.0,
+      "loss_h": 2.3904,
+      "k": 22.627
+    },
+    {
+      "lb_max": 3.0,
+      "loss_h": 2.3528,
+      "k": 22.627
+    },
+    {
+      "lb_max": 8.0,
+      "loss_h": 2.3333,
+      "k": 22.627
+    }
+  ],
   "baselines": {
     "first_fit_footprint_centroid_lonlat": [
       -118.582434,
@@ -57,11 +90,12 @@
     "note": "Reported incident location, not an investigated origin."
   },
   "errors": {
-    "backtrace_distance_m": 2750.3,
+    "backtrace_distance_m": 314.7,
     "baseline_distance_m": 3556.9,
-    "backtrace_time_error_min": 2821.3,
+    "backtrace_time_error_min": 2397.1,
     "baseline_time_error_min": -42476.1,
-    "reference_within_r90": false,
+    "reference_within_r90": true,
+    "reference_outside_first_fit_footprint_m": 0.0,
     "reference_within_t90": false
   }
 }

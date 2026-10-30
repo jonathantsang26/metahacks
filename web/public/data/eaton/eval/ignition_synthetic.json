@@ -1,6 +1,6 @@
 {
   "config": {
-    "cases": 20,
+    "cases": 30,
     "seed": 20250107,
     "model_cell_m": 94.8,
     "holdout_first_n": 2,
@@ -31,6 +31,8 @@
       90.51
     ],
     "k_grid": [
+      0.25,
+      0.35,
       0.5,
       0.71,
       1.0,
@@ -47,111 +49,185 @@
       45.25,
       64.0
     ],
-    "truth_perturbation": "per-fuel R0 x U(0.75,1.3), wind x U(0.85,1.15), k log-uniform in [4.0, 16.0], \u00b11-cell perimeter noise"
+    "taus_h": [
+      0.05,
+      0.1,
+      0.15,
+      0.3,
+      0.6,
+      1.2,
+      2.4,
+      4.8,
+      9.6,
+      19.2,
+      38.4
+    ],
+    "wind": "4\u00d76 wind points",
+    "lb_max": 1.0,
+    "lb_selection": [
+      {
+        "lb_max": 1.0,
+        "loss_h": 2.0218,
+        "k": 0.424
+      },
+      {
+        "lb_max": 1.25,
+        "loss_h": 2.1071,
+        "k": 1.2
+      },
+      {
+        "lb_max": 1.5,
+        "loss_h": 2.2846,
+        "k": 1.667
+      },
+      {
+        "lb_max": 2.0,
+        "loss_h": 2.6429,
+        "k": 3.333
+      },
+      {
+        "lb_max": 3.0,
+        "loss_h": 2.9758,
+        "k": 6.667
+      },
+      {
+        "lb_max": 8.0,
+        "loss_h": 3.6881,
+        "k": 76.8
+      }
+    ],
+    "truth_perturbation": "per-fuel R0 x U(0.75,1.3); smooth patchy fuel field, log-std 0.25, ~4 cells; wind speed x U(0.85,1.15), direction \u00b115\u00b0, timing \u00b11.5 h; k log-uniform in [0.25, 4.0]; \u00b11-cell perimeter noise"
   },
   "summary": {
-    "n": 20,
+    "n": 30,
     "distance_m": {
       "backtrace": {
-        "median": 134.1,
-        "p90": 448.1
+        "median": 924.0,
+        "p90": 2225.3
       },
       "baseline_first_footprint_centroid": {
-        "median": 1805.7,
-        "p90": 3621.4
+        "median": 1406.3,
+        "p90": 4254.3
       }
     },
     "start_time_error_min": {
       "backtrace": {
-        "median": 108.0,
-        "p90": 394.0
+        "median": 186.2,
+        "p90": 700.2
       },
       "baseline_area_backcast": {
-        "median": 652.7,
-        "p90": 3118.5
+        "median": 3132.0,
+        "p90": 47287.3
       }
     },
     "backtrace_beats_baseline": {
-      "distance": 1.0,
-      "time": 1.0
+      "distance": 0.67,
+      "time": 0.97
     }
   },
   "calibration": {
-    "tau_h": 9.6,
+    "tau_h": 1.2,
     "target": 0.9,
     "reached_on_calibration_half": true,
-    "calibration_cases": 10,
-    "test_cases": 10,
-    "test_coverage": {
-      "distance": 1.0,
-      "time": 1.0
+    "test_start_time_shown": {
+      "cases": 2,
+      "of": 15,
+      "median_time_err_min": 234.8,
+      "max_time_err_min": 405.6,
+      "interval_contains_truth": 0.5
     },
-    "median_test_r90_m": 2571.2,
-    "median_test_t90_width_h": 21.92,
+    "calibration_cases": 15,
+    "test_cases": 15,
+    "test_coverage": {
+      "distance": 0.93,
+      "time": 0.8
+    },
+    "median_test_r90_m": 2220.2,
+    "median_test_t90_width_h": 12.14,
     "by_tau": {
-      "0.15": {
+      "0.05": {
         "calibration": {
-          "distance": 1.0,
-          "time": 0.7
+          "distance": 0.6,
+          "time": 0.6
         },
         "test": {
-          "distance": 1.0,
-          "time": 0.9
+          "distance": 0.53,
+          "time": 0.6
+        }
+      },
+      "0.1": {
+        "calibration": {
+          "distance": 0.67,
+          "time": 0.6
+        },
+        "test": {
+          "distance": 0.6,
+          "time": 0.73
+        }
+      },
+      "0.15": {
+        "calibration": {
+          "distance": 0.73,
+          "time": 0.73
+        },
+        "test": {
+          "distance": 0.6,
+          "time": 0.73
         }
       },
       "0.3": {
         "calibration": {
-          "distance": 1.0,
-          "time": 0.7
+          "distance": 0.8,
+          "time": 0.8
         },
         "test": {
-          "distance": 1.0,
-          "time": 1.0
+          "distance": 0.73,
+          "time": 0.8
         }
       },
       "0.6": {
         "calibration": {
-          "distance": 1.0,
-          "time": 0.8
+          "distance": 0.8,
+          "time": 0.87
         },
         "test": {
-          "distance": 1.0,
-          "time": 1.0
+          "distance": 0.73,
+          "time": 0.8
         }
       },
       "1.2": {
         "calibration": {
-          "distance": 1.0,
-          "time": 0.8
+          "distance": 0.93,
+          "time": 0.93
         },
         "test": {
-          "distance": 1.0,
-          "time": 1.0
+          "distance": 0.93,
+          "time": 0.8
         }
       },
       "2.4": {
         "calibration": {
-          "distance": 1.0,
-          "time": 0.8
+          "distance": 0.93,
+          "time": 0.93
         },
         "test": {
           "distance": 1.0,
-          "time": 1.0
+          "time": 0.87
         }
       },
       "4.8": {
         "calibration": {
-          "distance": 1.0,
-          "time": 0.8
+          "distance": 0.93,
+          "time": 1.0
         },
         "test": {
           "distance": 1.0,
-          "time": 1.0
+          "time": 0.93
         }
       },
       "9.6": {
         "calibration": {
-          "distance": 1.0,
+          "distance": 0.93,
           "time": 1.0
         },
         "test": {
@@ -161,7 +237,7 @@
       },
       "19.2": {
         "calibration": {
-          "distance": 1.0,
+          "distance": 0.93,
           "time": 1.0
         },
         "test": {
@@ -171,7 +247,166 @@
       },
       "38.4": {
         "calibration": {
+          "distance": 0.93,
+          "time": 1.0
+        },
+        "test": {
           "distance": 1.0,
+          "time": 1.0
+        }
+      }
+    }
+  },
+  "summary_all_observations": {
+    "n": 30,
+    "distance_m": {
+      "backtrace": {
+        "median": 588.1,
+        "p90": 1578.1
+      },
+      "baseline_first_footprint_centroid": {
+        "median": 449.4,
+        "p90": 3144.4
+      }
+    },
+    "start_time_error_min": {
+      "backtrace": {
+        "median": 78.4,
+        "p90": 495.8
+      },
+      "baseline_area_backcast": {
+        "median": 1295.2,
+        "p90": 7791.7
+      }
+    },
+    "backtrace_beats_baseline": {
+      "distance": 0.57,
+      "time": 0.93
+    }
+  },
+  "calibration_all_observations": {
+    "tau_h": 2.4,
+    "target": 0.9,
+    "reached_on_calibration_half": true,
+    "test_start_time_shown": {
+      "cases": 0,
+      "of": 15,
+      "median_time_err_min": null,
+      "max_time_err_min": null,
+      "interval_contains_truth": null
+    },
+    "calibration_cases": 15,
+    "test_cases": 15,
+    "test_coverage": {
+      "distance": 0.93,
+      "time": 1.0
+    },
+    "median_test_r90_m": 1955.1,
+    "median_test_t90_width_h": 10.61,
+    "by_tau": {
+      "0.05": {
+        "calibration": {
+          "distance": 0.8,
+          "time": 0.73
+        },
+        "test": {
+          "distance": 0.6,
+          "time": 0.6
+        }
+      },
+      "0.1": {
+        "calibration": {
+          "distance": 0.87,
+          "time": 0.73
+        },
+        "test": {
+          "distance": 0.6,
+          "time": 0.73
+        }
+      },
+      "0.15": {
+        "calibration": {
+          "distance": 0.87,
+          "time": 0.8
+        },
+        "test": {
+          "distance": 0.6,
+          "time": 0.73
+        }
+      },
+      "0.3": {
+        "calibration": {
+          "distance": 0.87,
+          "time": 0.8
+        },
+        "test": {
+          "distance": 0.67,
+          "time": 0.87
+        }
+      },
+      "0.6": {
+        "calibration": {
+          "distance": 0.87,
+          "time": 0.87
+        },
+        "test": {
+          "distance": 0.73,
+          "time": 0.87
+        }
+      },
+      "1.2": {
+        "calibration": {
+          "distance": 0.87,
+          "time": 0.93
+        },
+        "test": {
+          "distance": 0.87,
+          "time": 1.0
+        }
+      },
+      "2.4": {
+        "calibration": {
+          "distance": 0.93,
+          "time": 1.0
+        },
+        "test": {
+          "distance": 0.93,
+          "time": 1.0
+        }
+      },
+      "4.8": {
+        "calibration": {
+          "distance": 0.93,
+          "time": 1.0
+        },
+        "test": {
+          "distance": 0.93,
+          "time": 1.0
+        }
+      },
+      "9.6": {
+        "calibration": {
+          "distance": 0.93,
+          "time": 1.0
+        },
+        "test": {
+          "distance": 0.93,
+          "time": 1.0
+        }
+      },
+      "19.2": {
+        "calibration": {
+          "distance": 0.93,
+          "time": 1.0
+        },
+        "test": {
+          "distance": 0.93,
+          "time": 1.0
+        }
+      },
+      "38.4": {
+        "calibration": {
+          "distance": 0.93,
           "time": 1.0
         },
         "test": {
@@ -188,1517 +423,5097 @@
         "row": 65,
         "col": 71,
         "t0_h": 5.573,
-        "k": 13.369
+        "k": 2.793,
+        "lb_max": 1.072
       },
       "estimate": {
-        "row": 58,
-        "col": 78,
-        "t0_h": 9.475,
-        "k": 13.576
+        "row": 72,
+        "col": 68,
+        "t0_h": 7.246,
+        "k": 1.667
       },
-      "backtrace_dist_m": 938.8,
-      "baseline_dist_m": 1472.8,
-      "backtrace_time_err_min": 234.1,
-      "baseline_time_err_min": 3034.9,
+      "backtrace_dist_m": 722.2,
+      "baseline_dist_m": 2257.2,
+      "backtrace_time_err_min": 100.4,
+      "baseline_time_err_min": 26875.4,
       "first_fit_obs_after_h": 20.87,
       "coverage_by_tau": {
-        "0.15": {
-          "r90_m": 1609.4,
-          "t90_width_h": 12.09,
+        "0.05": {
+          "r90_m": 1380.9,
+          "t90_width_h": 2.4,
           "distance": true,
-          "time": true
+          "time": false
+        },
+        "0.1": {
+          "r90_m": 2016.2,
+          "t90_width_h": 4.0,
+          "distance": true,
+          "time": false
+        },
+        "0.15": {
+          "r90_m": 2376.4,
+          "t90_width_h": 4.8,
+          "distance": true,
+          "time": false
         },
         "0.3": {
-          "r90_m": 1717.7,
-          "t90_width_h": 15.15,
+          "r90_m": 2655.7,
+          "t90_width_h": 7.35,
           "distance": true,
-          "time": true
+          "time": false
         },
         "0.6": {
-          "r90_m": 1799.5,
-          "t90_width_h": 15.15,
+          "r90_m": 2844.9,
+          "t90_width_h": 10.62,
           "distance": true,
-          "time": true
+          "time": false
         },
         "1.2": {
-          "r90_m": 2016.2,
-          "t90_width_h": 17.08,
+          "r90_m": 3263.3,
+          "t90_width_h": 17.5,
           "distance": true,
           "time": true
         },
         "2.4": {
-          "r90_m": 2695.6,
-          "t90_width_h": 25.46,
+          "r90_m": 6739.4,
+          "t90_width_h": 21.63,
           "distance": true,
           "time": true
         },
         "4.8": {
-          "r90_m": 4934.5,
-          "t90_width_h": 28.0,
+          "r90_m": 7771.2,
+          "t90_width_h": 21.92,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 6108.2,
-          "t90_width_h": 31.29,
+          "r90_m": 8537.9,
+          "t90_width_h": 25.31,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 6671.5,
+          "r90_m": 8913.7,
           "t90_width_h": 31.29,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 6895.9,
+          "r90_m": 9049.8,
           "t90_width_h": 31.29,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 75,
+          "col": 74,
+          "t0_h": 5.127,
+          "k": 1.414
+        },
+        "backtrace_dist_m": 990.0,
+        "baseline_dist_m": 370.3,
+        "backtrace_time_err_min": 26.8,
+        "baseline_time_err_min": 3686.1,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 1409.8,
+            "t90_width_h": 2.66,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 1578.4,
+            "t90_width_h": 2.94,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 1656.1,
+            "t90_width_h": 3.39,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 1740.8,
+            "t90_width_h": 3.76,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 1811.8,
+            "t90_width_h": 4.04,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 1955.0,
+            "t90_width_h": 4.29,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 3071.8,
+            "t90_width_h": 6.07,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 4294.3,
+            "t90_width_h": 7.29,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 4845.0,
+            "t90_width_h": 15.29,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 5128.4,
+            "t90_width_h": 21.92,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 5160.0,
+            "t90_width_h": 21.92,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 1,
       "truth": {
-        "row": 58,
-        "col": 70,
-        "t0_h": 5.619,
-        "k": 8.474
+        "row": 48,
+        "col": 165,
+        "t0_h": 6.024,
+        "k": 0.909,
+        "lb_max": 1.082
       },
       "estimate": {
-        "row": 59,
-        "col": 71,
-        "t0_h": 5.966,
-        "k": 9.6
+        "row": 54,
+        "col": 158,
+        "t0_h": 5.491,
+        "k": 0.707
       },
-      "backtrace_dist_m": 134.1,
-      "baseline_dist_m": 1620.6,
-      "backtrace_time_err_min": 20.8,
-      "baseline_time_err_min": 649.8,
+      "backtrace_dist_m": 874.3,
+      "baseline_dist_m": 1404.8,
+      "backtrace_time_err_min": 32.0,
+      "baseline_time_err_min": 1857.9,
       "first_fit_obs_after_h": 8.27,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 607.2,
+          "t90_width_h": 2.4,
+          "distance": false,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 758.8,
+          "t90_width_h": 3.54,
+          "distance": false,
+          "time": true
+        },
         "0.15": {
-          "r90_m": 764.6,
-          "t90_width_h": 5.71,
-          "distance": true,
+          "r90_m": 815.8,
+          "t90_width_h": 3.83,
+          "distance": false,
           "time": true
         },
         "0.3": {
-          "r90_m": 815.8,
-          "t90_width_h": 7.35,
+          "r90_m": 899.8,
+          "t90_width_h": 4.51,
           "distance": true,
           "time": true
         },
         "0.6": {
-          "r90_m": 874.3,
-          "t90_width_h": 8.2,
+          "r90_m": 967.2,
+          "t90_width_h": 5.47,
           "distance": true,
           "time": true
         },
         "1.2": {
-          "r90_m": 899.6,
-          "t90_width_h": 9.33,
+          "r90_m": 1047.6,
+          "t90_width_h": 6.04,
           "distance": true,
           "time": true
         },
         "2.4": {
-          "r90_m": 1025.8,
-          "t90_width_h": 11.31,
+          "r90_m": 1799.5,
+          "t90_width_h": 9.4,
           "distance": true,
           "time": true
         },
         "4.8": {
-          "r90_m": 1680.3,
-          "t90_width_h": 13.71,
+          "r90_m": 2481.8,
+          "t90_width_h": 9.69,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 2372.5,
+          "r90_m": 2764.6,
           "t90_width_h": 15.29,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 2712.4,
-          "t90_width_h": 21.92,
+          "r90_m": 2953.3,
+          "t90_width_h": 22.13,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 2879.3,
-          "t90_width_h": 21.92,
+          "r90_m": 2998.8,
+          "t90_width_h": 22.13,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 51,
+          "col": 159,
+          "t0_h": 6.328,
+          "k": 0.707
+        },
+        "backtrace_dist_m": 636.2,
+        "baseline_dist_m": 661.6,
+        "backtrace_time_err_min": 18.2,
+        "baseline_time_err_min": 913.5,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 474.1,
+            "t90_width_h": 2.44,
+            "distance": false,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 510.7,
+            "t90_width_h": 2.44,
+            "distance": false,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 553.0,
+            "t90_width_h": 2.69,
+            "distance": false,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 607.2,
+            "t90_width_h": 3.22,
+            "distance": false,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 670.7,
+            "t90_width_h": 3.76,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 1137.9,
+            "t90_width_h": 6.07,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 1422.6,
+            "t90_width_h": 7.29,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 1450.8,
+            "t90_width_h": 10.81,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 1532.0,
+            "t90_width_h": 15.5,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 1532.2,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 1532.2,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 2,
       "truth": {
-        "row": 40,
-        "col": 128,
-        "t0_h": 7.949,
-        "k": 14.596
+        "row": 78,
+        "col": 130,
+        "t0_h": 3.502,
+        "k": 2.063,
+        "lb_max": 1.0
       },
       "estimate": {
-        "row": 36,
-        "col": 128,
-        "t0_h": -24.0,
-        "k": 4.714
+        "row": 66,
+        "col": 126,
+        "t0_h": -4.232,
+        "k": 1.2
       },
-      "backtrace_dist_m": 379.3,
-      "baseline_dist_m": 3698.0,
-      "backtrace_time_err_min": 1916.9,
-      "baseline_time_err_min": 6562.3,
-      "first_fit_obs_after_h": 20.87,
+      "backtrace_dist_m": 1199.5,
+      "baseline_dist_m": 3561.0,
+      "backtrace_time_err_min": 464.0,
+      "baseline_time_err_min": 17299.2,
+      "first_fit_obs_after_h": 8.27,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 2819.4,
+          "t90_width_h": 7.51,
+          "distance": true,
+          "time": false
+        },
+        "0.1": {
+          "r90_m": 3224.2,
+          "t90_width_h": 9.11,
+          "distance": true,
+          "time": false
+        },
         "0.15": {
-          "r90_m": 1072.9,
-          "t90_width_h": 25.62,
+          "r90_m": 3312.2,
+          "t90_width_h": 9.91,
           "distance": true,
           "time": false
         },
         "0.3": {
-          "r90_m": 1199.5,
-          "t90_width_h": 30.19,
+          "r90_m": 3392.7,
+          "t90_width_h": 10.71,
           "distance": true,
           "time": false
         },
         "0.6": {
-          "r90_m": 1341.0,
-          "t90_width_h": 31.83,
+          "r90_m": 3434.7,
+          "t90_width_h": 11.2,
           "distance": true,
           "time": true
         },
         "1.2": {
-          "r90_m": 1529.1,
-          "t90_width_h": 45.4,
+          "r90_m": 3598.4,
+          "t90_width_h": 14.34,
           "distance": true,
           "time": true
         },
         "2.4": {
-          "r90_m": 4473.5,
-          "t90_width_h": 47.3,
+          "r90_m": 5153.1,
+          "t90_width_h": 19.0,
           "distance": true,
           "time": true
         },
         "4.8": {
-          "r90_m": 6141.0,
-          "t90_width_h": 48.3,
+          "r90_m": 6487.8,
+          "t90_width_h": 19.29,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 7221.7,
-          "t90_width_h": 48.59,
+          "r90_m": 7926.0,
+          "t90_width_h": 20.09,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 8069.0,
-          "t90_width_h": 46.83,
-          "distance": true,
-          "time": true
-        },
-        "38.4": {
-          "r90_m": 8238.8,
-          "t90_width_h": 46.83,
-          "distance": true,
-          "time": true
-        }
-      }
-    },
-    {
-      "case": 3,
-      "truth": {
-        "row": 92,
-        "col": 56,
-        "t0_h": 2.776,
-        "k": 9.213
-      },
-      "estimate": {
-        "row": 93,
-        "col": 56,
-        "t0_h": 3.123,
-        "k": 9.6
-      },
-      "backtrace_dist_m": 94.8,
-      "baseline_dist_m": 1739.0,
-      "backtrace_time_err_min": 20.8,
-      "baseline_time_err_min": 687.5,
-      "first_fit_obs_after_h": 8.27,
-      "coverage_by_tau": {
-        "0.15": {
-          "r90_m": 379.3,
-          "t90_width_h": 6.85,
-          "distance": true,
-          "time": true
-        },
-        "0.3": {
-          "r90_m": 424.1,
-          "t90_width_h": 7.92,
-          "distance": true,
-          "time": true
-        },
-        "0.6": {
-          "r90_m": 474.1,
-          "t90_width_h": 9.05,
-          "distance": true,
-          "time": true
-        },
-        "1.2": {
-          "r90_m": 552.9,
-          "t90_width_h": 11.31,
-          "distance": true,
-          "time": true
-        },
-        "2.4": {
-          "r90_m": 1532.0,
-          "t90_width_h": 13.71,
-          "distance": true,
-          "time": true
-        },
-        "4.8": {
-          "r90_m": 2213.9,
+          "r90_m": 8705.0,
           "t90_width_h": 21.92,
           "distance": true,
           "time": true
         },
-        "9.6": {
-          "r90_m": 2622.9,
-          "t90_width_h": 22.13,
-          "distance": true,
-          "time": true
-        },
-        "19.2": {
-          "r90_m": 2814.7,
-          "t90_width_h": 31.5,
-          "distance": true,
-          "time": true
-        },
         "38.4": {
-          "r90_m": 2908.9,
-          "t90_width_h": 31.5,
+          "r90_m": 8997.1,
+          "t90_width_h": 21.92,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 71,
+          "col": 120,
+          "t0_h": 0.386,
+          "k": 1.2
+        },
+        "backtrace_dist_m": 1157.6,
+        "baseline_dist_m": 2179.9,
+        "backtrace_time_err_min": 186.9,
+        "baseline_time_err_min": 4912.6,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 1060.2,
+            "t90_width_h": 5.37,
+            "distance": false,
+            "time": false
+          },
+          "0.1": {
+            "r90_m": 1207.0,
+            "t90_width_h": 7.07,
+            "distance": true,
+            "time": false
+          },
+          "0.15": {
+            "r90_m": 1265.1,
+            "t90_width_h": 7.92,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 1290.0,
+            "t90_width_h": 8.77,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 1347.8,
+            "t90_width_h": 8.77,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 1481.3,
+            "t90_width_h": 9.62,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 3106.8,
+            "t90_width_h": 12.58,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 4359.3,
+            "t90_width_h": 13.44,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 4932.2,
+            "t90_width_h": 14.0,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 5379.4,
+            "t90_width_h": 15.29,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 5550.6,
+            "t90_width_h": 21.92,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 4,
       "truth": {
-        "row": 91,
-        "col": 96,
-        "t0_h": 7.997,
-        "k": 5.41
+        "row": 73,
+        "col": 61,
+        "t0_h": 3.709,
+        "k": 3.075,
+        "lb_max": 1.0
       },
       "estimate": {
-        "row": 91,
-        "col": 96,
-        "t0_h": 7.463,
-        "k": 5.657
+        "row": 92,
+        "col": 66,
+        "t0_h": 22.832,
+        "k": 76.8
       },
-      "backtrace_dist_m": 0.0,
-      "baseline_dist_m": 1071.5,
-      "backtrace_time_err_min": 32.0,
-      "baseline_time_err_min": 237.4,
-      "first_fit_obs_after_h": 8.27,
+      "backtrace_dist_m": 1863.0,
+      "baseline_dist_m": 3071.4,
+      "backtrace_time_err_min": 1147.4,
+      "baseline_time_err_min": 37834.0,
+      "first_fit_obs_after_h": 20.87,
       "coverage_by_tau": {
-        "0.15": {
-          "r90_m": 284.5,
-          "t90_width_h": 7.11,
+        "0.05": {
+          "r90_m": 2682.6,
+          "t90_width_h": 2.08,
           "distance": true,
-          "time": true
+          "time": false
+        },
+        "0.1": {
+          "r90_m": 2889.2,
+          "t90_width_h": 2.18,
+          "distance": true,
+          "time": false
+        },
+        "0.15": {
+          "r90_m": 2999.0,
+          "t90_width_h": 2.58,
+          "distance": true,
+          "time": false
         },
         "0.3": {
-          "r90_m": 299.9,
-          "t90_width_h": 8.8,
+          "r90_m": 3139.8,
+          "t90_width_h": 2.76,
           "distance": true,
-          "time": true
+          "time": false
         },
         "0.6": {
-          "r90_m": 341.9,
-          "t90_width_h": 11.2,
+          "r90_m": 4018.7,
+          "t90_width_h": 3.08,
           "distance": true,
-          "time": true
+          "time": false
         },
         "1.2": {
-          "r90_m": 402.3,
-          "t90_width_h": 12.8,
+          "r90_m": 6297.2,
+          "t90_width_h": 3.5,
           "distance": true,
-          "time": true
+          "time": false
         },
         "2.4": {
-          "r90_m": 1025.7,
-          "t90_width_h": 18.2,
+          "r90_m": 7857.4,
+          "t90_width_h": 5.16,
           "distance": true,
-          "time": true
+          "time": false
         },
         "4.8": {
-          "r90_m": 1543.8,
-          "t90_width_h": 19.29,
+          "r90_m": 8824.3,
+          "t90_width_h": 10.81,
           "distance": true,
-          "time": true
+          "time": false
         },
         "9.6": {
-          "r90_m": 1709.6,
-          "t90_width_h": 21.92,
-          "distance": true,
-          "time": true
-        },
-        "19.2": {
-          "r90_m": 1811.6,
+          "r90_m": 9513.0,
           "t90_width_h": 22.13,
           "distance": true,
           "time": true
         },
-        "38.4": {
-          "r90_m": 1821.7,
+        "19.2": {
+          "r90_m": 9858.8,
           "t90_width_h": 31.5,
           "distance": true,
           "time": true
+        },
+        "38.4": {
+          "r90_m": 10052.5,
+          "t90_width_h": 31.5,
+          "distance": true,
+          "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 74,
+          "col": 54,
+          "t0_h": -5.064,
+          "k": 1.414
+        },
+        "backtrace_dist_m": 670.7,
+        "baseline_dist_m": 3037.1,
+        "backtrace_time_err_min": 526.4,
+        "baseline_time_err_min": 11934.0,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 1106.0,
+            "t90_width_h": 23.18,
+            "distance": true,
+            "time": false
+          },
+          "0.1": {
+            "r90_m": 1444.6,
+            "t90_width_h": 24.32,
+            "distance": true,
+            "time": false
+          },
+          "0.15": {
+            "r90_m": 1564.2,
+            "t90_width_h": 24.89,
+            "distance": true,
+            "time": false
+          },
+          "0.3": {
+            "r90_m": 1877.6,
+            "t90_width_h": 25.46,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 3528.2,
+            "t90_width_h": 28.57,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 6262.6,
+            "t90_width_h": 29.28,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 7571.9,
+            "t90_width_h": 29.28,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 8228.8,
+            "t90_width_h": 29.28,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 8687.3,
+            "t90_width_h": 30.12,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 8885.0,
+            "t90_width_h": 30.96,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 9265.4,
+            "t90_width_h": 31.17,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 5,
       "truth": {
-        "row": 83,
-        "col": 85,
-        "t0_h": 7.646,
-        "k": 10.108
+        "row": 40,
+        "col": 45,
+        "t0_h": 6.351,
+        "k": 0.389,
+        "lb_max": 1.0
       },
       "estimate": {
-        "row": 82,
-        "col": 87,
-        "t0_h": 7.993,
-        "k": 9.6
+        "row": 48,
+        "col": 40,
+        "t0_h": 9.624,
+        "k": 0.417
       },
-      "backtrace_dist_m": 212.1,
-      "baseline_dist_m": 850.0,
-      "backtrace_time_err_min": 20.8,
-      "baseline_time_err_min": 293.4,
-      "first_fit_obs_after_h": 8.27,
+      "backtrace_dist_m": 894.6,
+      "baseline_dist_m": 298.5,
+      "backtrace_time_err_min": 196.4,
+      "baseline_time_err_min": 4245.2,
+      "first_fit_obs_after_h": 20.87,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 474.2,
+          "t90_width_h": 5.6,
+          "distance": false,
+          "time": false
+        },
+        "0.1": {
+          "r90_m": 670.7,
+          "t90_width_h": 6.4,
+          "distance": false,
+          "time": false
+        },
         "0.15": {
-          "r90_m": 576.8,
-          "t90_width_h": 5.15,
-          "distance": true,
+          "r90_m": 764.7,
+          "t90_width_h": 7.1,
+          "distance": false,
           "time": true
         },
         "0.3": {
-          "r90_m": 663.9,
-          "t90_width_h": 6.79,
+          "r90_m": 894.7,
+          "t90_width_h": 9.03,
           "distance": true,
           "time": true
         },
         "0.6": {
-          "r90_m": 690.5,
-          "t90_width_h": 7.92,
+          "r90_m": 990.2,
+          "t90_width_h": 10.16,
           "distance": true,
           "time": true
         },
         "1.2": {
-          "r90_m": 782.1,
-          "t90_width_h": 9.62,
+          "r90_m": 1233.0,
+          "t90_width_h": 22.89,
           "distance": true,
           "time": true
         },
         "2.4": {
-          "r90_m": 1105.9,
-          "t90_width_h": 13.14,
+          "r90_m": 2715.9,
+          "t90_width_h": 25.31,
           "distance": true,
           "time": true
         },
         "4.8": {
-          "r90_m": 1636.9,
-          "t90_width_h": 15.29,
+          "r90_m": 3156.9,
+          "t90_width_h": 25.31,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 2199.4,
-          "t90_width_h": 21.92,
+          "r90_m": 3434.7,
+          "t90_width_h": 26.45,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 2460.1,
-          "t90_width_h": 22.13,
+          "r90_m": 3497.0,
+          "t90_width_h": 28.71,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 2481.8,
-          "t90_width_h": 31.5,
+          "r90_m": 3527.9,
+          "t90_width_h": 31.29,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 41,
+          "col": 42,
+          "t0_h": 5.905,
+          "k": 0.295
+        },
+        "backtrace_dist_m": 299.9,
+        "baseline_dist_m": 165.3,
+        "backtrace_time_err_min": 26.8,
+        "baseline_time_err_min": 1247.8,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 341.9,
+            "t90_width_h": 5.05,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 424.1,
+            "t90_width_h": 6.12,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 474.2,
+            "t90_width_h": 6.93,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 510.7,
+            "t90_width_h": 7.75,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 576.8,
+            "t90_width_h": 8.56,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 683.9,
+            "t90_width_h": 9.88,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 1043.1,
+            "t90_width_h": 11.17,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 1188.2,
+            "t90_width_h": 11.74,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 1317.6,
+            "t90_width_h": 14.21,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 1347.8,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 1347.8,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 6,
       "truth": {
-        "row": 36,
-        "col": 47,
-        "t0_h": 3.088,
-        "k": 12.75
+        "row": 49,
+        "col": 35,
+        "t0_h": 5.621,
+        "k": 1.726,
+        "lb_max": 1.007
       },
       "estimate": {
-        "row": 36,
-        "col": 54,
-        "t0_h": 9.561,
-        "k": 16.0
+        "row": 46,
+        "col": 44,
+        "t0_h": 6.533,
+        "k": 1.667
       },
-      "backtrace_dist_m": 663.9,
-      "baseline_dist_m": 3607.1,
-      "backtrace_time_err_min": 388.4,
-      "baseline_time_err_min": 3052.0,
-      "first_fit_obs_after_h": 20.87,
+      "backtrace_dist_m": 899.8,
+      "baseline_dist_m": 4117.8,
+      "backtrace_time_err_min": 54.7,
+      "baseline_time_err_min": 8281.5,
+      "first_fit_obs_after_h": 8.27,
       "coverage_by_tau": {
-        "0.15": {
-          "r90_m": 1952.6,
-          "t90_width_h": 8.8,
+        "0.05": {
+          "r90_m": 4032.4,
+          "t90_width_h": 4.23,
           "distance": true,
-          "time": false
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 4163.9,
+          "t90_width_h": 5.47,
+          "distance": true,
+          "time": true
+        },
+        "0.15": {
+          "r90_m": 4177.1,
+          "t90_width_h": 5.76,
+          "distance": true,
+          "time": true
         },
         "0.3": {
-          "r90_m": 2042.6,
-          "t90_width_h": 9.82,
+          "r90_m": 4211.5,
+          "t90_width_h": 5.76,
           "distance": true,
-          "time": false
+          "time": true
         },
         "0.6": {
-          "r90_m": 2095.2,
-          "t90_width_h": 10.38,
+          "r90_m": 4262.1,
+          "t90_width_h": 5.76,
           "distance": true,
-          "time": false
+          "time": true
         },
         "1.2": {
-          "r90_m": 2211.8,
-          "t90_width_h": 12.31,
+          "r90_m": 4329.0,
+          "t90_width_h": 6.04,
           "distance": true,
-          "time": false
+          "time": true
         },
         "2.4": {
-          "r90_m": 2634.8,
-          "t90_width_h": 16.8,
+          "r90_m": 4591.3,
+          "t90_width_h": 8.99,
           "distance": true,
-          "time": false
+          "time": true
         },
         "4.8": {
-          "r90_m": 4379.2,
-          "t90_width_h": 19.39,
+          "r90_m": 6271.2,
+          "t90_width_h": 10.61,
           "distance": true,
-          "time": false
+          "time": true
         },
         "9.6": {
-          "r90_m": 6095.3,
-          "t90_width_h": 21.63,
+          "r90_m": 7522.8,
+          "t90_width_h": 15.29,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 7141.5,
-          "t90_width_h": 31.29,
+          "r90_m": 8087.3,
+          "t90_width_h": 21.92,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 7437.7,
-          "t90_width_h": 31.29,
+          "r90_m": 8841.8,
+          "t90_width_h": 22.13,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 53,
+          "col": 40,
+          "t0_h": 5.616,
+          "k": 1.697
+        },
+        "backtrace_dist_m": 607.3,
+        "baseline_dist_m": 2062.2,
+        "backtrace_time_err_min": 0.3,
+        "baseline_time_err_min": 3474.9,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 1422.6,
+            "t90_width_h": 2.93,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 1532.0,
+            "t90_width_h": 3.71,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 1555.4,
+            "t90_width_h": 4.24,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 1614.9,
+            "t90_width_h": 4.57,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 1658.8,
+            "t90_width_h": 4.99,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 1743.5,
+            "t90_width_h": 5.24,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 1955.1,
+            "t90_width_h": 6.03,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 3569.8,
+            "t90_width_h": 6.35,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 4528.9,
+            "t90_width_h": 10.61,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 4836.3,
+            "t90_width_h": 15.29,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 5040.6,
+            "t90_width_h": 21.92,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 7,
       "truth": {
-        "row": 40,
-        "col": 39,
-        "t0_h": 7.672,
-        "k": 11.735
+        "row": 104,
+        "col": 102,
+        "t0_h": 3.233,
+        "k": 0.335,
+        "lb_max": 1.113
       },
       "estimate": {
-        "row": 42,
-        "col": 39,
-        "t0_h": 5.539,
-        "k": 9.428
+        "row": 113,
+        "col": 92,
+        "t0_h": -7.7,
+        "k": 0.208
       },
-      "backtrace_dist_m": 189.6,
-      "baseline_dist_m": 1951.7,
-      "backtrace_time_err_min": 128.0,
-      "baseline_time_err_min": 1217.0,
+      "backtrace_dist_m": 1275.9,
+      "baseline_dist_m": 620.4,
+      "backtrace_time_err_min": 656.0,
+      "baseline_time_err_min": 2280.5,
       "first_fit_obs_after_h": 8.27,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 284.5,
+          "t90_width_h": 12.98,
+          "distance": false,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 379.3,
+          "t90_width_h": 12.23,
+          "distance": false,
+          "time": true
+        },
         "0.15": {
-          "r90_m": 874.2,
-          "t90_width_h": 5.98,
-          "distance": true,
+          "r90_m": 379.3,
+          "t90_width_h": 11.43,
+          "distance": false,
           "time": true
         },
         "0.3": {
-          "r90_m": 976.3,
-          "t90_width_h": 7.34,
-          "distance": true,
+          "r90_m": 474.1,
+          "t90_width_h": 11.19,
+          "distance": false,
           "time": true
         },
         "0.6": {
-          "r90_m": 1081.2,
-          "t90_width_h": 7.74,
-          "distance": true,
+          "r90_m": 483.5,
+          "t90_width_h": 11.76,
+          "distance": false,
           "time": true
         },
         "1.2": {
-          "r90_m": 1157.6,
-          "t90_width_h": 8.14,
-          "distance": true,
+          "r90_m": 636.2,
+          "t90_width_h": 14.0,
+          "distance": false,
           "time": true
         },
         "2.4": {
-          "r90_m": 1357.7,
-          "t90_width_h": 11.88,
-          "distance": true,
+          "r90_m": 740.7,
+          "t90_width_h": 15.0,
+          "distance": false,
           "time": true
         },
         "4.8": {
-          "r90_m": 2162.5,
-          "t90_width_h": 13.71,
-          "distance": true,
+          "r90_m": 933.9,
+          "t90_width_h": 16.09,
+          "distance": false,
           "time": true
         },
         "9.6": {
-          "r90_m": 2968.6,
-          "t90_width_h": 15.29,
-          "distance": true,
+          "r90_m": 1025.7,
+          "t90_width_h": 17.69,
+          "distance": false,
           "time": true
         },
         "19.2": {
-          "r90_m": 3510.2,
+          "r90_m": 1060.4,
           "t90_width_h": 21.92,
-          "distance": true,
+          "distance": false,
           "time": true
         },
         "38.4": {
-          "r90_m": 3703.0,
+          "r90_m": 1141.9,
           "t90_width_h": 21.92,
-          "distance": true,
+          "distance": false,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 109,
+          "col": 96,
+          "t0_h": 6.209,
+          "k": 0.295
+        },
+        "backtrace_dist_m": 740.7,
+        "baseline_dist_m": 357.0,
+        "backtrace_time_err_min": 178.5,
+        "baseline_time_err_min": 955.0,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 284.5,
+            "t90_width_h": 4.33,
+            "distance": false,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 379.4,
+            "t90_width_h": 4.38,
+            "distance": false,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 391.1,
+            "t90_width_h": 6.96,
+            "distance": false,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 424.1,
+            "t90_width_h": 19.56,
+            "distance": false,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 510.7,
+            "t90_width_h": 19.8,
+            "distance": false,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 569.1,
+            "t90_width_h": 21.0,
+            "distance": false,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 607.3,
+            "t90_width_h": 21.0,
+            "distance": false,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 636.2,
+            "t90_width_h": 22.13,
+            "distance": false,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 670.6,
+            "t90_width_h": 22.13,
+            "distance": false,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 670.6,
+            "t90_width_h": 24.39,
+            "distance": false,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 670.6,
+            "t90_width_h": 27.78,
+            "distance": false,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 8,
       "truth": {
-        "row": 29,
-        "col": 92,
-        "t0_h": 7.199,
-        "k": 10.102
+        "row": 62,
+        "col": 165,
+        "t0_h": 6.292,
+        "k": 0.473,
+        "lb_max": 1.161
       },
       "estimate": {
-        "row": 26,
-        "col": 94,
-        "t0_h": 9.672,
-        "k": 11.314
+        "row": 72,
+        "col": 165,
+        "t0_h": 5.358,
+        "k": 0.25
       },
-      "backtrace_dist_m": 341.9,
-      "baseline_dist_m": 3765.5,
-      "backtrace_time_err_min": 148.4,
-      "baseline_time_err_min": 3716.7,
-      "first_fit_obs_after_h": 20.87,
+      "backtrace_dist_m": 948.2,
+      "baseline_dist_m": 1111.6,
+      "backtrace_time_err_min": 56.0,
+      "baseline_time_err_min": 2256.3,
+      "first_fit_obs_after_h": 8.27,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 379.3,
+          "t90_width_h": 3.2,
+          "distance": false,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 474.1,
+          "t90_width_h": 4.18,
+          "distance": false,
+          "time": true
+        },
         "0.15": {
-          "r90_m": 1021.3,
-          "t90_width_h": 9.25,
-          "distance": true,
-          "time": false
+          "r90_m": 483.6,
+          "t90_width_h": 4.74,
+          "distance": false,
+          "time": true
         },
         "0.3": {
-          "r90_m": 1153.6,
-          "t90_width_h": 10.38,
-          "distance": true,
-          "time": false
+          "r90_m": 510.7,
+          "t90_width_h": 5.66,
+          "distance": false,
+          "time": true
         },
         "0.6": {
-          "r90_m": 1214.5,
-          "t90_width_h": 11.51,
-          "distance": true,
-          "time": false
+          "r90_m": 576.9,
+          "t90_width_h": 6.79,
+          "distance": false,
+          "time": true
         },
         "1.2": {
-          "r90_m": 1367.7,
-          "t90_width_h": 12.08,
-          "distance": true,
-          "time": false
+          "r90_m": 690.5,
+          "t90_width_h": 9.31,
+          "distance": false,
+          "time": true
         },
         "2.4": {
-          "r90_m": 3563.3,
-          "t90_width_h": 18.0,
+          "r90_m": 1172.9,
+          "t90_width_h": 10.61,
           "distance": true,
-          "time": false
+          "time": true
         },
         "4.8": {
-          "r90_m": 5683.3,
-          "t90_width_h": 19.8,
+          "r90_m": 1272.4,
+          "t90_width_h": 11.38,
           "distance": true,
-          "time": false
+          "time": true
         },
         "9.6": {
-          "r90_m": 7041.5,
-          "t90_width_h": 21.92,
+          "r90_m": 1422.5,
+          "t90_width_h": 14.21,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 7941.1,
-          "t90_width_h": 31.29,
+          "r90_m": 1450.5,
+          "t90_width_h": 22.13,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 8075.1,
-          "t90_width_h": 31.29,
+          "r90_m": 1450.5,
+          "t90_width_h": 22.13,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 68,
+          "col": 165,
+          "t0_h": 6.596,
+          "k": 0.295
+        },
+        "backtrace_dist_m": 568.9,
+        "baseline_dist_m": 442.8,
+        "backtrace_time_err_min": 18.2,
+        "baseline_time_err_min": 751.7,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 299.9,
+            "t90_width_h": 2.76,
+            "distance": false,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 341.9,
+            "t90_width_h": 3.29,
+            "distance": false,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 391.0,
+            "t90_width_h": 3.82,
+            "distance": false,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 424.1,
+            "t90_width_h": 4.32,
+            "distance": false,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 510.7,
+            "t90_width_h": 6.35,
+            "distance": false,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 607.3,
+            "t90_width_h": 6.85,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 670.7,
+            "t90_width_h": 6.85,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 683.9,
+            "t90_width_h": 7.5,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 690.3,
+            "t90_width_h": 15.5,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 690.5,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 690.5,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 9,
       "truth": {
-        "row": 45,
-        "col": 28,
-        "t0_h": 2.225,
-        "k": 8.401
+        "row": 60,
+        "col": 73,
+        "t0_h": 4.221,
+        "k": 0.382,
+        "lb_max": 1.007
       },
       "estimate": {
-        "row": 45,
-        "col": 29,
-        "t0_h": 3.137,
-        "k": 9.428
+        "row": 67,
+        "col": 70,
+        "t0_h": 4.087,
+        "k": 0.417
       },
-      "backtrace_dist_m": 94.8,
-      "baseline_dist_m": 1872.3,
-      "backtrace_time_err_min": 54.7,
-      "baseline_time_err_min": 343.3,
+      "backtrace_dist_m": 722.2,
+      "baseline_dist_m": 127.2,
+      "backtrace_time_err_min": 8.0,
+      "baseline_time_err_min": 2096.3,
       "first_fit_obs_after_h": 8.27,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 804.7,
+          "t90_width_h": 6.78,
+          "distance": true,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 1008.1,
+          "t90_width_h": 8.0,
+          "distance": true,
+          "time": true
+        },
         "0.15": {
-          "r90_m": 402.3,
-          "t90_width_h": 4.51,
+          "r90_m": 1106.0,
+          "t90_width_h": 8.31,
           "distance": true,
           "time": true
         },
         "0.3": {
-          "r90_m": 424.1,
-          "t90_width_h": 5.47,
+          "r90_m": 1236.5,
+          "t90_width_h": 9.2,
           "distance": true,
           "time": true
         },
         "0.6": {
-          "r90_m": 483.5,
-          "t90_width_h": 5.76,
+          "r90_m": 1357.9,
+          "t90_width_h": 10.0,
           "distance": true,
           "time": true
         },
         "1.2": {
-          "r90_m": 607.2,
-          "t90_width_h": 7.57,
+          "r90_m": 1481.4,
+          "t90_width_h": 11.2,
           "distance": true,
           "time": true
         },
         "2.4": {
-          "r90_m": 1867.9,
-          "t90_width_h": 10.31,
+          "r90_m": 1821.8,
+          "t90_width_h": 15.39,
           "distance": true,
           "time": true
         },
         "4.8": {
-          "r90_m": 2634.8,
-          "t90_width_h": 15.29,
+          "r90_m": 2630.0,
+          "t90_width_h": 16.09,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 2962.7,
-          "t90_width_h": 22.13,
+          "r90_m": 2944.7,
+          "t90_width_h": 17.69,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 3164.9,
-          "t90_width_h": 22.13,
+          "r90_m": 3158.2,
+          "t90_width_h": 21.92,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 3219.9,
-          "t90_width_h": 31.5,
+          "r90_m": 3186.4,
+          "t90_width_h": 21.92,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 61,
+          "col": 74,
+          "t0_h": 4.025,
+          "k": 0.417
+        },
+        "backtrace_dist_m": 134.1,
+        "baseline_dist_m": 128.7,
+        "backtrace_time_err_min": 11.8,
+        "baseline_time_err_min": 1342.5,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 874.3,
+            "t90_width_h": 5.47,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 976.4,
+            "t90_width_h": 6.16,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 1021.3,
+            "t90_width_h": 6.4,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 1081.2,
+            "t90_width_h": 7.25,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 1188.3,
+            "t90_width_h": 8.31,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 1380.9,
+            "t90_width_h": 9.38,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 1656.3,
+            "t90_width_h": 11.74,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 1870.3,
+            "t90_width_h": 12.3,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 2000.6,
+            "t90_width_h": 15.29,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 2088.5,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 2088.7,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 10,
       "truth": {
-        "row": 49,
-        "col": 100,
-        "t0_h": 7.569,
-        "k": 9.851
+        "row": 15,
+        "col": 142,
+        "t0_h": 3.74,
+        "k": 0.478,
+        "lb_max": 1.0
       },
       "estimate": {
-        "row": 50,
-        "col": 100,
-        "t0_h": 0.158,
-        "k": 8.0
+        "row": 9,
+        "col": 144,
+        "t0_h": 2.407,
+        "k": 0.417
       },
-      "backtrace_dist_m": 94.8,
-      "baseline_dist_m": 3407.8,
-      "backtrace_time_err_min": 444.7,
-      "baseline_time_err_min": 2566.4,
-      "first_fit_obs_after_h": 20.87,
+      "backtrace_dist_m": 599.7,
+      "baseline_dist_m": 350.0,
+      "backtrace_time_err_min": 80.0,
+      "baseline_time_err_min": 1391.1,
+      "first_fit_obs_after_h": 8.27,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 510.7,
+          "t90_width_h": 4.06,
+          "distance": false,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 690.3,
+          "t90_width_h": 4.4,
+          "distance": true,
+          "time": true
+        },
         "0.15": {
-          "r90_m": 1743.5,
-          "t90_width_h": 15.02,
+          "r90_m": 764.5,
+          "t90_width_h": 4.4,
           "distance": true,
           "time": true
         },
         "0.3": {
-          "r90_m": 1954.9,
-          "t90_width_h": 15.82,
+          "r90_m": 781.9,
+          "t90_width_h": 5.03,
           "distance": true,
           "time": true
         },
         "0.6": {
-          "r90_m": 2081.9,
-          "t90_width_h": 17.6,
+          "r90_m": 810.2,
+          "t90_width_h": 5.31,
           "distance": true,
           "time": true
         },
         "1.2": {
-          "r90_m": 2219.8,
-          "t90_width_h": 20.0,
+          "r90_m": 874.2,
+          "t90_width_h": 6.4,
           "distance": true,
           "time": true
         },
         "2.4": {
-          "r90_m": 2417.6,
-          "t90_width_h": 22.4,
+          "r90_m": 1658.8,
+          "t90_width_h": 10.61,
           "distance": true,
           "time": true
         },
         "4.8": {
-          "r90_m": 2715.4,
-          "t90_width_h": 30.77,
+          "r90_m": 2071.4,
+          "t90_width_h": 10.81,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 4533.7,
-          "t90_width_h": 33.79,
+          "r90_m": 2293.9,
+          "t90_width_h": 15.5,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 5787.5,
-          "t90_width_h": 34.2,
+          "r90_m": 2294.0,
+          "t90_width_h": 22.13,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 6398.3,
-          "t90_width_h": 36.09,
+          "r90_m": 2346.3,
+          "t90_width_h": 31.5,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 13,
+          "col": 144,
+          "t0_h": 1.756,
+          "k": 0.417
+        },
+        "backtrace_dist_m": 268.2,
+        "baseline_dist_m": 410.5,
+        "backtrace_time_err_min": 119.1,
+        "baseline_time_err_min": 842.0,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 402.3,
+            "t90_width_h": 4.21,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 483.5,
+            "t90_width_h": 4.21,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 510.7,
+            "t90_width_h": 4.46,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 576.9,
+            "t90_width_h": 5.24,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 683.9,
+            "t90_width_h": 5.78,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 953.2,
+            "t90_width_h": 7.29,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 1141.9,
+            "t90_width_h": 10.81,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 1232.9,
+            "t90_width_h": 10.81,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 1289.8,
+            "t90_width_h": 15.5,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 1317.6,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 1317.6,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 11,
       "truth": {
-        "row": 22,
-        "col": 19,
-        "t0_h": 5.742,
-        "k": 11.869
+        "row": 47,
+        "col": 83,
+        "t0_h": 2.769,
+        "k": 0.393,
+        "lb_max": 1.102
       },
       "estimate": {
-        "row": 24,
-        "col": 20,
-        "t0_h": 6.008,
-        "k": 11.314
+        "row": 53,
+        "col": 84,
+        "t0_h": 6.786,
+        "k": 0.208
       },
-      "backtrace_dist_m": 212.0,
-      "baseline_dist_m": 2051.9,
-      "backtrace_time_err_min": 16.0,
-      "baseline_time_err_min": 771.9,
+      "backtrace_dist_m": 576.8,
+      "baseline_dist_m": 580.0,
+      "backtrace_time_err_min": 241.0,
+      "baseline_time_err_min": 382.6,
       "first_fit_obs_after_h": 8.27,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 379.4,
+          "t90_width_h": 6.6,
+          "distance": false,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 424.1,
+          "t90_width_h": 6.85,
+          "distance": false,
+          "time": true
+        },
         "0.15": {
-          "r90_m": 690.5,
-          "t90_width_h": 4.63,
-          "distance": true,
+          "r90_m": 474.2,
+          "t90_width_h": 7.02,
+          "distance": false,
           "time": true
         },
         "0.3": {
-          "r90_m": 740.7,
-          "t90_width_h": 5.19,
-          "distance": true,
+          "r90_m": 510.7,
+          "t90_width_h": 6.87,
+          "distance": false,
           "time": true
         },
         "0.6": {
-          "r90_m": 764.5,
-          "t90_width_h": 5.87,
-          "distance": true,
+          "r90_m": 553.0,
+          "t90_width_h": 7.2,
+          "distance": false,
           "time": true
         },
         "1.2": {
-          "r90_m": 815.8,
-          "t90_width_h": 6.4,
+          "r90_m": 576.9,
+          "t90_width_h": 8.19,
           "distance": true,
           "time": true
         },
         "2.4": {
-          "r90_m": 1367.7,
-          "t90_width_h": 8.99,
+          "r90_m": 599.8,
+          "t90_width_h": 8.6,
           "distance": true,
           "time": true
         },
         "4.8": {
-          "r90_m": 2307.2,
-          "t90_width_h": 10.31,
+          "r90_m": 636.2,
+          "t90_width_h": 8.89,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 3034.4,
-          "t90_width_h": 21.92,
+          "r90_m": 636.2,
+          "t90_width_h": 10.61,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 3434.7,
-          "t90_width_h": 21.92,
+          "r90_m": 663.8,
+          "t90_width_h": 15.5,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 3735.8,
-          "t90_width_h": 21.92,
+          "r90_m": 663.8,
+          "t90_width_h": 22.13,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 48,
+          "col": 83,
+          "t0_h": -1.227,
+          "k": 0.208
+        },
+        "backtrace_dist_m": 94.8,
+        "baseline_dist_m": 175.8,
+        "backtrace_time_err_min": 239.8,
+        "baseline_time_err_min": 18.7,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 268.2,
+            "t90_width_h": 7.9,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 268.2,
+            "t90_width_h": 7.5,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 268.2,
+            "t90_width_h": 7.69,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 268.2,
+            "t90_width_h": 8.1,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 268.2,
+            "t90_width_h": 8.1,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 268.2,
+            "t90_width_h": 8.3,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 268.2,
+            "t90_width_h": 8.7,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 268.2,
+            "t90_width_h": 9.1,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 268.2,
+            "t90_width_h": 10.81,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 268.2,
+            "t90_width_h": 15.5,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 268.2,
+            "t90_width_h": 15.5,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 12,
       "truth": {
-        "row": 46,
-        "col": 20,
-        "t0_h": 5.389,
-        "k": 10.451
+        "row": 21,
+        "col": 56,
+        "t0_h": 2.408,
+        "k": 0.414,
+        "lb_max": 1.0
       },
       "estimate": {
-        "row": 42,
-        "col": 22,
-        "t0_h": 8.662,
-        "k": 11.314
+        "row": 22,
+        "col": 52,
+        "t0_h": -1.771,
+        "k": 0.3
       },
-      "backtrace_dist_m": 424.1,
-      "baseline_dist_m": 1878.8,
-      "backtrace_time_err_min": 196.4,
-      "baseline_time_err_min": 655.6,
-      "first_fit_obs_after_h": 20.87,
+      "backtrace_dist_m": 391.1,
+      "baseline_dist_m": 703.7,
+      "backtrace_time_err_min": 250.7,
+      "baseline_time_err_min": 1481.4,
+      "first_fit_obs_after_h": 8.27,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 474.2,
+          "t90_width_h": 8.2,
+          "distance": true,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 510.7,
+          "t90_width_h": 8.49,
+          "distance": true,
+          "time": true
+        },
         "0.15": {
-          "r90_m": 1173.2,
-          "t90_width_h": 14.71,
+          "r90_m": 553.0,
+          "t90_width_h": 8.77,
           "distance": true,
           "time": true
         },
         "0.3": {
-          "r90_m": 1321.0,
-          "t90_width_h": 16.4,
+          "r90_m": 576.9,
+          "t90_width_h": 9.62,
           "distance": true,
           "time": true
         },
         "0.6": {
-          "r90_m": 1409.8,
-          "t90_width_h": 17.54,
+          "r90_m": 607.3,
+          "t90_width_h": 9.9,
           "distance": true,
           "time": true
         },
         "1.2": {
-          "r90_m": 1529.2,
-          "t90_width_h": 19.8,
+          "r90_m": 815.8,
+          "t90_width_h": 12.14,
           "distance": true,
           "time": true
         },
         "2.4": {
-          "r90_m": 1741.0,
-          "t90_width_h": 22.63,
+          "r90_m": 1589.9,
+          "t90_width_h": 13.44,
           "distance": true,
           "time": true
         },
         "4.8": {
-          "r90_m": 2082.2,
-          "t90_width_h": 26.28,
+          "r90_m": 1841.4,
+          "t90_width_h": 14.21,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 3292.3,
-          "t90_width_h": 28.42,
+          "r90_m": 1906.4,
+          "t90_width_h": 15.5,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 4169.1,
-          "t90_width_h": 28.71,
+          "r90_m": 1920.3,
+          "t90_width_h": 22.13,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 4681.1,
-          "t90_width_h": 31.29,
+          "r90_m": 1934.1,
+          "t90_width_h": 22.13,
           "distance": true,
           "time": true
         }
-      }
-    },
-    {
-      "case": 13,
-      "truth": {
-        "row": 33,
-        "col": 21,
-        "t0_h": 7.919,
-        "k": 4.142
       },
-      "estimate": {
-        "row": 32,
-        "col": 21,
-        "t0_h": 6.185,
-        "k": 4.714
-      },
-      "backtrace_dist_m": 94.8,
-      "baseline_dist_m": 1432.8,
-      "backtrace_time_err_min": 104.0,
-      "baseline_time_err_min": 532.6,
-      "first_fit_obs_after_h": 8.27,
-      "coverage_by_tau": {
-        "0.15": {
-          "r90_m": 424.1,
-          "t90_width_h": 6.78,
-          "distance": true,
-          "time": true
+      "all_observations": {
+        "estimate": {
+          "row": 21,
+          "col": 55,
+          "t0_h": 1.212,
+          "k": 0.354
         },
-        "0.3": {
-          "r90_m": 510.7,
-          "t90_width_h": 7.74,
-          "distance": true,
-          "time": true
-        },
-        "0.6": {
-          "r90_m": 552.9,
-          "t90_width_h": 8.14,
-          "distance": true,
-          "time": true
-        },
-        "1.2": {
-          "r90_m": 599.7,
-          "t90_width_h": 8.54,
-          "distance": true,
-          "time": true
-        },
-        "2.4": {
-          "r90_m": 1265.1,
-          "t90_width_h": 13.71,
-          "distance": true,
-          "time": true
-        },
-        "4.8": {
-          "r90_m": 2079.9,
-          "t90_width_h": 15.29,
-          "distance": true,
-          "time": true
-        },
-        "9.6": {
-          "r90_m": 2437.9,
-          "t90_width_h": 21.92,
-          "distance": true,
-          "time": true
-        },
-        "19.2": {
-          "r90_m": 2629.7,
-          "t90_width_h": 22.13,
-          "distance": true,
-          "time": true
-        },
-        "38.4": {
-          "r90_m": 2695.6,
-          "t90_width_h": 22.13,
-          "distance": true,
-          "time": true
+        "backtrace_dist_m": 94.8,
+        "baseline_dist_m": 456.0,
+        "backtrace_time_err_min": 71.8,
+        "baseline_time_err_min": 434.5,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 483.5,
+            "t90_width_h": 5.6,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 576.8,
+            "t90_width_h": 6.25,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 607.2,
+            "t90_width_h": 6.5,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 670.5,
+            "t90_width_h": 6.67,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 670.6,
+            "t90_width_h": 7.4,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 690.3,
+            "t90_width_h": 7.65,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 764.5,
+            "t90_width_h": 8.09,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 815.8,
+            "t90_width_h": 8.7,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 899.6,
+            "t90_width_h": 10.81,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 899.6,
+            "t90_width_h": 15.5,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 899.6,
+            "t90_width_h": 15.5,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 14,
       "truth": {
-        "row": 108,
-        "col": 134,
-        "t0_h": 2.61,
-        "k": 8.601
+        "row": 53,
+        "col": 153,
+        "t0_h": 4.462,
+        "k": 0.416,
+        "lb_max": 1.13
       },
       "estimate": {
-        "row": 108,
-        "col": 134,
-        "t0_h": 4.476,
-        "k": 8.0
+        "row": 56,
+        "col": 141,
+        "t0_h": 7.735,
+        "k": 0.589
       },
-      "backtrace_dist_m": 0.0,
-      "baseline_dist_m": 1079.4,
-      "backtrace_time_err_min": 112.0,
-      "baseline_time_err_min": 135.5,
-      "first_fit_obs_after_h": 8.27,
+      "backtrace_dist_m": 1173.2,
+      "baseline_dist_m": 859.1,
+      "backtrace_time_err_min": 196.4,
+      "baseline_time_err_min": 3071.6,
+      "first_fit_obs_after_h": 20.87,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 424.1,
+          "t90_width_h": 4.8,
+          "distance": false,
+          "time": false
+        },
+        "0.1": {
+          "r90_m": 474.2,
+          "t90_width_h": 7.56,
+          "distance": false,
+          "time": false
+        },
         "0.15": {
-          "r90_m": 212.1,
-          "t90_width_h": 5.9,
-          "distance": true,
+          "r90_m": 536.5,
+          "t90_width_h": 11.88,
+          "distance": false,
           "time": true
         },
         "0.3": {
-          "r90_m": 299.9,
-          "t90_width_h": 7.35,
-          "distance": true,
+          "r90_m": 683.8,
+          "t90_width_h": 16.89,
+          "distance": false,
           "time": true
         },
         "0.6": {
-          "r90_m": 379.3,
-          "t90_width_h": 9.2,
-          "distance": true,
+          "r90_m": 899.6,
+          "t90_width_h": 20.75,
+          "distance": false,
           "time": true
         },
         "1.2": {
-          "r90_m": 424.1,
-          "t90_width_h": 10.26,
+          "r90_m": 1620.4,
+          "t90_width_h": 26.2,
           "distance": true,
           "time": true
         },
         "2.4": {
-          "r90_m": 848.2,
-          "t90_width_h": 13.14,
+          "r90_m": 2503.8,
+          "t90_width_h": 27.58,
           "distance": true,
           "time": true
         },
         "4.8": {
-          "r90_m": 1341.2,
-          "t90_width_h": 15.29,
+          "r90_m": 2808.2,
+          "t90_width_h": 28.09,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 1609.4,
-          "t90_width_h": 21.92,
+          "r90_m": 2895.3,
+          "t90_width_h": 31.29,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 1748.5,
-          "t90_width_h": 21.92,
+          "r90_m": 2941.2,
+          "t90_width_h": 31.29,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 1789.2,
-          "t90_width_h": 22.13,
+          "r90_m": 3053.7,
+          "t90_width_h": 34.49,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 56,
+          "col": 143,
+          "t0_h": -2.734,
+          "k": 0.3
+        },
+        "backtrace_dist_m": 990.2,
+        "baseline_dist_m": 413.7,
+        "backtrace_time_err_min": 431.8,
+        "baseline_time_err_min": 1089.1,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 299.9,
+            "t90_width_h": 13.69,
+            "distance": false,
+            "time": false
+          },
+          "0.1": {
+            "r90_m": 474.2,
+            "t90_width_h": 21.33,
+            "distance": false,
+            "time": false
+          },
+          "0.15": {
+            "r90_m": 510.7,
+            "t90_width_h": 22.74,
+            "distance": false,
+            "time": false
+          },
+          "0.3": {
+            "r90_m": 599.8,
+            "t90_width_h": 23.93,
+            "distance": false,
+            "time": false
+          },
+          "0.6": {
+            "r90_m": 670.7,
+            "t90_width_h": 25.4,
+            "distance": false,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 990.0,
+            "t90_width_h": 28.23,
+            "distance": false,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 1357.7,
+            "t90_width_h": 28.94,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 1472.4,
+            "t90_width_h": 28.24,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 1543.8,
+            "t90_width_h": 28.24,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 1578.3,
+            "t90_width_h": 30.05,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 1578.3,
+            "t90_width_h": 31.5,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 15,
       "truth": {
-        "row": 96,
-        "col": 58,
-        "t0_h": 7.346,
-        "k": 4.787
+        "row": 16,
+        "col": 43,
+        "t0_h": 4.816,
+        "k": 1.934,
+        "lb_max": 1.0
       },
       "estimate": {
-        "row": 94,
-        "col": 59,
-        "t0_h": 2.812,
-        "k": 3.394
+        "row": 38,
+        "col": 52,
+        "t0_h": 9.689,
+        "k": 2.828
       },
-      "backtrace_dist_m": 212.0,
-      "baseline_dist_m": 504.8,
-      "backtrace_time_err_min": 272.0,
-      "baseline_time_err_min": 363.5,
-      "first_fit_obs_after_h": 8.27,
+      "backtrace_dist_m": 2254.0,
+      "baseline_dist_m": 6512.9,
+      "backtrace_time_err_min": 292.4,
+      "baseline_time_err_min": 76449.3,
+      "first_fit_obs_after_h": 20.87,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 3482.1,
+          "t90_width_h": 4.0,
+          "distance": true,
+          "time": false
+        },
+        "0.1": {
+          "r90_m": 3868.9,
+          "t90_width_h": 4.8,
+          "distance": true,
+          "time": false
+        },
         "0.15": {
-          "r90_m": 212.1,
-          "t90_width_h": 9.11,
+          "r90_m": 3987.8,
+          "t90_width_h": 4.8,
           "distance": true,
           "time": false
         },
         "0.3": {
-          "r90_m": 299.9,
-          "t90_width_h": 11.2,
+          "r90_m": 4142.8,
+          "t90_width_h": 4.83,
           "distance": true,
-          "time": true
+          "time": false
         },
         "0.6": {
-          "r90_m": 341.9,
-          "t90_width_h": 14.34,
+          "r90_m": 4440.4,
+          "t90_width_h": 9.05,
           "distance": true,
-          "time": true
+          "time": false
         },
         "1.2": {
-          "r90_m": 536.5,
-          "t90_width_h": 19.8,
+          "r90_m": 6108.0,
+          "t90_width_h": 18.95,
           "distance": true,
-          "time": true
+          "time": false
         },
         "2.4": {
-          "r90_m": 948.2,
-          "t90_width_h": 21.92,
+          "r90_m": 8950.5,
+          "t90_width_h": 20.79,
           "distance": true,
           "time": true
         },
         "4.8": {
-          "r90_m": 1137.9,
-          "t90_width_h": 22.13,
+          "r90_m": 9952.8,
+          "t90_width_h": 21.92,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 1188.2,
-          "t90_width_h": 22.13,
+          "r90_m": 10501.4,
+          "t90_width_h": 24.18,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 1214.4,
-          "t90_width_h": 31.5,
+          "r90_m": 10682.3,
+          "t90_width_h": 31.29,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 1236.4,
-          "t90_width_h": 31.5,
+          "r90_m": 11097.3,
+          "t90_width_h": 31.29,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 30,
+          "col": 60,
+          "t0_h": 0.82,
+          "k": 1.414
+        },
+        "backtrace_dist_m": 2088.6,
+        "baseline_dist_m": 4350.3,
+        "backtrace_time_err_min": 239.8,
+        "baseline_time_err_min": 8752.7,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 2579.7,
+            "t90_width_h": 4.8,
+            "distance": true,
+            "time": false
+          },
+          "0.1": {
+            "r90_m": 2715.8,
+            "t90_width_h": 5.71,
+            "distance": true,
+            "time": false
+          },
+          "0.15": {
+            "r90_m": 2800.3,
+            "t90_width_h": 5.71,
+            "distance": true,
+            "time": false
+          },
+          "0.3": {
+            "r90_m": 2844.7,
+            "t90_width_h": 6.28,
+            "distance": true,
+            "time": false
+          },
+          "0.6": {
+            "r90_m": 2901.1,
+            "t90_width_h": 7.35,
+            "distance": true,
+            "time": false
+          },
+          "1.2": {
+            "r90_m": 3087.6,
+            "t90_width_h": 9.05,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 4741.9,
+            "t90_width_h": 12.58,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 6072.2,
+            "t90_width_h": 14.0,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 6903.4,
+            "t90_width_h": 15.29,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 7407.0,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 7646.2,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 16,
       "truth": {
-        "row": 29,
-        "col": 99,
-        "t0_h": 6.978,
-        "k": 8.215
+        "row": 38,
+        "col": 28,
+        "t0_h": 5.475,
+        "k": 0.751,
+        "lb_max": 1.0
       },
       "estimate": {
-        "row": 29,
-        "col": 99,
-        "t0_h": 7.245,
-        "k": 8.0
+        "row": 43,
+        "col": 37,
+        "t0_h": 6.541,
+        "k": 0.849
       },
-      "backtrace_dist_m": 0.0,
-      "baseline_dist_m": 1981.1,
-      "backtrace_time_err_min": 16.0,
-      "baseline_time_err_min": 648.8,
+      "backtrace_dist_m": 976.4,
+      "baseline_dist_m": 1348.2,
+      "backtrace_time_err_min": 64.0,
+      "baseline_time_err_min": 3017.8,
       "first_fit_obs_after_h": 8.27,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 948.2,
+          "t90_width_h": 3.31,
+          "distance": false,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 1081.2,
+          "t90_width_h": 3.99,
+          "distance": true,
+          "time": true
+        },
         "0.15": {
-          "r90_m": 670.6,
-          "t90_width_h": 4.0,
+          "r90_m": 1157.6,
+          "t90_width_h": 4.67,
           "distance": true,
           "time": true
         },
         "0.3": {
-          "r90_m": 740.7,
-          "t90_width_h": 4.4,
+          "r90_m": 1289.8,
+          "t90_width_h": 5.36,
           "distance": true,
           "time": true
         },
         "0.6": {
-          "r90_m": 810.3,
-          "t90_width_h": 4.4,
+          "r90_m": 1357.7,
+          "t90_width_h": 5.36,
           "distance": true,
           "time": true
         },
         "1.2": {
-          "r90_m": 874.4,
-          "t90_width_h": 4.8,
+          "r90_m": 1499.4,
+          "t90_width_h": 5.64,
           "distance": true,
           "time": true
         },
         "2.4": {
-          "r90_m": 1265.4,
-          "t90_width_h": 8.99,
+          "r90_m": 1841.3,
+          "t90_width_h": 8.59,
           "distance": true,
           "time": true
         },
         "4.8": {
-          "r90_m": 2645.4,
-          "t90_width_h": 10.61,
+          "r90_m": 2978.2,
+          "t90_width_h": 9.69,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 3448.3,
-          "t90_width_h": 21.92,
+          "r90_m": 3510.5,
+          "t90_width_h": 15.29,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 3660.8,
+          "r90_m": 3718.8,
           "t90_width_h": 21.92,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 3898.5,
-          "t90_width_h": 22.13,
+          "r90_m": 3777.0,
+          "t90_width_h": 21.92,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 40,
+          "col": 31,
+          "t0_h": 4.779,
+          "k": 0.833
+        },
+        "backtrace_dist_m": 341.9,
+        "baseline_dist_m": 338.2,
+        "backtrace_time_err_min": 41.8,
+        "baseline_time_err_min": 1731.1,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 1060.2,
+            "t90_width_h": 2.42,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 1157.6,
+            "t90_width_h": 2.75,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 1214.5,
+            "t90_width_h": 2.67,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 1289.8,
+            "t90_width_h": 3.17,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 1357.7,
+            "t90_width_h": 3.92,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 1612.3,
+            "t90_width_h": 4.66,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 2214.2,
+            "t90_width_h": 7.29,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 2489.5,
+            "t90_width_h": 10.81,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 2616.1,
+            "t90_width_h": 15.5,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 2670.3,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 2670.8,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 17,
       "truth": {
-        "row": 90,
-        "col": 102,
-        "t0_h": 5.381,
-        "k": 6.544
+        "row": 108,
+        "col": 92,
+        "t0_h": 4.176,
+        "k": 2.512,
+        "lb_max": 1.249
       },
       "estimate": {
-        "row": 90,
-        "col": 101,
-        "t0_h": 2.496,
-        "k": 5.657
+        "row": 122,
+        "col": 76,
+        "t0_h": 1.291,
+        "k": 1.0
       },
-      "backtrace_dist_m": 94.8,
-      "baseline_dist_m": 1355.8,
+      "backtrace_dist_m": 2016.2,
+      "baseline_dist_m": 2023.2,
       "backtrace_time_err_min": 173.1,
-      "baseline_time_err_min": 409.2,
+      "baseline_time_err_min": 1411.9,
       "first_fit_obs_after_h": 20.87,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 402.3,
+          "t90_width_h": 7.29,
+          "distance": false,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 1341.0,
+          "t90_width_h": 17.28,
+          "distance": false,
+          "time": true
+        },
         "0.15": {
-          "r90_m": 690.5,
-          "t90_width_h": 16.16,
-          "distance": true,
+          "r90_m": 1425.5,
+          "t90_width_h": 28.48,
+          "distance": false,
           "time": true
         },
         "0.3": {
-          "r90_m": 781.9,
-          "t90_width_h": 18.4,
-          "distance": true,
+          "r90_m": 1472.1,
+          "t90_width_h": 33.39,
+          "distance": false,
           "time": true
         },
         "0.6": {
-          "r90_m": 858.7,
-          "t90_width_h": 20.8,
-          "distance": true,
+          "r90_m": 1623.1,
+          "t90_width_h": 43.33,
+          "distance": false,
           "time": true
         },
         "1.2": {
-          "r90_m": 967.0,
-          "t90_width_h": 22.4,
+          "r90_m": 4268.1,
+          "t90_width_h": 45.45,
           "distance": true,
           "time": true
         },
         "2.4": {
-          "r90_m": 1275.9,
-          "t90_width_h": 31.6,
+          "r90_m": 5772.7,
+          "t90_width_h": 45.45,
           "distance": true,
           "time": true
         },
         "4.8": {
-          "r90_m": 1980.0,
-          "t90_width_h": 32.6,
+          "r90_m": 6284.2,
+          "t90_width_h": 44.0,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 2519.6,
-          "t90_width_h": 34.49,
+          "r90_m": 6482.7,
+          "t90_width_h": 44.55,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 2970.0,
-          "t90_width_h": 36.09,
+          "r90_m": 6744.4,
+          "t90_width_h": 44.55,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 3320.2,
-          "t90_width_h": 37.69,
+          "r90_m": 6762.0,
+          "t90_width_h": 44.55,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 121,
+          "col": 82,
+          "t0_h": -6.22,
+          "k": 0.707
+        },
+        "backtrace_dist_m": 1555.4,
+        "baseline_dist_m": 585.5,
+        "backtrace_time_err_min": 623.8,
+        "baseline_time_err_min": 683.5,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 402.3,
+            "t90_width_h": 12.89,
+            "distance": false,
+            "time": false
+          },
+          "0.1": {
+            "r90_m": 483.6,
+            "t90_width_h": 19.23,
+            "distance": false,
+            "time": false
+          },
+          "0.15": {
+            "r90_m": 568.9,
+            "t90_width_h": 20.09,
+            "distance": false,
+            "time": false
+          },
+          "0.3": {
+            "r90_m": 599.8,
+            "t90_width_h": 21.42,
+            "distance": false,
+            "time": false
+          },
+          "0.6": {
+            "r90_m": 636.2,
+            "t90_width_h": 22.25,
+            "distance": false,
+            "time": false
+          },
+          "1.2": {
+            "r90_m": 782.1,
+            "t90_width_h": 28.04,
+            "distance": false,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 1804.1,
+            "t90_width_h": 28.71,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 2214.2,
+            "t90_width_h": 28.07,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 2378.2,
+            "t90_width_h": 28.07,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 2417.8,
+            "t90_width_h": 29.84,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 2417.8,
+            "t90_width_h": 31.5,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 18,
       "truth": {
-        "row": 27,
-        "col": 117,
-        "t0_h": 5.575,
-        "k": 11.64
+        "row": 92,
+        "col": 147,
+        "t0_h": 3.786,
+        "k": 3.423,
+        "lb_max": 1.067
       },
       "estimate": {
-        "row": 26,
-        "col": 116,
-        "t0_h": 5.041,
-        "k": 11.314
+        "row": 94,
+        "col": 134,
+        "t0_h": 8.052,
+        "k": 4.0
       },
-      "backtrace_dist_m": 134.1,
-      "baseline_dist_m": 3612.9,
-      "backtrace_time_err_min": 32.0,
-      "baseline_time_err_min": 1366.9,
+      "backtrace_dist_m": 1247.5,
+      "baseline_dist_m": 5482.4,
+      "backtrace_time_err_min": 256.0,
+      "baseline_time_err_min": 45343.3,
       "first_fit_obs_after_h": 8.27,
       "coverage_by_tau": {
-        "0.15": {
-          "r90_m": 1214.5,
-          "t90_width_h": 4.4,
+        "0.05": {
+          "r90_m": 3087.6,
+          "t90_width_h": 2.47,
           "distance": true,
-          "time": true
+          "time": false
+        },
+        "0.1": {
+          "r90_m": 3128.4,
+          "t90_width_h": 3.29,
+          "distance": true,
+          "time": false
+        },
+        "0.15": {
+          "r90_m": 3179.7,
+          "t90_width_h": 3.54,
+          "distance": true,
+          "time": false
         },
         "0.3": {
-          "r90_m": 1321.0,
-          "t90_width_h": 4.4,
+          "r90_m": 3241.3,
+          "t90_width_h": 4.07,
           "distance": true,
-          "time": true
+          "time": false
         },
         "0.6": {
-          "r90_m": 1380.9,
-          "t90_width_h": 4.8,
+          "r90_m": 3361.3,
+          "t90_width_h": 4.57,
           "distance": true,
-          "time": true
+          "time": false
         },
         "1.2": {
-          "r90_m": 1543.8,
-          "t90_width_h": 6.4,
+          "r90_m": 4073.1,
+          "t90_width_h": 5.94,
           "distance": true,
-          "time": true
+          "time": false
         },
         "2.4": {
-          "r90_m": 3226.0,
-          "t90_width_h": 9.4,
+          "r90_m": 6646.6,
+          "t90_width_h": 6.65,
           "distance": true,
-          "time": true
+          "time": false
         },
         "4.8": {
-          "r90_m": 4846.5,
+          "r90_m": 7923.9,
           "t90_width_h": 10.61,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 5498.5,
-          "t90_width_h": 21.92,
+          "r90_m": 8737.7,
+          "t90_width_h": 15.29,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 5766.0,
+          "r90_m": 9338.3,
           "t90_width_h": 21.92,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 5938.6,
-          "t90_width_h": 22.13,
+          "r90_m": 9420.6,
+          "t90_width_h": 21.92,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 100,
+          "col": 130,
+          "t0_h": 4.34,
+          "k": 2.828
+        },
+        "backtrace_dist_m": 1781.9,
+        "baseline_dist_m": 4110.0,
+        "backtrace_time_err_min": 33.2,
+        "baseline_time_err_min": 7684.9,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 1906.4,
+            "t90_width_h": 2.25,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 2086.6,
+            "t90_width_h": 2.67,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 2120.3,
+            "t90_width_h": 2.75,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 2162.8,
+            "t90_width_h": 2.92,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 2473.3,
+            "t90_width_h": 4.09,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 4835.1,
+            "t90_width_h": 4.79,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 6072.5,
+            "t90_width_h": 7.29,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 7406.7,
+            "t90_width_h": 10.61,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 8047.0,
+            "t90_width_h": 15.29,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 8157.7,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 8158.3,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          }
         }
       }
     },
     {
       "case": 19,
       "truth": {
-        "row": 92,
-        "col": 73,
-        "t0_h": 7.576,
-        "k": 13.736
+        "row": 76,
+        "col": 44,
+        "t0_h": 5.121,
+        "k": 0.756,
+        "lb_max": 1.141
       },
       "estimate": {
-        "row": 91,
-        "col": 74,
-        "t0_h": 7.042,
-        "k": 11.314
+        "row": 80,
+        "col": 43,
+        "t0_h": 6.587,
+        "k": 0.6
       },
-      "backtrace_dist_m": 134.1,
-      "baseline_dist_m": 1546.0,
-      "backtrace_time_err_min": 32.0,
-      "baseline_time_err_min": 46.0,
+      "backtrace_dist_m": 391.0,
+      "baseline_dist_m": 369.0,
+      "backtrace_time_err_min": 88.0,
+      "baseline_time_err_min": 1465.6,
       "first_fit_obs_after_h": 8.27,
       "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 134.1,
+          "t90_width_h": 7.14,
+          "distance": false,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 189.7,
+          "t90_width_h": 10.63,
+          "distance": false,
+          "time": true
+        },
         "0.15": {
-          "r90_m": 424.1,
-          "t90_width_h": 4.4,
-          "distance": true,
+          "r90_m": 212.1,
+          "t90_width_h": 11.71,
+          "distance": false,
           "time": true
         },
         "0.3": {
-          "r90_m": 474.2,
-          "t90_width_h": 4.8,
-          "distance": true,
+          "r90_m": 284.5,
+          "t90_width_h": 13.87,
+          "distance": false,
           "time": true
         },
         "0.6": {
-          "r90_m": 536.5,
-          "t90_width_h": 5.59,
-          "distance": true,
+          "r90_m": 341.9,
+          "t90_width_h": 15.24,
+          "distance": false,
           "time": true
         },
         "1.2": {
-          "r90_m": 636.1,
-          "t90_width_h": 6.44,
+          "r90_m": 474.2,
+          "t90_width_h": 19.0,
           "distance": true,
           "time": true
         },
         "2.4": {
-          "r90_m": 1409.7,
-          "t90_width_h": 10.31,
+          "r90_m": 576.8,
+          "t90_width_h": 19.5,
           "distance": true,
           "time": true
         },
         "4.8": {
-          "r90_m": 2309.2,
-          "t90_width_h": 15.29,
+          "r90_m": 607.2,
+          "t90_width_h": 19.5,
           "distance": true,
           "time": true
         },
         "9.6": {
-          "r90_m": 2682.3,
-          "t90_width_h": 21.92,
+          "r90_m": 607.3,
+          "t90_width_h": 22.13,
           "distance": true,
           "time": true
         },
         "19.2": {
-          "r90_m": 2852.7,
+          "r90_m": 636.1,
           "t90_width_h": 22.13,
           "distance": true,
           "time": true
         },
         "38.4": {
-          "r90_m": 2941.2,
+          "r90_m": 636.1,
           "t90_width_h": 31.5,
           "distance": true,
           "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 79,
+          "col": 43,
+          "t0_h": 3.702,
+          "k": 0.5
+        },
+        "backtrace_dist_m": 299.9,
+        "baseline_dist_m": 199.5,
+        "backtrace_time_err_min": 85.1,
+        "baseline_time_err_min": 849.5,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 134.1,
+            "t90_width_h": 8.2,
+            "distance": false,
+            "time": false
+          },
+          "0.1": {
+            "r90_m": 212.0,
+            "t90_width_h": 18.1,
+            "distance": false,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 212.1,
+            "t90_width_h": 19.23,
+            "distance": false,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 299.9,
+            "t90_width_h": 20.65,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 341.9,
+            "t90_width_h": 24.02,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 379.4,
+            "t90_width_h": 25.31,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 402.3,
+            "t90_width_h": 24.39,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 424.1,
+            "t90_width_h": 24.39,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 474.1,
+            "t90_width_h": 24.39,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 474.2,
+            "t90_width_h": 26.65,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 474.2,
+            "t90_width_h": 28.92,
+            "distance": true,
+            "time": true
+          }
+        }
+      }
+    },
+    {
+      "case": 20,
+      "truth": {
+        "row": 37,
+        "col": 108,
+        "t0_h": 4.02,
+        "k": 0.397,
+        "lb_max": 1.0
+      },
+      "estimate": {
+        "row": 42,
+        "col": 111,
+        "t0_h": -15.998,
+        "k": 0.25
+      },
+      "backtrace_dist_m": 552.9,
+      "baseline_dist_m": 140.2,
+      "backtrace_time_err_min": 1201.1,
+      "baseline_time_err_min": 680.9,
+      "first_fit_obs_after_h": 8.27,
+      "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 391.0,
+          "t90_width_h": 24.97,
+          "distance": false,
+          "time": false
+        },
+        "0.1": {
+          "r90_m": 510.7,
+          "t90_width_h": 23.76,
+          "distance": false,
+          "time": false
+        },
+        "0.15": {
+          "r90_m": 552.9,
+          "t90_width_h": 24.41,
+          "distance": true,
+          "time": false
+        },
+        "0.3": {
+          "r90_m": 607.2,
+          "t90_width_h": 24.81,
+          "distance": true,
+          "time": true
+        },
+        "0.6": {
+          "r90_m": 607.3,
+          "t90_width_h": 24.81,
+          "distance": true,
+          "time": true
+        },
+        "1.2": {
+          "r90_m": 663.9,
+          "t90_width_h": 27.16,
+          "distance": true,
+          "time": true
+        },
+        "2.4": {
+          "r90_m": 934.1,
+          "t90_width_h": 32.11,
+          "distance": true,
+          "time": true
+        },
+        "4.8": {
+          "r90_m": 1188.3,
+          "t90_width_h": 31.16,
+          "distance": true,
+          "time": true
+        },
+        "9.6": {
+          "r90_m": 1289.9,
+          "t90_width_h": 31.16,
+          "distance": true,
+          "time": true
+        },
+        "19.2": {
+          "r90_m": 1317.4,
+          "t90_width_h": 31.5,
+          "distance": true,
+          "time": true
+        },
+        "38.4": {
+          "r90_m": 1330.9,
+          "t90_width_h": 31.5,
+          "distance": true,
+          "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 42,
+          "col": 111,
+          "t0_h": -23.131,
+          "k": 0.25
+        },
+        "backtrace_dist_m": 552.9,
+        "baseline_dist_m": 179.7,
+        "backtrace_time_err_min": 1629.1,
+        "baseline_time_err_min": 501.9,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 552.9,
+            "t90_width_h": 25.73,
+            "distance": true,
+            "time": false
+          },
+          "0.1": {
+            "r90_m": 607.3,
+            "t90_width_h": 23.41,
+            "distance": true,
+            "time": false
+          },
+          "0.15": {
+            "r90_m": 607.3,
+            "t90_width_h": 23.75,
+            "distance": true,
+            "time": false
+          },
+          "0.3": {
+            "r90_m": 636.1,
+            "t90_width_h": 23.98,
+            "distance": true,
+            "time": false
+          },
+          "0.6": {
+            "r90_m": 636.2,
+            "t90_width_h": 24.54,
+            "distance": true,
+            "time": false
+          },
+          "1.2": {
+            "r90_m": 690.5,
+            "t90_width_h": 27.94,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 815.8,
+            "t90_width_h": 28.64,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 934.1,
+            "t90_width_h": 27.98,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 953.0,
+            "t90_width_h": 27.98,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 990.0,
+            "t90_width_h": 29.72,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 990.0,
+            "t90_width_h": 30.59,
+            "distance": true,
+            "time": true
+          }
+        }
+      }
+    },
+    {
+      "case": 21,
+      "truth": {
+        "row": 48,
+        "col": 126,
+        "t0_h": 3.948,
+        "k": 2.725,
+        "lb_max": 1.0
+      },
+      "estimate": {
+        "row": 104,
+        "col": 96,
+        "t0_h": 22.242,
+        "k": 76.8
+      },
+      "backtrace_dist_m": 6024.4,
+      "baseline_dist_m": 3559.0,
+      "backtrace_time_err_min": 1097.7,
+      "baseline_time_err_min": 1297381.6,
+      "first_fit_obs_after_h": 20.87,
+      "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 8916.7,
+          "t90_width_h": 34.8,
+          "distance": true,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 8997.1,
+          "t90_width_h": 33.37,
+          "distance": true,
+          "time": true
+        },
+        "0.15": {
+          "r90_m": 9082.9,
+          "t90_width_h": 32.02,
+          "distance": true,
+          "time": true
+        },
+        "0.3": {
+          "r90_m": 9249.7,
+          "t90_width_h": 30.59,
+          "distance": true,
+          "time": true
+        },
+        "0.6": {
+          "r90_m": 9369.4,
+          "t90_width_h": 31.0,
+          "distance": true,
+          "time": true
+        },
+        "1.2": {
+          "r90_m": 9531.2,
+          "t90_width_h": 31.0,
+          "distance": true,
+          "time": true
+        },
+        "2.4": {
+          "r90_m": 9694.1,
+          "t90_width_h": 31.29,
+          "distance": true,
+          "time": true
+        },
+        "4.8": {
+          "r90_m": 9873.1,
+          "t90_width_h": 31.29,
+          "distance": true,
+          "time": true
+        },
+        "9.6": {
+          "r90_m": 9995.5,
+          "t90_width_h": 31.29,
+          "distance": true,
+          "time": true
+        },
+        "19.2": {
+          "r90_m": 10060.8,
+          "t90_width_h": 36.09,
+          "distance": true,
+          "time": true
+        },
+        "38.4": {
+          "r90_m": 10131.2,
+          "t90_width_h": 39.29,
+          "distance": true,
+          "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 60,
+          "col": 130,
+          "t0_h": 3.095,
+          "k": 2.828
+        },
+        "backtrace_dist_m": 1199.5,
+        "baseline_dist_m": 1457.1,
+        "backtrace_time_err_min": 51.2,
+        "baseline_time_err_min": 7010.6,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 4978.7,
+            "t90_width_h": 3.54,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 5371.4,
+            "t90_width_h": 3.79,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 5424.8,
+            "t90_width_h": 3.79,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 5500.4,
+            "t90_width_h": 4.32,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 5632.9,
+            "t90_width_h": 4.57,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 5781.1,
+            "t90_width_h": 6.35,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 6108.0,
+            "t90_width_h": 7.29,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 6443.1,
+            "t90_width_h": 10.61,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 6945.3,
+            "t90_width_h": 15.29,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 7136.1,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 7169.7,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          }
+        }
+      }
+    },
+    {
+      "case": 22,
+      "truth": {
+        "row": 15,
+        "col": 107,
+        "t0_h": 3.432,
+        "k": 0.573,
+        "lb_max": 1.0
+      },
+      "estimate": {
+        "row": 17,
+        "col": 110,
+        "t0_h": -1.902,
+        "k": 0.424
+      },
+      "backtrace_dist_m": 341.9,
+      "baseline_dist_m": 230.8,
+      "backtrace_time_err_min": 320.0,
+      "baseline_time_err_min": 1374.1,
+      "first_fit_obs_after_h": 8.27,
+      "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 599.7,
+          "t90_width_h": 7.11,
+          "distance": true,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 781.9,
+          "t90_width_h": 8.8,
+          "distance": true,
+          "time": true
+        },
+        "0.15": {
+          "r90_m": 953.0,
+          "t90_width_h": 10.0,
+          "distance": true,
+          "time": true
+        },
+        "0.3": {
+          "r90_m": 1109.9,
+          "t90_width_h": 11.2,
+          "distance": true,
+          "time": true
+        },
+        "0.6": {
+          "r90_m": 1172.9,
+          "t90_width_h": 12.4,
+          "distance": true,
+          "time": true
+        },
+        "1.2": {
+          "r90_m": 1265.1,
+          "t90_width_h": 12.74,
+          "distance": true,
+          "time": true
+        },
+        "2.4": {
+          "r90_m": 1529.0,
+          "t90_width_h": 17.79,
+          "distance": true,
+          "time": true
+        },
+        "4.8": {
+          "r90_m": 2254.4,
+          "t90_width_h": 18.49,
+          "distance": true,
+          "time": true
+        },
+        "9.6": {
+          "r90_m": 2609.5,
+          "t90_width_h": 19.5,
+          "distance": true,
+          "time": true
+        },
+        "19.2": {
+          "r90_m": 2756.9,
+          "t90_width_h": 22.13,
+          "distance": true,
+          "time": true
+        },
+        "38.4": {
+          "r90_m": 2846.9,
+          "t90_width_h": 22.13,
+          "distance": true,
+          "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 14,
+          "col": 109,
+          "t0_h": 1.448,
+          "k": 0.417
+        },
+        "backtrace_dist_m": 212.1,
+        "baseline_dist_m": 682.2,
+        "backtrace_time_err_min": 119.1,
+        "baseline_time_err_min": 854.7,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 848.2,
+            "t90_width_h": 5.05,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 933.9,
+            "t90_width_h": 5.3,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 948.2,
+            "t90_width_h": 5.55,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 953.0,
+            "t90_width_h": 6.2,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 1008.1,
+            "t90_width_h": 6.45,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 1110.1,
+            "t90_width_h": 8.19,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 1321.0,
+            "t90_width_h": 9.29,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 1615.0,
+            "t90_width_h": 10.81,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 1680.6,
+            "t90_width_h": 15.5,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 1781.9,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 1804.5,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          }
+        }
+      }
+    },
+    {
+      "case": 23,
+      "truth": {
+        "row": 57,
+        "col": 30,
+        "t0_h": 7.57,
+        "k": 3.85,
+        "lb_max": 1.0
+      },
+      "estimate": {
+        "row": 72,
+        "col": 48,
+        "t0_h": 14.329,
+        "k": 45.255
+      },
+      "backtrace_dist_m": 2222.1,
+      "baseline_dist_m": 6023.3,
+      "backtrace_time_err_min": 405.6,
+      "baseline_time_err_min": 64783.2,
+      "first_fit_obs_after_h": 8.27,
+      "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 7680.7,
+          "t90_width_h": 0.94,
+          "distance": true,
+          "time": false
+        },
+        "0.1": {
+          "r90_m": 7741.2,
+          "t90_width_h": 1.43,
+          "distance": true,
+          "time": false
+        },
+        "0.15": {
+          "r90_m": 7810.6,
+          "t90_width_h": 1.5,
+          "distance": true,
+          "time": false
+        },
+        "0.3": {
+          "r90_m": 7943.1,
+          "t90_width_h": 2.49,
+          "distance": true,
+          "time": false
+        },
+        "0.6": {
+          "r90_m": 8157.7,
+          "t90_width_h": 3.7,
+          "distance": true,
+          "time": false
+        },
+        "1.2": {
+          "r90_m": 8650.0,
+          "t90_width_h": 5.36,
+          "distance": true,
+          "time": false
+        },
+        "2.4": {
+          "r90_m": 9507.5,
+          "t90_width_h": 7.7,
+          "distance": true,
+          "time": false
+        },
+        "4.8": {
+          "r90_m": 10259.0,
+          "t90_width_h": 15.67,
+          "distance": true,
+          "time": true
+        },
+        "9.6": {
+          "r90_m": 10605.9,
+          "t90_width_h": 22.29,
+          "distance": true,
+          "time": true
+        },
+        "19.2": {
+          "r90_m": 11096.5,
+          "t90_width_h": 22.29,
+          "distance": true,
+          "time": true
+        },
+        "38.4": {
+          "r90_m": 11304.7,
+          "t90_width_h": 22.29,
+          "distance": true,
+          "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 48,
+          "col": 42,
+          "t0_h": 7.124,
+          "k": 3.333
+        },
+        "backtrace_dist_m": 1422.6,
+        "baseline_dist_m": 5980.3,
+        "backtrace_time_err_min": 26.8,
+        "baseline_time_err_min": 13777.3,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 4211.2,
+            "t90_width_h": 3.26,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 4262.1,
+            "t90_width_h": 3.51,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 4366.3,
+            "t90_width_h": 3.76,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 4630.2,
+            "t90_width_h": 5.09,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 6048.5,
+            "t90_width_h": 6.08,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 7740.0,
+            "t90_width_h": 6.36,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 9193.3,
+            "t90_width_h": 7.29,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 9938.3,
+            "t90_width_h": 10.61,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 10812.3,
+            "t90_width_h": 15.29,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 11049.2,
+            "t90_width_h": 21.92,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 11338.4,
+            "t90_width_h": 21.92,
+            "distance": true,
+            "time": true
+          }
+        }
+      }
+    },
+    {
+      "case": 24,
+      "truth": {
+        "row": 31,
+        "col": 104,
+        "t0_h": 7.0,
+        "k": 1.834,
+        "lb_max": 1.02
+      },
+      "estimate": {
+        "row": 42,
+        "col": 112,
+        "t0_h": 6.466,
+        "k": 1.667
+      },
+      "backtrace_dist_m": 1289.8,
+      "baseline_dist_m": 1783.2,
+      "backtrace_time_err_min": 32.0,
+      "baseline_time_err_min": 7347.5,
+      "first_fit_obs_after_h": 8.27,
+      "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 1327.5,
+          "t90_width_h": 2.4,
+          "distance": true,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 1620.4,
+          "t90_width_h": 5.6,
+          "distance": true,
+          "time": true
+        },
+        "0.15": {
+          "r90_m": 1896.7,
+          "t90_width_h": 6.8,
+          "distance": true,
+          "time": true
+        },
+        "0.3": {
+          "r90_m": 2283.9,
+          "t90_width_h": 8.4,
+          "distance": true,
+          "time": true
+        },
+        "0.6": {
+          "r90_m": 2472.9,
+          "t90_width_h": 10.4,
+          "distance": true,
+          "time": true
+        },
+        "1.2": {
+          "r90_m": 2715.4,
+          "t90_width_h": 12.8,
+          "distance": true,
+          "time": true
+        },
+        "2.4": {
+          "r90_m": 4496.1,
+          "t90_width_h": 16.6,
+          "distance": true,
+          "time": true
+        },
+        "4.8": {
+          "r90_m": 5632.9,
+          "t90_width_h": 17.69,
+          "distance": true,
+          "time": true
+        },
+        "9.6": {
+          "r90_m": 6123.1,
+          "t90_width_h": 20.09,
+          "distance": true,
+          "time": true
+        },
+        "19.2": {
+          "r90_m": 6437.6,
+          "t90_width_h": 22.13,
+          "distance": true,
+          "time": true
+        },
+        "38.4": {
+          "r90_m": 6547.7,
+          "t90_width_h": 22.13,
+          "distance": true,
+          "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 36,
+          "col": 110,
+          "t0_h": 6.712,
+          "k": 1.697
+        },
+        "backtrace_dist_m": 740.7,
+        "baseline_dist_m": 265.2,
+        "backtrace_time_err_min": 17.2,
+        "baseline_time_err_min": 2190.9,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 848.3,
+            "t90_width_h": 1.91,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 1008.1,
+            "t90_width_h": 2.97,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 1232.8,
+            "t90_width_h": 3.22,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 1444.6,
+            "t90_width_h": 3.76,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 1544.0,
+            "t90_width_h": 4.04,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 1656.3,
+            "t90_width_h": 4.29,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 1952.6,
+            "t90_width_h": 6.07,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 2735.3,
+            "t90_width_h": 7.29,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 3087.9,
+            "t90_width_h": 10.61,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 3241.3,
+            "t90_width_h": 15.29,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 3355.6,
+            "t90_width_h": 21.92,
+            "distance": true,
+            "time": true
+          }
+        }
+      }
+    },
+    {
+      "case": 25,
+      "truth": {
+        "row": 24,
+        "col": 77,
+        "t0_h": 7.016,
+        "k": 2.586,
+        "lb_max": 1.234
+      },
+      "estimate": {
+        "row": 78,
+        "col": 48,
+        "t0_h": 9.489,
+        "k": 2.357
+      },
+      "backtrace_dist_m": 5812.5,
+      "baseline_dist_m": 3611.1,
+      "backtrace_time_err_min": 148.4,
+      "baseline_time_err_min": 10063.8,
+      "first_fit_obs_after_h": 20.87,
+      "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 848.3,
+          "t90_width_h": 1.6,
+          "distance": false,
+          "time": false
+        },
+        "0.1": {
+          "r90_m": 1106.0,
+          "t90_width_h": 3.2,
+          "distance": false,
+          "time": false
+        },
+        "0.15": {
+          "r90_m": 1609.4,
+          "t90_width_h": 4.0,
+          "distance": false,
+          "time": false
+        },
+        "0.3": {
+          "r90_m": 3497.3,
+          "t90_width_h": 10.75,
+          "distance": false,
+          "time": true
+        },
+        "0.6": {
+          "r90_m": 5367.7,
+          "t90_width_h": 24.19,
+          "distance": false,
+          "time": true
+        },
+        "1.2": {
+          "r90_m": 6659.5,
+          "t90_width_h": 26.49,
+          "distance": true,
+          "time": true
+        },
+        "2.4": {
+          "r90_m": 7655.3,
+          "t90_width_h": 26.49,
+          "distance": true,
+          "time": true
+        },
+        "4.8": {
+          "r90_m": 7987.3,
+          "t90_width_h": 29.69,
+          "distance": true,
+          "time": true
+        },
+        "9.6": {
+          "r90_m": 8459.6,
+          "t90_width_h": 31.29,
+          "distance": true,
+          "time": true
+        },
+        "19.2": {
+          "r90_m": 8685.1,
+          "t90_width_h": 32.89,
+          "distance": true,
+          "time": true
+        },
+        "38.4": {
+          "r90_m": 8907.0,
+          "t90_width_h": 36.09,
+          "distance": true,
+          "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 73,
+          "col": 47,
+          "t0_h": -1.191,
+          "k": 1.0
+        },
+        "backtrace_dist_m": 5448.4,
+        "baseline_dist_m": 2360.1,
+        "backtrace_time_err_min": 492.4,
+        "baseline_time_err_min": 3025.0,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 967.0,
+            "t90_width_h": 7.64,
+            "distance": false,
+            "time": false
+          },
+          "0.1": {
+            "r90_m": 1400.3,
+            "t90_width_h": 8.77,
+            "distance": false,
+            "time": false
+          },
+          "0.15": {
+            "r90_m": 1578.4,
+            "t90_width_h": 9.33,
+            "distance": false,
+            "time": false
+          },
+          "0.3": {
+            "r90_m": 1831.7,
+            "t90_width_h": 9.05,
+            "distance": false,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 2016.2,
+            "t90_width_h": 9.33,
+            "distance": false,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 2238.2,
+            "t90_width_h": 10.75,
+            "distance": false,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 3308.1,
+            "t90_width_h": 13.14,
+            "distance": false,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 4528.9,
+            "t90_width_h": 13.44,
+            "distance": false,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 5060.5,
+            "t90_width_h": 14.0,
+            "distance": false,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 5391.8,
+            "t90_width_h": 15.29,
+            "distance": false,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 5514.1,
+            "t90_width_h": 21.92,
+            "distance": true,
+            "time": true
+          }
+        }
+      }
+    },
+    {
+      "case": 26,
+      "truth": {
+        "row": 62,
+        "col": 62,
+        "t0_h": 6.033,
+        "k": 0.394,
+        "lb_max": 1.0
+      },
+      "estimate": {
+        "row": 69,
+        "col": 59,
+        "t0_h": 7.706,
+        "k": 0.589
+      },
+      "backtrace_dist_m": 722.2,
+      "baseline_dist_m": 1407.8,
+      "backtrace_time_err_min": 100.4,
+      "baseline_time_err_min": 3200.1,
+      "first_fit_obs_after_h": 20.87,
+      "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 1072.9,
+          "t90_width_h": 6.3,
+          "distance": true,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 1236.4,
+          "t90_width_h": 8.23,
+          "distance": true,
+          "time": true
+        },
+        "0.15": {
+          "r90_m": 1317.4,
+          "t90_width_h": 9.36,
+          "distance": true,
+          "time": true
+        },
+        "0.3": {
+          "r90_m": 1447.5,
+          "t90_width_h": 11.29,
+          "distance": true,
+          "time": true
+        },
+        "0.6": {
+          "r90_m": 1789.2,
+          "t90_width_h": 13.22,
+          "distance": true,
+          "time": true
+        },
+        "1.2": {
+          "r90_m": 2388.1,
+          "t90_width_h": 25.74,
+          "distance": true,
+          "time": true
+        },
+        "2.4": {
+          "r90_m": 3699.3,
+          "t90_width_h": 26.45,
+          "distance": true,
+          "time": true
+        },
+        "4.8": {
+          "r90_m": 4034.9,
+          "t90_width_h": 26.45,
+          "distance": true,
+          "time": true
+        },
+        "9.6": {
+          "r90_m": 4293.6,
+          "t90_width_h": 27.58,
+          "distance": true,
+          "time": true
+        },
+        "19.2": {
+          "r90_m": 4319.2,
+          "t90_width_h": 28.71,
+          "distance": true,
+          "time": true
+        },
+        "38.4": {
+          "r90_m": 4392.8,
+          "t90_width_h": 31.29,
+          "distance": true,
+          "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 59,
+          "col": 62,
+          "t0_h": 6.877,
+          "k": 0.424
+        },
+        "backtrace_dist_m": 284.5,
+        "baseline_dist_m": 318.4,
+        "backtrace_time_err_min": 50.6,
+        "baseline_time_err_min": 1220.9,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 552.9,
+            "t90_width_h": 4.84,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 607.2,
+            "t90_width_h": 5.24,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 670.6,
+            "t90_width_h": 5.64,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 740.7,
+            "t90_width_h": 5.64,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 848.3,
+            "t90_width_h": 6.04,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 1021.5,
+            "t90_width_h": 8.59,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 1400.1,
+            "t90_width_h": 9.69,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 1589.9,
+            "t90_width_h": 10.81,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 1656.3,
+            "t90_width_h": 15.5,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 1680.6,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 1688.4,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          }
+        }
+      }
+    },
+    {
+      "case": 27,
+      "truth": {
+        "row": 77,
+        "col": 85,
+        "t0_h": 5.364,
+        "k": 0.473,
+        "lb_max": 1.0
+      },
+      "estimate": {
+        "row": 88,
+        "col": 86,
+        "t0_h": -2.563,
+        "k": 0.354
+      },
+      "backtrace_dist_m": 1047.4,
+      "baseline_dist_m": 1339.3,
+      "backtrace_time_err_min": 475.6,
+      "baseline_time_err_min": 2852.2,
+      "first_fit_obs_after_h": 20.87,
+      "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 576.8,
+          "t90_width_h": 20.1,
+          "distance": false,
+          "time": false
+        },
+        "0.1": {
+          "r90_m": 722.2,
+          "t90_width_h": 21.24,
+          "distance": false,
+          "time": true
+        },
+        "0.15": {
+          "r90_m": 874.2,
+          "t90_width_h": 21.24,
+          "distance": false,
+          "time": true
+        },
+        "0.3": {
+          "r90_m": 1232.7,
+          "t90_width_h": 25.23,
+          "distance": true,
+          "time": true
+        },
+        "0.6": {
+          "r90_m": 1450.5,
+          "t90_width_h": 26.78,
+          "distance": true,
+          "time": true
+        },
+        "1.2": {
+          "r90_m": 1801.7,
+          "t90_width_h": 45.86,
+          "distance": true,
+          "time": true
+        },
+        "2.4": {
+          "r90_m": 3728.4,
+          "t90_width_h": 46.14,
+          "distance": true,
+          "time": true
+        },
+        "4.8": {
+          "r90_m": 4618.3,
+          "t90_width_h": 46.44,
+          "distance": true,
+          "time": true
+        },
+        "9.6": {
+          "r90_m": 5207.9,
+          "t90_width_h": 46.44,
+          "distance": true,
+          "time": true
+        },
+        "19.2": {
+          "r90_m": 5692.6,
+          "t90_width_h": 44.89,
+          "distance": true,
+          "time": true
+        },
+        "38.4": {
+          "r90_m": 5753.1,
+          "t90_width_h": 44.89,
+          "distance": true,
+          "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 87,
+          "col": 85,
+          "t0_h": 2.568,
+          "k": 0.424
+        },
+        "backtrace_dist_m": 948.2,
+        "baseline_dist_m": 344.0,
+        "backtrace_time_err_min": 167.8,
+        "baseline_time_err_min": 1202.2,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 670.6,
+            "t90_width_h": 5.94,
+            "distance": false,
+            "time": false
+          },
+          "0.1": {
+            "r90_m": 740.7,
+            "t90_width_h": 7.47,
+            "distance": false,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 764.6,
+            "t90_width_h": 8.55,
+            "distance": false,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 815.8,
+            "t90_width_h": 9.64,
+            "distance": false,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 934.1,
+            "t90_width_h": 11.7,
+            "distance": false,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 1499.3,
+            "t90_width_h": 14.59,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 2295.8,
+            "t90_width_h": 15.29,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 2567.3,
+            "t90_width_h": 15.5,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 2634.8,
+            "t90_width_h": 19.5,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 2695.8,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 2730.3,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          }
+        }
+      }
+    },
+    {
+      "case": 29,
+      "truth": {
+        "row": 43,
+        "col": 50,
+        "t0_h": 2.122,
+        "k": 1.368,
+        "lb_max": 1.0
+      },
+      "estimate": {
+        "row": 22,
+        "col": 56,
+        "t0_h": -0.812,
+        "k": 1.2
+      },
+      "backtrace_dist_m": 2071.0,
+      "baseline_dist_m": 3329.4,
+      "backtrace_time_err_min": 176.0,
+      "baseline_time_err_min": 9722.6,
+      "first_fit_obs_after_h": 8.27,
+      "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 2473.3,
+          "t90_width_h": 9.6,
+          "distance": true,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 2819.9,
+          "t90_width_h": 12.0,
+          "distance": true,
+          "time": true
+        },
+        "0.15": {
+          "r90_m": 2901.7,
+          "t90_width_h": 12.4,
+          "distance": true,
+          "time": true
+        },
+        "0.3": {
+          "r90_m": 2999.2,
+          "t90_width_h": 13.2,
+          "distance": true,
+          "time": true
+        },
+        "0.6": {
+          "r90_m": 3128.4,
+          "t90_width_h": 13.54,
+          "distance": true,
+          "time": true
+        },
+        "1.2": {
+          "r90_m": 3361.3,
+          "t90_width_h": 14.4,
+          "distance": true,
+          "time": true
+        },
+        "2.4": {
+          "r90_m": 4393.6,
+          "t90_width_h": 18.59,
+          "distance": true,
+          "time": true
+        },
+        "4.8": {
+          "r90_m": 6620.6,
+          "t90_width_h": 19.29,
+          "distance": true,
+          "time": true
+        },
+        "9.6": {
+          "r90_m": 8075.0,
+          "t90_width_h": 20.09,
+          "distance": true,
+          "time": true
+        },
+        "19.2": {
+          "r90_m": 8363.2,
+          "t90_width_h": 21.92,
+          "distance": true,
+          "time": true
+        },
+        "38.4": {
+          "r90_m": 8879.3,
+          "t90_width_h": 22.13,
+          "distance": true,
+          "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 39,
+          "col": 53,
+          "t0_h": -0.274,
+          "k": 1.2
+        },
+        "backtrace_dist_m": 474.2,
+        "baseline_dist_m": 1232.7,
+        "backtrace_time_err_min": 143.8,
+        "baseline_time_err_min": 4016.9,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 1517.2,
+            "t90_width_h": 4.4,
+            "distance": true,
+            "time": false
+          },
+          "0.1": {
+            "r90_m": 1636.9,
+            "t90_width_h": 4.8,
+            "distance": true,
+            "time": false
+          },
+          "0.15": {
+            "r90_m": 1696.6,
+            "t90_width_h": 5.15,
+            "distance": true,
+            "time": false
+          },
+          "0.3": {
+            "r90_m": 1748.6,
+            "t90_width_h": 5.71,
+            "distance": true,
+            "time": false
+          },
+          "0.6": {
+            "r90_m": 1811.6,
+            "t90_width_h": 6.28,
+            "distance": true,
+            "time": false
+          },
+          "1.2": {
+            "r90_m": 1920.1,
+            "t90_width_h": 6.85,
+            "distance": true,
+            "time": false
+          },
+          "2.4": {
+            "r90_m": 2672.1,
+            "t90_width_h": 11.03,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 4079.1,
+            "t90_width_h": 12.3,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 4624.9,
+            "t90_width_h": 13.44,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 5027.3,
+            "t90_width_h": 15.29,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 5098.6,
+            "t90_width_h": 15.29,
+            "distance": true,
+            "time": true
+          }
+        }
+      }
+    },
+    {
+      "case": 30,
+      "truth": {
+        "row": 16,
+        "col": 111,
+        "t0_h": 6.238,
+        "k": 1.626,
+        "lb_max": 1.0
+      },
+      "estimate": {
+        "row": 16,
+        "col": 116,
+        "t0_h": 7.304,
+        "k": 1.697
+      },
+      "backtrace_dist_m": 474.2,
+      "baseline_dist_m": 2362.1,
+      "backtrace_time_err_min": 64.0,
+      "baseline_time_err_min": 7115.8,
+      "first_fit_obs_after_h": 8.27,
+      "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 1529.0,
+          "t90_width_h": 3.26,
+          "distance": true,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 1696.6,
+          "t90_width_h": 3.94,
+          "distance": true,
+          "time": true
+        },
+        "0.15": {
+          "r90_m": 1868.2,
+          "t90_width_h": 4.63,
+          "distance": true,
+          "time": true
+        },
+        "0.3": {
+          "r90_m": 2016.2,
+          "t90_width_h": 5.19,
+          "distance": true,
+          "time": true
+        },
+        "0.6": {
+          "r90_m": 2120.7,
+          "t90_width_h": 5.47,
+          "distance": true,
+          "time": true
+        },
+        "1.2": {
+          "r90_m": 2220.2,
+          "t90_width_h": 6.0,
+          "distance": true,
+          "time": true
+        },
+        "2.4": {
+          "r90_m": 4379.3,
+          "t90_width_h": 9.4,
+          "distance": true,
+          "time": true
+        },
+        "4.8": {
+          "r90_m": 6255.6,
+          "t90_width_h": 10.61,
+          "distance": true,
+          "time": true
+        },
+        "9.6": {
+          "r90_m": 6963.3,
+          "t90_width_h": 15.5,
+          "distance": true,
+          "time": true
+        },
+        "19.2": {
+          "r90_m": 7329.4,
+          "t90_width_h": 22.13,
+          "distance": true,
+          "time": true
+        },
+        "38.4": {
+          "r90_m": 7377.6,
+          "t90_width_h": 22.13,
+          "distance": true,
+          "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 18,
+          "col": 112,
+          "t0_h": 5.667,
+          "k": 1.414
+        },
+        "backtrace_dist_m": 212.0,
+        "baseline_dist_m": 594.2,
+        "backtrace_time_err_min": 34.2,
+        "baseline_time_err_min": 2519.2,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 1620.4,
+            "t90_width_h": 2.55,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 1656.1,
+            "t90_width_h": 3.11,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 1680.3,
+            "t90_width_h": 3.11,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 1696.3,
+            "t90_width_h": 3.39,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 1709.5,
+            "t90_width_h": 3.39,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 1748.7,
+            "t90_width_h": 4.04,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 2466.0,
+            "t90_width_h": 7.4,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 3779.5,
+            "t90_width_h": 9.69,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 4325.5,
+            "t90_width_h": 15.29,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 4508.8,
+            "t90_width_h": 21.92,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 4684.9,
+            "t90_width_h": 21.92,
+            "distance": true,
+            "time": true
+          }
+        }
+      }
+    },
+    {
+      "case": 31,
+      "truth": {
+        "row": 108,
+        "col": 18,
+        "t0_h": 5.943,
+        "k": 0.504,
+        "lb_max": 1.0
+      },
+      "estimate": {
+        "row": 108,
+        "col": 18,
+        "t0_h": 7.009,
+        "k": 0.707
+      },
+      "backtrace_dist_m": 0.0,
+      "baseline_dist_m": 540.5,
+      "backtrace_time_err_min": 64.0,
+      "baseline_time_err_min": 2401.7,
+      "first_fit_obs_after_h": 8.27,
+      "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 379.4,
+          "t90_width_h": 6.79,
+          "distance": true,
+          "time": true
+        },
+        "0.1": {
+          "r90_m": 607.3,
+          "t90_width_h": 7.64,
+          "distance": true,
+          "time": true
+        },
+        "0.15": {
+          "r90_m": 670.6,
+          "t90_width_h": 7.92,
+          "distance": true,
+          "time": true
+        },
+        "0.3": {
+          "r90_m": 683.9,
+          "t90_width_h": 8.77,
+          "distance": true,
+          "time": true
+        },
+        "0.6": {
+          "r90_m": 764.7,
+          "t90_width_h": 9.62,
+          "distance": true,
+          "time": true
+        },
+        "1.2": {
+          "r90_m": 967.0,
+          "t90_width_h": 12.73,
+          "distance": true,
+          "time": true
+        },
+        "2.4": {
+          "r90_m": 1214.5,
+          "t90_width_h": 14.0,
+          "distance": true,
+          "time": true
+        },
+        "4.8": {
+          "r90_m": 1380.7,
+          "t90_width_h": 15.5,
+          "distance": true,
+          "time": true
+        },
+        "9.6": {
+          "r90_m": 1481.4,
+          "t90_width_h": 22.13,
+          "distance": true,
+          "time": true
+        },
+        "19.2": {
+          "r90_m": 1529.0,
+          "t90_width_h": 22.13,
+          "distance": true,
+          "time": true
+        },
+        "38.4": {
+          "r90_m": 1529.1,
+          "t90_width_h": 22.13,
+          "distance": true,
+          "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 108,
+          "col": 18,
+          "t0_h": 3.146,
+          "k": 0.5
+        },
+        "backtrace_dist_m": 0.0,
+        "baseline_dist_m": 611.6,
+        "backtrace_time_err_min": 167.8,
+        "baseline_time_err_min": 1725.3,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 576.9,
+            "t90_width_h": 5.7,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 663.9,
+            "t90_width_h": 5.15,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 670.7,
+            "t90_width_h": 5.15,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 683.9,
+            "t90_width_h": 5.57,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 764.7,
+            "t90_width_h": 7.6,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 948.4,
+            "t90_width_h": 9.69,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 1214.4,
+            "t90_width_h": 10.61,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 1341.2,
+            "t90_width_h": 10.81,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 1380.7,
+            "t90_width_h": 15.5,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 1444.4,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 1444.4,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          }
+        }
+      }
+    },
+    {
+      "case": 32,
+      "truth": {
+        "row": 58,
+        "col": 17,
+        "t0_h": 7.28,
+        "k": 0.748,
+        "lb_max": 1.0
+      },
+      "estimate": {
+        "row": 65,
+        "col": 16,
+        "t0_h": 12.153,
+        "k": 1.179
+      },
+      "backtrace_dist_m": 670.5,
+      "baseline_dist_m": 2857.6,
+      "backtrace_time_err_min": 292.4,
+      "baseline_time_err_min": 3192.4,
+      "first_fit_obs_after_h": 20.87,
+      "coverage_by_tau": {
+        "0.05": {
+          "r90_m": 1060.4,
+          "t90_width_h": 4.36,
+          "distance": true,
+          "time": false
+        },
+        "0.1": {
+          "r90_m": 1142.1,
+          "t90_width_h": 5.5,
+          "distance": true,
+          "time": true
+        },
+        "0.15": {
+          "r90_m": 1157.6,
+          "t90_width_h": 7.43,
+          "distance": true,
+          "time": true
+        },
+        "0.3": {
+          "r90_m": 1236.4,
+          "t90_width_h": 10.49,
+          "distance": true,
+          "time": true
+        },
+        "0.6": {
+          "r90_m": 1290.0,
+          "t90_width_h": 12.42,
+          "distance": true,
+          "time": true
+        },
+        "1.2": {
+          "r90_m": 1555.4,
+          "t90_width_h": 25.15,
+          "distance": true,
+          "time": true
+        },
+        "2.4": {
+          "r90_m": 4910.8,
+          "t90_width_h": 26.45,
+          "distance": true,
+          "time": true
+        },
+        "4.8": {
+          "r90_m": 5672.8,
+          "t90_width_h": 26.45,
+          "distance": true,
+          "time": true
+        },
+        "9.6": {
+          "r90_m": 6027.3,
+          "t90_width_h": 27.58,
+          "distance": true,
+          "time": true
+        },
+        "19.2": {
+          "r90_m": 6183.0,
+          "t90_width_h": 28.71,
+          "distance": true,
+          "time": true
+        },
+        "38.4": {
+          "r90_m": 6328.0,
+          "t90_width_h": 31.29,
+          "distance": true,
+          "time": true
+        }
+      },
+      "all_observations": {
+        "estimate": {
+          "row": 56,
+          "col": 15,
+          "t0_h": 6.584,
+          "k": 0.833
+        },
+        "backtrace_dist_m": 268.2,
+        "baseline_dist_m": 429.2,
+        "backtrace_time_err_min": 41.8,
+        "baseline_time_err_min": 693.7,
+        "first_fit_obs_after_h": 4.8,
+        "coverage_by_tau": {
+          "0.05": {
+            "r90_m": 810.3,
+            "t90_width_h": 1.75,
+            "distance": true,
+            "time": true
+          },
+          "0.1": {
+            "r90_m": 874.4,
+            "t90_width_h": 2.25,
+            "distance": true,
+            "time": true
+          },
+          "0.15": {
+            "r90_m": 899.8,
+            "t90_width_h": 2.5,
+            "distance": true,
+            "time": true
+          },
+          "0.3": {
+            "r90_m": 948.4,
+            "t90_width_h": 2.75,
+            "distance": true,
+            "time": true
+          },
+          "0.6": {
+            "r90_m": 953.2,
+            "t90_width_h": 3.16,
+            "distance": true,
+            "time": true
+          },
+          "1.2": {
+            "r90_m": 1021.5,
+            "t90_width_h": 7.0,
+            "distance": true,
+            "time": true
+          },
+          "2.4": {
+            "r90_m": 1110.1,
+            "t90_width_h": 10.61,
+            "distance": true,
+            "time": true
+          },
+          "4.8": {
+            "r90_m": 1247.5,
+            "t90_width_h": 15.5,
+            "distance": true,
+            "time": true
+          },
+          "9.6": {
+            "r90_m": 1290.0,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "19.2": {
+            "r90_m": 1330.9,
+            "t90_width_h": 22.13,
+            "distance": true,
+            "time": true
+          },
+          "38.4": {
+            "r90_m": 1357.7,
+            "t90_width_h": 31.5,
+            "distance": true,
+            "time": true
+          }
         }
       }
     }

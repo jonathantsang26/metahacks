@@ -113,6 +113,8 @@ This produces the **Ignition Probability** layer, the `Ignition (est.)` event, a
 - **Uncertainty:** a 90% radius and a 90% start-time interval. Their temperature is calibrated on the fire's own synthetic cases.
 - **Evaluation:** a synthetic recovery benchmark alongside the hold-out.
 - **Withheld start time:** when the start time is not identifiable, it is left off the timeline and out of the analyst's answers.
+- **Wind:** the spread model's wind is the HRRR 3 km field, interpolated per cell, instead of one ERA5 point. HRRR tracks the airport stations better (`weather_station.json`). Eaton's real fit improves; Palisades' does not, since k stays at its ceiling under every wind tried (`eval/wind_ablation.json`).
+- **Fire shape:** the ellipse's length-to-breadth cap is chosen per fit by loss on the real perimeters. With realistic winds, Anderson's curve makes the model fire far narrower than these fires were.
 
 ### 4b. Meta models
 

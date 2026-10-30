@@ -3,16 +3,19 @@
 #
 #   make all    full regeneration (needs network; FIRMS needs FIRMS_MAP_KEY, others are no-key)
 #   make test   offline unit + contract tests against committed outputs (TEST_FIRES=eaton,palisades)
-#   make eval   offline benchmarks (synthetic ignition recovery, Eaton hold-out) → ../web/public/data/<fire>/eval/
-#               QUICK=1 runs the first 5 synthetic cases (identical to the first 5 of the full run);
+#   make eval   offline, a few minutes: the real ignition hold-out (its own length-to-breadth selection,
+#               the committed calibration); reproduces eval/ignition_holdout.json exactly. QUICK=1 also
+#               recomputes the first 3 synthetic cases and checks them against the committed ones
+#               (eval/ignition_check.json).
 #               EVAL_DIR=/some/dir writes there instead of overwriting the committed results
+#   make eval-full  the whole synthetic benchmark (30 cases, both scenarios) and the wind ablation; ~1-2 h
 
 FIRE ?=
 TEST_FIRES ?= eaton,palisades
 RUN := FIRE=$(FIRE) uv run python -m
 
 .PHONY: all aoi dem landcover firms perimeters arrival weather severity vectors exposure events ignition \
-        test eval report smoke-meta clean-cache
+        test eval eval-full report smoke-meta clean-cache
 
 all: aoi dem landcover firms perimeters weather severity vectors arrival ignition events exposure
 
@@ -57,7 +60,10 @@ test:
 	TEST_FIRES=$(TEST_FIRES) uv run pytest -q tests
 
 eval:
-	EVAL_DIR=$(EVAL_DIR) $(RUN) steps.s11_ignition --eval-only $(if $(QUICK),--cases 5,)
+	EVAL_DIR=$(EVAL_DIR) $(RUN) steps.s11_ignition --eval-only $(if $(QUICK),--cases 3 --check,--cases 0)
+
+eval-full:
+	EVAL_DIR=$(EVAL_DIR) $(RUN) steps.s11_ignition --eval-only --ablation
 
 # Thursday checkpoint: both Meta models answer a real request (needs MODEL_API_KEY).
 smoke-meta:
