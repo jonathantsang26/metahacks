@@ -20,6 +20,16 @@
   "official": {
     "final_acres": 14056.26,
     "alarm_date": "2025-01-08",
-    "containment_date": "2025-01-31"
+    "containment_date": "2025-01-31",
+    "incident": {
+      "start_utc": "2025-01-08T02:18:00Z",
+      "reported_location": [
+        -118.069155,
+        34.203483
+      ],
+      "acres": 14021.0,
+      "url": "https://www.fire.ca.gov/incidents/2025/1/7/eaton-fire/",
+      "source": "CAL FIRE incidents API"
+    }
   }
 }

@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import requests
+
 from ember.config import load_fire
 from ember.geo import arcgis_query_geojson, geometry_bounds, meters_per_degree
 from ember.manifest import add_source
@@ -19,6 +21,28 @@ CALFIRE_2025 = (
     "https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/"
     "2025_California_Fire_Perimeters_View/FeatureServer/0"
 )
+CALFIRE_INCIDENTS = "https://incidents.fire.ca.gov/umbraco/api/IncidentApi/List"
+
+
+def official_incident(fire) -> dict | None:
+    """CAL FIRE's incident record: official start time and *reported* location.
+
+    The reported location is where CAL FIRE pins the incident, not an investigated origin.
+    Step 06 seeds its first interval with it; step 11 only ever uses it as an evaluation
+    reference, never as a fitting input.
+    """
+    r = requests.get(CALFIRE_INCIDENTS, params={"inactive": "true", "year": fire.year}, timeout=60)
+    r.raise_for_status()
+    for inc in r.json():
+        if inc.get("Name", "").strip().lower() == fire.name.lower():
+            return {
+                "start_utc": inc["Started"] if inc["Started"].endswith("Z") else inc["Started"] + "Z",
+                "reported_location": [inc["Longitude"], inc["Latitude"]],
+                "acres": inc.get("AcresBurned"),
+                "url": inc.get("Url"),
+                "source": "CAL FIRE incidents API",
+            }
+    return None
 
 
 def _date(ms: int | None) -> str | None:
@@ -71,9 +95,20 @@ def main() -> None:
             # CAL FIRE stores these as dates without a time of day.
             "alarm_date": _date(p.get("ALARM_DATE")),
             "containment_date": _date(p.get("CONT_DATE")),
+            "incident": official_incident(fire),
         },
     }
     fire.write_json("aoi.json", aoi)
+    if aoi["official"]["incident"]:
+        add_source(
+            fire,
+            layer="Official start (reference)",
+            source="CAL FIRE incidents API",
+            url=aoi["official"]["incident"]["url"] or CALFIRE_INCIDENTS,
+            status="REAL",
+            notes="Official start time and reported incident location (not an investigated origin). "
+                  "Seeds the first arrival interval; used only as an evaluation reference by the back-trace.",
+        )
     add_source(
         fire,
         layer="Final perimeter",

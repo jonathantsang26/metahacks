@@ -20,6 +20,16 @@
   "official": {
     "final_acres": 23448.88,
     "alarm_date": "2025-01-07",
-    "containment_date": "2025-01-31"
+    "containment_date": "2025-01-31",
+    "incident": {
+      "start_utc": "2025-01-07T18:30:00Z",
+      "reported_location": [
+        -118.54453,
+        34.07022
+      ],
+      "acres": 23448.0,
+      "url": "https://www.fire.ca.gov/incidents/2025/1/7/palisades-fire/",
+      "source": "CAL FIRE incidents API"
+    }
   }
 }
