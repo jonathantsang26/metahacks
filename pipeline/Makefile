@@ -4,6 +4,8 @@
 #   make all    full regeneration (needs network; FIRMS needs FIRMS_MAP_KEY, others are no-key)
 #   make test   offline unit + contract tests against committed outputs
 #   make eval   offline benchmarks (synthetic ignition recovery, Eaton hold-out) → ../web/public/data/<fire>/eval/
+#               QUICK=1 runs the first 5 synthetic cases (identical to the first 5 of the full run);
+#               EVAL_DIR=/some/dir writes there instead of overwriting the committed results
 
 FIRE ?=
 RUN := FIRE=$(FIRE) uv run python -m
@@ -11,7 +13,7 @@ RUN := FIRE=$(FIRE) uv run python -m
 .PHONY: all aoi dem landcover firms perimeters arrival weather severity vectors exposure events ignition \
         test eval smoke-meta clean-cache
 
-all: aoi dem landcover firms perimeters weather severity vectors arrival events ignition exposure
+all: aoi dem landcover firms perimeters weather severity vectors arrival ignition events exposure
 
 aoi:
 	$(RUN) steps.s01_aoi
@@ -41,7 +43,7 @@ vectors: dem
 arrival: perimeters dem
 	$(RUN) steps.s06_arrival
 
-events: arrival
+events: arrival ignition
 	$(RUN) steps.s10_events
 
 ignition: arrival weather landcover
@@ -54,7 +56,7 @@ test:
 	uv run pytest -q tests
 
 eval:
-	$(RUN) steps.s11_ignition --eval-only
+	EVAL_DIR=$(EVAL_DIR) $(RUN) steps.s11_ignition --eval-only $(if $(QUICK),--cases 5,)
 
 # Thursday checkpoint: both Meta models answer a real request (needs MODEL_API_KEY).
 smoke-meta:
