@@ -1352,7 +1352,34 @@
       "temp_c": 18.3
     }
   ],
+  "model": "ncep_hrrr_conus",
   "comparison": {
+    "wind_bias_mph": 6.4,
+    "wind_corr": 0.7,
+    "wind_rmse_mph": 9.8,
+    "rh_bias_pct": -0.9,
+    "rh_corr": 0.24,
+    "n_hours": 120,
+    "n_hours_rh": 120,
+    "max_gust_station_mph": 82.9,
+    "max_gust_model_mph": 73.4,
+    "mean_wind_station_mph": 7.3,
+    "mean_wind_model_mph": 13.7
+  },
+  "comparison_model_at_station": {
+    "wind_bias_mph": 1.4,
+    "wind_corr": 0.9,
+    "wind_rmse_mph": 4.0,
+    "rh_bias_pct": -0.8,
+    "rh_corr": 0.84,
+    "n_hours": 120,
+    "n_hours_rh": 120,
+    "max_gust_station_mph": 82.9,
+    "max_gust_model_mph": 60.8,
+    "mean_wind_station_mph": 7.3,
+    "mean_wind_model_mph": 8.7
+  },
+  "comparison_era5_seamless": {
     "wind_bias_mph": -1.1,
     "wind_corr": 0.67,
     "wind_rmse_mph": 6.5,
@@ -1361,11 +1388,11 @@
     "n_hours": 120,
     "n_hours_rh": 120,
     "max_gust_station_mph": 82.9,
-    "max_gust_reanalysis_mph": 45.9,
+    "max_gust_model_mph": 45.9,
     "mean_wind_station_mph": 7.3,
-    "mean_wind_reanalysis_mph": 6.2
+    "mean_wind_model_mph": 6.2
   },
-  "comparison_reanalysis_at_station": {
+  "comparison_era5_seamless_at_station": {
     "wind_bias_mph": -0.5,
     "wind_corr": 0.71,
     "wind_rmse_mph": 6.2,
@@ -1374,9 +1401,9 @@
     "n_hours": 120,
     "n_hours_rh": 120,
     "max_gust_station_mph": 82.9,
-    "max_gust_reanalysis_mph": 47.2,
+    "max_gust_model_mph": 47.2,
     "mean_wind_station_mph": 7.3,
-    "mean_wind_reanalysis_mph": 6.8
+    "mean_wind_model_mph": 6.8
   },
   "comparison_ecmwf_ifs": {
     "wind_bias_mph": -2.5,
@@ -1387,9 +1414,9 @@
     "n_hours": 120,
     "n_hours_rh": 120,
     "max_gust_station_mph": 82.9,
-    "max_gust_reanalysis_mph": 73.1,
+    "max_gust_model_mph": 73.1,
     "mean_wind_station_mph": 7.3,
-    "mean_wind_reanalysis_mph": 4.8
+    "mean_wind_model_mph": 4.8
   },
   "selection": "nearest CA_ASOS station within 40 km with \u226590% of window hours reporting wind and RH",
   "others": [
@@ -1402,17 +1429,17 @@
       "distance_km": 4.2,
       "coverage": 0.85,
       "comparison": {
-        "wind_bias_mph": 3.4,
-        "wind_corr": 0.43,
-        "wind_rmse_mph": 4.5,
-        "rh_bias_pct": -4.5,
-        "rh_corr": 0.28,
+        "wind_bias_mph": 11.3,
+        "wind_corr": 0.44,
+        "wind_rmse_mph": 15.0,
+        "rh_bias_pct": -3.9,
+        "rh_corr": 0.79,
         "n_hours": 102,
         "n_hours_rh": 102,
         "max_gust_station_mph": 20.7,
-        "max_gust_reanalysis_mph": 45.9,
+        "max_gust_model_mph": 73.4,
         "mean_wind_station_mph": 3.6,
-        "mean_wind_reanalysis_mph": 7.0
+        "mean_wind_model_mph": 14.9
       }
     },
     {
@@ -1424,17 +1451,17 @@
       "distance_km": 13.6,
       "coverage": 0.458,
       "comparison": {
-        "wind_bias_mph": 2.6,
-        "wind_corr": 0.42,
-        "wind_rmse_mph": 5.0,
-        "rh_bias_pct": -8.7,
-        "rh_corr": 0.53,
+        "wind_bias_mph": 8.7,
+        "wind_corr": 0.55,
+        "wind_rmse_mph": 11.7,
+        "rh_bias_pct": -5.5,
+        "rh_corr": -0.02,
         "n_hours": 55,
         "n_hours_rh": 55,
         "max_gust_station_mph": 46.0,
-        "max_gust_reanalysis_mph": 45.9,
+        "max_gust_model_mph": 73.4,
         "mean_wind_station_mph": 3.3,
-        "mean_wind_reanalysis_mph": 6.0
+        "mean_wind_model_mph": 12.0
       }
     },
     {
@@ -1446,17 +1473,17 @@
       "distance_km": 30.6,
       "coverage": 0.533,
       "comparison": {
-        "wind_bias_mph": 0.6,
-        "wind_corr": 0.5,
-        "wind_rmse_mph": 4.5,
-        "rh_bias_pct": -3.8,
-        "rh_corr": 0.71,
+        "wind_bias_mph": 7.0,
+        "wind_corr": 0.47,
+        "wind_rmse_mph": 11.1,
+        "rh_bias_pct": -2.3,
+        "rh_corr": -0.03,
         "n_hours": 64,
         "n_hours_rh": 64,
         "max_gust_station_mph": 56.4,
-        "max_gust_reanalysis_mph": 45.9,
+        "max_gust_model_mph": 73.4,
         "mean_wind_station_mph": 5.4,
-        "mean_wind_reanalysis_mph": 6.1
+        "mean_wind_model_mph": 12.4
       }
     },
     {
@@ -1468,17 +1495,17 @@
       "distance_km": 30.7,
       "coverage": 0.483,
       "comparison": {
-        "wind_bias_mph": -6.5,
-        "wind_corr": 0.51,
-        "wind_rmse_mph": 10.4,
-        "rh_bias_pct": 1.7,
-        "rh_corr": 0.54,
+        "wind_bias_mph": -0.6,
+        "wind_corr": 0.36,
+        "wind_rmse_mph": 10.2,
+        "rh_bias_pct": 4.6,
+        "rh_corr": 0.25,
         "n_hours": 58,
         "n_hours_rh": 59,
         "max_gust_station_mph": 49.5,
-        "max_gust_reanalysis_mph": 45.9,
+        "max_gust_model_mph": 73.4,
         "mean_wind_station_mph": 12.3,
-        "mean_wind_reanalysis_mph": 5.8
+        "mean_wind_model_mph": 11.7
       }
     },
     {
@@ -1490,17 +1517,17 @@
       "distance_km": 37.0,
       "coverage": 1.0,
       "comparison": {
-        "wind_bias_mph": -6.3,
-        "wind_corr": 0.58,
-        "wind_rmse_mph": 8.8,
-        "rh_bias_pct": 2.8,
-        "rh_corr": 0.64,
+        "wind_bias_mph": 1.2,
+        "wind_corr": 0.5,
+        "wind_rmse_mph": 9.2,
+        "rh_bias_pct": 2.6,
+        "rh_corr": 0.41,
         "n_hours": 120,
         "n_hours_rh": 120,
         "max_gust_station_mph": 61.0,
-        "max_gust_reanalysis_mph": 45.9,
+        "max_gust_model_mph": 73.4,
         "mean_wind_station_mph": 12.5,
-        "mean_wind_reanalysis_mph": 6.2
+        "mean_wind_model_mph": 13.7
       }
     },
     {
@@ -1512,17 +1539,17 @@
       "distance_km": 38.0,
       "coverage": 1.0,
       "comparison": {
-        "wind_bias_mph": 1.8,
-        "wind_corr": 0.29,
-        "wind_rmse_mph": 4.9,
-        "rh_bias_pct": -11.4,
-        "rh_corr": 0.38,
+        "wind_bias_mph": 9.3,
+        "wind_corr": 0.38,
+        "wind_rmse_mph": 13.3,
+        "rh_bias_pct": -11.6,
+        "rh_corr": -0.22,
         "n_hours": 120,
         "n_hours_rh": 120,
         "max_gust_station_mph": 35.7,
-        "max_gust_reanalysis_mph": 45.9,
+        "max_gust_model_mph": 73.4,
         "mean_wind_station_mph": 4.4,
-        "mean_wind_reanalysis_mph": 6.2
+        "mean_wind_model_mph": 13.7
       }
     },
     {
@@ -1534,17 +1561,17 @@
       "distance_km": 38.1,
       "coverage": 1.0,
       "comparison": {
-        "wind_bias_mph": -0.5,
-        "wind_corr": 0.38,
-        "wind_rmse_mph": 3.9,
-        "rh_bias_pct": 2.1,
-        "rh_corr": 0.63,
+        "wind_bias_mph": 7.0,
+        "wind_corr": 0.46,
+        "wind_rmse_mph": 11.5,
+        "rh_bias_pct": 1.9,
+        "rh_corr": 0.3,
         "n_hours": 120,
         "n_hours_rh": 120,
         "max_gust_station_mph": 41.4,
-        "max_gust_reanalysis_mph": 45.9,
+        "max_gust_model_mph": 73.4,
         "mean_wind_station_mph": 6.7,
-        "mean_wind_reanalysis_mph": 6.2
+        "mean_wind_model_mph": 13.7
       }
     },
     {
@@ -1556,17 +1583,17 @@
       "distance_km": 38.4,
       "coverage": 1.0,
       "comparison": {
-        "wind_bias_mph": 3.7,
-        "wind_corr": 0.31,
-        "wind_rmse_mph": 5.3,
-        "rh_bias_pct": -22.1,
-        "rh_corr": 0.26,
+        "wind_bias_mph": 11.2,
+        "wind_corr": 0.27,
+        "wind_rmse_mph": 14.9,
+        "rh_bias_pct": -22.3,
+        "rh_corr": -0.18,
         "n_hours": 120,
         "n_hours_rh": 120,
         "max_gust_station_mph": 34.5,
-        "max_gust_reanalysis_mph": 45.9,
+        "max_gust_model_mph": 73.4,
         "mean_wind_station_mph": 2.5,
-        "mean_wind_reanalysis_mph": 6.2
+        "mean_wind_model_mph": 13.7
       }
     },
     {
@@ -1578,19 +1605,19 @@
       "distance_km": 38.7,
       "coverage": 1.0,
       "comparison": {
-        "wind_bias_mph": 0.1,
-        "wind_corr": 0.69,
-        "wind_rmse_mph": 3.7,
-        "rh_bias_pct": -10.6,
-        "rh_corr": 0.13,
+        "wind_bias_mph": 7.6,
+        "wind_corr": 0.61,
+        "wind_rmse_mph": 11.2,
+        "rh_bias_pct": -10.8,
+        "rh_corr": -0.18,
         "n_hours": 120,
         "n_hours_rh": 120,
         "max_gust_station_mph": 55.2,
-        "max_gust_reanalysis_mph": 45.9,
+        "max_gust_model_mph": 73.4,
         "mean_wind_station_mph": 6.1,
-        "mean_wind_reanalysis_mph": 6.2
+        "mean_wind_model_mph": 13.7
       }
     }
   ],
-  "notes": "comparison = station vs the reanalysis at the AOI center (what the pipeline uses); comparison_reanalysis_at_station = vs the reanalysis cell at the station; biases are reanalysis minus station over the unpadded window."
+  "notes": "comparison = station vs HRRR at the AOI center (what the pipeline uses); *_at_station = vs the model cell at the station itself, the fair test of each model; biases are model minus station over the unpadded window."
 }

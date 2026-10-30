@@ -2,24 +2,28 @@
 
 Inputs (no-key HTTP, cached under raw/<fire>/weather/):
   aoi.json            center, bbox and window_utc (from step 01; step 06 may tighten the window)
-  Open-Meteo archive  models=era5_seamless: ERA5 wind (0.25°) + ERA5-Land temperature / RH (0.1°),
-                      hourly, at the AOI center, a 3×3 grid across the bbox and the chosen station.
-                      models=ecmwf_ifs (9 km) at the same points, used only as a sensitivity check.
+  Open-Meteo          models=ncep_hrrr_conus (historical forecast archive): NOAA HRRR, 3 km, hourly
+                      wind, gusts, temperature and RH at the AOI center, at the chosen station, and on
+                      a ~3 km grid across the bbox (the wind field the spread model uses).
+                      models=era5_seamless (archive): ERA5 reanalysis at the center and the station,
+                      and models=ecmwf_ifs (9 km) at the center, both as comparisons only.
   gridMET             daily ERC, BI, 100-h and 1000-h dead fuel moisture (4 km) via OPeNDAP ASCII
   IEM ASOS            airport observations from the CA_ASOS network, for the cross-check
 Outputs:
   weather.json             {hourly: [{t, wind_mph, wind_dir_deg, gust_mph, temp_c, rh_pct}],
-                            daily: [{date, erc, bi, fm100, fm1000}], source, point: [lon, lat], ...}
+                            daily: [{date, erc, bi, fm100, fm1000}], source, model, point, ...}
   weather_station.json     {station, name, lon, lat, hourly: [...], comparison: {...}, ...}
-  work/<fire>/weather_grid.json
-                           {points: [[lon, lat] ×9], t: [...], u_mps: [[...] per point], v_mps: [...]}
-                           points run row-major, north row first, west to east; points[4] = AOI center.
+  wind_field.json          {rows, cols, points: [[lon, lat]], t: [...], u_mph, v_mph, gust_mph:
+                            [[...] per point], ...}; points are the centers of a rows × cols
+                            partition of the bbox, row-major, north row first, west to east.
+Why HRRR: at both stations it tracks hourly wind and RH far better than ERA5 (weather_station.json
+compares all three models), and its 3 km grid resolves wind across the fire area.
 Conventions:
   wind_dir_deg is meteorological: the direction the wind blows FROM, clockwise from north.
-  u_mps / v_mps are the vector the air moves TOWARD (u east, v north):
+  u / v are the vector the air moves TOWARD (u east, v north):
       u = -speed·sin(dir), v = -speed·cos(dir)
   Hourly series cover aoi.window_utc padded by one day on each side, half-open, UTC.
-  Comparisons and summaries use the unpadded window. Biases are reanalysis minus station.
+  Comparisons and summaries use the unpadded window. Biases are model minus station.
   gridMET "days" end at ~07 UTC the next calendar day (midnight MST); a date is kept when that
   24 h period overlaps the padded window.
 
@@ -47,13 +51,17 @@ from ember.manifest import add_source
 
 USER_AGENT = "sentinel-ember-hackathon/0.1 (github.com/jonathantsang26/metahacks)"
 OPEN_METEO = "https://archive-api.open-meteo.com/v1/archive"
+OPEN_METEO_FORECAST = "https://historical-forecast-api.open-meteo.com/v1/forecast"
 GRIDMET = "http://thredds.northwestknowledge.net:8080/thredds/dodsC/MET/{var}/{var}_{year}.nc"
 IEM_ASOS = "https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py"
 IEM_NETWORK = "https://mesonet.agron.iastate.edu/geojson/network/{network}.geojson"
 ASOS_NETWORK = "CA_ASOS"
 
-PRIMARY_MODEL = "era5_seamless"
+PRIMARY_MODEL = "ncep_hrrr_conus"
+REANALYSIS_MODEL = "era5_seamless"
 SENSITIVITY_MODEL = "ecmwf_ifs"
+ENDPOINT = {PRIMARY_MODEL: OPEN_METEO_FORECAST, REANALYSIS_MODEL: OPEN_METEO, SENSITIVITY_MODEL: OPEN_METEO}
+FIELD_SPACING_KM = 3.0  # HRRR grid spacing
 HOURLY_VARS = ["temperature_2m", "relative_humidity_2m", "wind_speed_10m", "wind_direction_10m", "wind_gusts_10m"]
 
 # Short name → variable inside the gridMET file (discovered from the .dds) is resolved at run time.
@@ -122,11 +130,18 @@ def hours(start: datetime, end: datetime) -> list[datetime]:
     return [start + i * HOUR for i in range(n)]
 
 
-def grid_points(bbox: list[float]) -> list[list[float]]:
-    """Centers of a 3×3 partition of the bbox, north row first, west to east."""
+def field_shape(bbox: list[float], spacing_km: float = FIELD_SPACING_KM) -> tuple[int, int]:
+    """Rows × cols of a grid with roughly `spacing_km` between points (at least 2 × 2)."""
     w, s, e, n = bbox
-    fx = [w + (e - w) * f for f in (1 / 6, 1 / 2, 5 / 6)]
-    fy = [n - (n - s) * f for f in (1 / 6, 1 / 2, 5 / 6)]
+    m_lon, m_lat = meters_per_degree((s + n) / 2)
+    return (max(2, round((n - s) * m_lat / 1000 / spacing_km)), max(2, round((e - w) * m_lon / 1000 / spacing_km)))
+
+
+def grid_points(bbox: list[float], rows: int = 3, cols: int = 3) -> list[list[float]]:
+    """Centers of a rows × cols partition of the bbox, north row first, west to east."""
+    w, s, e, n = bbox
+    fx = [w + (e - w) * (i + 0.5) / cols for i in range(cols)]
+    fy = [n - (n - s) * (j + 0.5) / rows for j in range(rows)]
     return [[round(x, 6), round(y, 6)] for y in fy for x in fx]
 
 
@@ -160,7 +175,7 @@ def pearson(a: np.ndarray, b: np.ndarray) -> float | None:
 
 
 def fetch_open_meteo(fire: Fire, model: str, points: list[list[float]], start: datetime, end: datetime) -> list[dict]:
-    """One archive request for every point; the response is a list in request order."""
+    """One request for every point; the response is a list in request order."""
     params = {
         "latitude": ",".join(f"{lat:.6f}" for _, lat in points),
         "longitude": ",".join(f"{lon:.6f}" for lon, _ in points),
@@ -182,8 +197,8 @@ def fetch_open_meteo(fire: Fire, model: str, points: list[list[float]], start: d
             raise SystemExit(f"Open-Meteo returned {len(data)} locations for {len(points)} requested")
         return data
 
-    return _get(OPEN_METEO, _cache_path(fire, f"open_meteo_{model}", OPEN_METEO, params, "json"), params,
-                parse=parse)
+    url = ENDPOINT[model]
+    return _get(url, _cache_path(fire, f"open_meteo_{model}", url, params, "json"), params, parse=parse)
 
 
 def om_series(loc: dict, model: str, start: datetime, end: datetime, *, strict: bool) -> dict:
@@ -205,21 +220,23 @@ def om_series(loc: dict, model: str, start: datetime, end: datetime, *, strict: 
     return out
 
 
-def grid_spread(series: list[dict]) -> dict:
-    """How different the 3×3 points really are: reanalysis cells are coarser than the AOI."""
-    uv = [wind_uv(s["wind_speed_10m"] * MPH_TO_MPS, s["wind_direction_10m"]) for s in series]
-    u = np.array([p[0] for p in uv])
-    v = np.array([p[1] for p in uv])
+def grid_spread(series: list[dict], center: dict, in_window: np.ndarray) -> dict:
+    """How different the field's points really are, over the unpadded window (mph)."""
+    uv = [wind_uv(s["wind_speed_10m"], s["wind_direction_10m"]) for s in series]
+    u = np.array([p[0] for p in uv])[:, in_window]
+    v = np.array([p[1] for p in uv])[:, in_window]
+    cu, cv = (a[in_window] for a in wind_uv(center["wind_speed_10m"], center["wind_direction_10m"]))
     speed = np.hypot(u, v)
     key = np.round(np.nan_to_num(np.stack([u, v], axis=1), nan=-999.0), 3)
     distinct = len({k.tobytes() for k in key})
-    rms_vs_center = np.sqrt(np.nanmean((u - u[4]) ** 2 + (v - v[4]) ** 2, axis=1))
-    rh = np.array([s["relative_humidity_2m"] for s in series])
+    rms_vs_center = np.sqrt(np.nanmean((u - cu) ** 2 + (v - cv) ** 2, axis=1))
+    gust = np.array([s["wind_gusts_10m"] for s in series])[:, in_window]
     return {
+        "points": len(series),
         "distinct_wind_series": distinct,
-        "max_rms_vector_diff_vs_center_mps": round(float(np.nanmax(rms_vs_center)), 2),
-        "mean_hourly_speed_range_mps": round(float(np.nanmean(speed.max(0) - speed.min(0))), 2),
-        "mean_hourly_rh_range_pct": round(float(np.nanmean(rh.max(0) - rh.min(0))), 1),
+        "max_rms_vector_diff_vs_center_mph": round(float(np.nanmax(rms_vs_center)), 1),
+        "mean_hourly_speed_range_mph": round(float(np.nanmean(speed.max(0) - speed.min(0))), 1),
+        "peak_gust_range_mph": [round(float(np.nanmax(gust, axis=1).min()), 1), round(float(np.nanmax(gust)), 1)],
     }
 
 
@@ -440,7 +457,7 @@ def coverage(hourly: list[dict], start: datetime, end: datetime) -> float:
 
 
 def compare(station: list[dict], model: dict, start: datetime, end: datetime) -> dict:
-    """Station vs reanalysis on the hours both report, inside [start, end). Bias = reanalysis − station."""
+    """Station vs a weather model on the hours both report, inside [start, end). Bias = model − station."""
     mi = {iso(t): k for k, t in enumerate(model["t"])}
     ws, wm, rs, rm, gs = [], [], [], [], []
     for h in station:
@@ -472,9 +489,9 @@ def compare(station: list[dict], model: dict, start: datetime, end: datetime) ->
         "n_hours": int(len(ws)),
         "n_hours_rh": int(len(rs)),
         "max_gust_station_mph": r(max(gs), 1) if gs else None,
-        "max_gust_reanalysis_mph": r(np.nanmax(gust_model), 1),
+        "max_gust_model_mph": r(np.nanmax(gust_model), 1),
         "mean_wind_station_mph": r(np.mean(ws), 1) if len(ws) else None,
-        "mean_wind_reanalysis_mph": r(np.mean(wm), 1) if len(wm) else None,
+        "mean_wind_model_mph": r(np.mean(wm), 1) if len(wm) else None,
     }
 
 
@@ -539,24 +556,27 @@ def main() -> None:
     asos_rows = fetch_asos(fire, [c["station"] for c in candidates], pad_start, pad_end)
     station, candidates = choose_station(candidates, asos_rows, start, end, pad_start, pad_end)
 
-    grid = grid_points(aoi["bbox"])
-    points = [[lon, lat]] + grid + [[station["lon"], station["lat"]]]
-    om = fetch_open_meteo(fire, PRIMARY_MODEL, points, pad_start, pad_end)
+    rows, cols = field_shape(aoi["bbox"])
+    field_pts = grid_points(aoi["bbox"], rows, cols)
+    st_pt = [station["lon"], station["lat"]]
+    om = fetch_open_meteo(fire, PRIMARY_MODEL, [[lon, lat], st_pt] + field_pts, pad_start, pad_end)
     center = om_series(om[0], PRIMARY_MODEL, pad_start, pad_end, strict=True)
-    grid_series = [om_series(loc, PRIMARY_MODEL, pad_start, pad_end, strict=True) for loc in om[1:10]]
-    at_station = om_series(om[10], PRIMARY_MODEL, pad_start, pad_end, strict=True)
+    at_station = om_series(om[1], PRIMARY_MODEL, pad_start, pad_end, strict=True)
+    field = [om_series(loc, PRIMARY_MODEL, pad_start, pad_end, strict=True) for loc in om[2:]]
 
-    alt = fetch_open_meteo(fire, SENSITIVITY_MODEL, points, pad_start, pad_end)
+    era = fetch_open_meteo(fire, REANALYSIS_MODEL, [[lon, lat], st_pt], pad_start, pad_end)
+    era_center = om_series(era[0], REANALYSIS_MODEL, pad_start, pad_end, strict=True)
+    era_station = om_series(era[1], REANALYSIS_MODEL, pad_start, pad_end, strict=True)
+    alt = fetch_open_meteo(fire, SENSITIVITY_MODEL, [[lon, lat]], pad_start, pad_end)
     alt_center = om_series(alt[0], SENSITIVITY_MODEL, pad_start, pad_end, strict=False)
-    alt_grid = [om_series(loc, SENSITIVITY_MODEL, pad_start, pad_end, strict=False) for loc in alt[1:10]]
 
     daily, gm_cell = fetch_gridmet(fire, lon, lat, pad_start, pad_end)
 
     # ---- weather.json
     summary = window_summary(center, start, end)
     point = [round(center["lon"], 6), round(center["lat"], 6)]
-    source = ("Open-Meteo historical archive, models=era5_seamless: ERA5 reanalysis wind and gusts (0.25°) "
-              "with ERA5-Land temperature and RH (0.1°); gridMET daily fire danger (Abatzoglou 2013, 4 km)")
+    source = ("Open-Meteo historical forecast archive, models=ncep_hrrr_conus: NOAA HRRR (3 km) hourly wind, gusts, "
+              "temperature and RH; gridMET daily fire danger (Abatzoglou 2013, 4 km)")
     fire.write_json("weather.json", {
         "hourly": hourly_records(center),
         "daily": daily,
@@ -564,6 +584,7 @@ def main() -> None:
         "point": point,
         "requested_point": [lon, lat],
         "model": PRIMARY_MODEL,
+        "model_label": "HRRR 3 km",
         "window_utc": [iso(pad_start), iso(pad_end)],
         "summary": summary,
         "gridmet_cell": [gm_cell["lon"], gm_cell["lat"]],
@@ -572,26 +593,35 @@ def main() -> None:
                   "fm100": "% dead fuel moisture", "fm1000": "% dead fuel moisture"},
     })
 
-    # ---- work/<fire>/weather_grid.json
-    uv = [wind_uv(s["wind_speed_10m"] * MPH_TO_MPS, s["wind_direction_10m"]) for s in grid_series]
-    spread = {PRIMARY_MODEL: grid_spread(grid_series), SENSITIVITY_MODEL: grid_spread(alt_grid)}
-    (fire.work_dir / "weather_grid.json").write_text(json.dumps({
-        "points": grid,
-        "cells": [[s["lon"], s["lat"]] for s in grid_series],
-        "t": [iso(t) for t in center["t"]],
-        "u_mps": [[round(float(x), 2) for x in u] for u, _ in uv],
-        "v_mps": [[round(float(x), 2) for x in v] for _, v in uv],
+    # ---- wind_field.json (the spread model's wind; also drawable as arrows)
+    in_win = np.array([start <= t < end for t in center["t"]])
+    uv = [wind_uv(f["wind_speed_10m"], f["wind_direction_10m"]) for f in field]
+    spread = grid_spread(field, center, in_win)
+    r1 = lambda a: [round(float(x), 1) for x in a]
+    fire.write_json("wind_field.json", {
         "model": PRIMARY_MODEL,
-        "layout": "points row-major, north row first, west to east; u_mps[i] is the series at points[i]; "
-                  "cells = the grid cell Open-Meteo reports per point (ERA5-Land 0.1°; wind comes from "
-                  "the coarser ERA5 0.25° grid, so compare series, not cells)",
-        "convention": "u/v = vector the air moves TOWARD (u east, v north), m/s",
+        "rows": rows, "cols": cols,
+        "points": field_pts,
+        "cells": [[round(f["lon"], 5), round(f["lat"], 5)] for f in field],
+        "t": [iso(t) for t in center["t"]],
+        "u_mph": [r1(u) for u, _ in uv],
+        "v_mph": [r1(v) for _, v in uv],
+        "gust_mph": [r1(f["wind_gusts_10m"]) for f in field],
+        # The single-point reanalysis the field replaced, kept for the wind ablation in step 11.
+        "reference": {"model": REANALYSIS_MODEL, "point": [round(era_center["lon"], 5), round(era_center["lat"], 5)],
+                      "u_mph": r1(wind_uv(era_center["wind_speed_10m"], era_center["wind_direction_10m"])[0]),
+                      "v_mph": r1(wind_uv(era_center["wind_speed_10m"], era_center["wind_direction_10m"])[1])},
+        "layout": "points are the centers of a rows × cols partition of aoi.bbox, row-major, north row first, "
+                  "west to east; u_mph[i] is the hourly series at points[i]; cells = the HRRR cell Open-Meteo used",
+        "convention": "u/v = vector the air moves TOWARD (u east, v north), mph at 10 m; gust = max of preceding hour",
         "spread": spread,
-    }) + "\n")
+    })
 
     # ---- weather_station.json
     cmp_center = compare(station["hourly"], center, start, end)
     cmp_at_station = compare(station["hourly"], at_station, start, end)
+    cmp_era = compare(station["hourly"], era_center, start, end)
+    cmp_era_station = compare(station["hourly"], era_station, start, end)
     cmp_alt = compare(station["hourly"], alt_center, start, end)
     others = [
         {k: c[k] for k in ("station", "name", "lon", "lat", "elevation_m", "distance_km", "coverage")}
@@ -607,27 +637,39 @@ def main() -> None:
         "distance_km": station["distance_km"],
         "coverage": station["coverage"],
         "hourly": station["hourly"],
+        "model": PRIMARY_MODEL,
         "comparison": cmp_center,
-        "comparison_reanalysis_at_station": cmp_at_station,
+        "comparison_model_at_station": cmp_at_station,
+        f"comparison_{REANALYSIS_MODEL}": cmp_era,
+        f"comparison_{REANALYSIS_MODEL}_at_station": cmp_era_station,
         f"comparison_{SENSITIVITY_MODEL}": cmp_alt,
         "selection": f"nearest {ASOS_NETWORK} station within {STATION_RADIUS_KM:.0f} km with ≥"
                      f"{STATION_MIN_COVERAGE:.0%} of window hours reporting wind and RH",
         "others": others,
-        "notes": "comparison = station vs the reanalysis at the AOI center (what the pipeline uses); "
-                 "comparison_reanalysis_at_station = vs the reanalysis cell at the station; biases are "
-                 "reanalysis minus station over the unpadded window.",
+        "notes": "comparison = station vs HRRR at the AOI center (what the pipeline uses); *_at_station = vs the "
+                 "model cell at the station itself, the fair test of each model; biases are model minus station "
+                 "over the unpadded window.",
     })
 
     # ---- manifest
-    alt_peak = float(np.nanmax(alt_center["wind_gusts_10m"][[start <= t < end for t in alt_center["t"]]]))
     add_source(
-        fire, layer="Weather (hourly)", source="ERA5 / ERA5-Land reanalysis via Open-Meteo",
-        url="https://open-meteo.com/en/docs/historical-weather-api", status="REAL",
-        attribution="Open-Meteo.com (CC BY 4.0); contains modified Copernicus Climate Change Service information",
-        notes=(f"models=era5_seamless at cell {point} for {aoi['center']}; 3×3 grid gives "
-               f"{spread[PRIMARY_MODEL]['distinct_wind_series']}/9 distinct wind series. Window peak gust "
-               f"{summary['peak_gust_mph']} mph, min RH {summary['min_rh_pct']}%. ECMWF IFS 9 km "
-               f"(sensitivity only) peaks at {alt_peak:.0f} mph at the same point."),
+        fire, layer="Weather (hourly)", source="NOAA HRRR (3 km) via the Open-Meteo historical forecast archive",
+        url="https://open-meteo.com/en/docs/historical-forecast-api", status="REAL",
+        attribution="Open-Meteo.com (CC BY 4.0); NOAA NCEP High-Resolution Rapid Refresh",
+        notes=(f"A weather model's analysis and short-range forecast, not observations. At {station['station']}: "
+               f"hourly wind r = {cmp_at_station['wind_corr']} (ERA5 {cmp_era_station['wind_corr']}), RH r = "
+               f"{cmp_at_station['rh_corr']} (ERA5 {cmp_era_station['rh_corr']}), peak gust "
+               f"{cmp_at_station['max_gust_model_mph']} mph vs station {cmp_at_station['max_gust_station_mph']} "
+               f"(ERA5 {cmp_era_station['max_gust_model_mph']}). Window peak gust at the AOI center "
+               f"{summary['peak_gust_mph']} mph, min RH {summary['min_rh_pct']}%."),
+    )
+    add_source(
+        fire, layer="Wind field", source="NOAA HRRR (3 km) via the Open-Meteo historical forecast archive",
+        url="https://open-meteo.com/en/docs/historical-forecast-api", status="REAL",
+        attribution="Open-Meteo.com (CC BY 4.0); NOAA NCEP High-Resolution Rapid Refresh",
+        notes=(f"{rows}×{cols} points across the AOI ({spread['distinct_wind_series']} distinct series); peak gusts "
+               f"range {spread['peak_gust_range_mph'][0]}–{spread['peak_gust_range_mph'][1]} mph across points; "
+               "drives the spread model, interpolated bilinearly per cell."),
     )
     add_source(
         fire, layer="Fire danger (daily)", source="gridMET (Abatzoglou 2013) ERC, BI, 100-h and 1000-h fuel moisture",
@@ -650,22 +692,16 @@ def main() -> None:
     )
 
     # ---- report
-    print(f"{fire.name}: {PRIMARY_MODEL} cell {point} (requested {aoi['center']})")
+    print(f"{fire.name}: {PRIMARY_MODEL} cell {point} (requested {aoi['center']}); field {rows}×{cols}: {spread}")
     print(f"  window peak gust {summary['peak_gust_mph']} mph at {summary['peak_gust_t']}, "
           f"peak wind {summary['peak_wind_mph']} mph, min RH {summary['min_rh_pct']}% at {summary['min_rh_t']}")
-    print(f"  {SENSITIVITY_MODEL} peak gust {alt_peak:.1f} mph")
     print("  ERC " + ", ".join(f"{d['date'][5:]}:{d['erc']:.0f}" for d in daily)
           + f"  (gridMET cell {gm_cell['lon']:.4f}, {gm_cell['lat']:.4f})")
-    print(f"  grid spread {spread}")
     print(f"  station {station['station']} {station['name']} {station['distance_km']} km, "
           f"coverage {station['coverage']:.0%}")
-    for label, c in (("center", cmp_center), ("at-station", cmp_at_station), (SENSITIVITY_MODEL, cmp_alt)):
+    for label, c in (("HRRR center", cmp_center), ("HRRR at station", cmp_at_station), ("ERA5 center", cmp_era),
+                     ("ERA5 at station", cmp_era_station), (SENSITIVITY_MODEL, cmp_alt)):
         print(f"    vs {label}: {c}")
-    for o in others:
-        print(f"    other {o['station']} {o['distance_km']} km cov {o['coverage']:.0%}: "
-              f"wind bias {o['comparison']['wind_bias_mph']} r={o['comparison']['wind_corr']}, "
-              f"RH bias {o['comparison']['rh_bias_pct']} r={o['comparison']['rh_corr']}")
-
 
 if __name__ == "__main__":
     main()

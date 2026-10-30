@@ -137,8 +137,9 @@ def test_weather_json_contract(fire):
         assert set(h) == {"t", "wind_mph", "wind_dir_deg", "gust_mph", "temp_c", "rh_pct"}
         assert 0 <= h["wind_mph"] < 120 and 0 <= h["gust_mph"] < 150
         assert 0 <= h["wind_dir_deg"] < 360 and 0 <= h["rh_pct"] <= 100 and -20 < h["temp_c"] < 45
-    # ERA5-Land cells are 0.1°, so the snapped point stays within one cell of the AOI center.
-    assert abs(w["point"][0] - aoi["center"][0]) <= 0.1 and abs(w["point"][1] - aoi["center"][1]) <= 0.1
+    # HRRR cells are 3 km, so the snapped point stays within one cell of the AOI center.
+    assert abs(w["point"][0] - aoi["center"][0]) <= 0.05 and abs(w["point"][1] - aoi["center"][1]) <= 0.05
+    assert w["model"] == "ncep_hrrr_conus"
 
     in_win = [h for h in hourly if start <= _utc(h["t"]) < end]
     assert w["summary"]["peak_gust_mph"] == max(h["gust_mph"] for h in in_win)
@@ -174,13 +175,13 @@ def test_station_contract_and_recomputed_stats(fire):
 
     c = s["comparison"]
     keys = {"wind_bias_mph", "wind_corr", "rh_bias_pct", "rh_corr", "n_hours",
-            "max_gust_station_mph", "max_gust_reanalysis_mph"}
+            "max_gust_station_mph", "max_gust_model_mph"}
     assert keys <= c.keys() and all(c[k] is not None for k in keys)
     assert -1 <= c["wind_corr"] <= 1 and -1 <= c["rh_corr"] <= 1
     n_win = (end - start) // timedelta(hours=1)
     assert c["n_hours"] >= 0.9 * n_win
 
-    # Recompute from the two committed series (the reanalysis side is rounded to 0.1, hence tolerances).
+    # Recompute from the two committed series (the model side is rounded to 0.1, hence tolerances).
     pairs = [(m, o) for m, o in zip(w["hourly"], s["hourly"])
              if start <= _utc(m["t"]) < end and o["wind_mph"] is not None]
     mw = np.array([m["wind_mph"] for m, _ in pairs])
@@ -194,29 +195,38 @@ def test_station_contract_and_recomputed_stats(fire):
     assert np.mean([a - b for a, b in rh]) == pytest.approx(c["rh_bias_pct"], abs=0.11)
     gusts = [o["gust_mph"] for o in s["hourly"] if start <= _utc(o["t"]) < end and o["gust_mph"] is not None]
     assert max(gusts) == c["max_gust_station_mph"]
-    assert c["max_gust_reanalysis_mph"] == w["summary"]["peak_gust_mph"]
+    assert c["max_gust_model_mph"] == w["summary"]["peak_gust_mph"]
 
 
 def test_manifest_has_weather_sources(fire):
     sources = {s["layer"]: s for s in fire.read_json("manifest.json")["sources"]}
     for layer in ("Weather (hourly)", "Fire danger (daily)", "Weather station"):
         assert sources[layer]["status"] == "REAL"
-    assert "ERA5" in sources["Weather (hourly)"]["source"]
+    assert "HRRR" in sources["Weather (hourly)"]["source"]
+    assert sources["Wind field"]["status"] == "REAL"
 
 
-def test_weather_grid_matches_center_series(fire):
-    path = fire.work_dir / "weather_grid.json"
-    if not path.exists():
-        pytest.skip("work/<fire>/weather_grid.json is gitignored; run the step to create it")
-    g = json.loads(path.read_text())
+def test_hrrr_beats_era5_at_the_station(fire):
+    """The reason HRRR is the primary model (s07 docstring): at the station's own location it
+    tracks hourly wind and RH at least as well as ERA5 does."""
+    s = fire.read_json("weather_station.json")
+    h, e = s["comparison_model_at_station"], s["comparison_era5_seamless_at_station"]
+    assert h["wind_corr"] >= e["wind_corr"] and h["rh_corr"] >= e["rh_corr"]
+    assert h["max_gust_model_mph"] > e["max_gust_model_mph"]
+
+
+def test_wind_field_contract(fire):
+    f = fire.read_json("wind_field.json")
     w = fire.read_json("weather.json")
     aoi = fire.read_json("aoi.json")
-    assert len(g["points"]) == 9 and np.allclose(g["points"][4], aoi["center"], atol=2e-6)
-    assert g["t"] == [h["t"] for h in w["hourly"]]
-    assert np.array(g["u_mps"]).shape == np.array(g["v_mps"]).shape == (9, len(g["t"]))
-    u, v = np.array(g["u_mps"][4]), np.array(g["v_mps"][4])
-    speed = np.array([h["wind_mph"] for h in w["hourly"]]) * MPH_TO_MPS
-    assert np.allclose(np.hypot(u, v), speed, atol=0.06)
-    dirs = np.array([h["wind_dir_deg"] for h in w["hourly"]])
-    moving = speed > 1.0
-    assert _ang(wind_dir_from(u, v)[moving], dirs[moving]).max() < 3
+    n = f["rows"] * f["cols"]
+    assert f["rows"] >= 2 and f["cols"] >= 2 and len(f["points"]) == n
+    assert f["points"] == grid_points(aoi["bbox"], f["rows"], f["cols"])
+    assert f["t"] == [h["t"] for h in w["hourly"]]
+    for key in ("u_mph", "v_mph", "gust_mph"):
+        assert np.array(f[key]).shape == (n, len(f["t"]))
+    speed = np.hypot(np.array(f["u_mph"]), np.array(f["v_mph"]))
+    assert (np.array(f["gust_mph"]) >= speed - 1.0).mean() > 0.95  # gusts are not below the mean wind
+    assert f["spread"]["distinct_wind_series"] > 1  # a field, not one point repeated
+    ref = f["reference"]
+    assert ref["model"] == "era5_seamless" and len(ref["u_mph"]) == len(f["t"])
