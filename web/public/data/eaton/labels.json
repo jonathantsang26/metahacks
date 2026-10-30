@@ -1,0 +1,345 @@
+[
+  {
+    "name": "San Gabriel Peak",
+    "kind": "peak",
+    "lon": -118.09857,
+    "lat": 34.24324,
+    "ele_m": 1878.0
+  },
+  {
+    "name": "Mount Disappointment",
+    "kind": "peak",
+    "lon": -118.10504,
+    "lat": 34.24635,
+    "ele_m": 1819.0
+  },
+  {
+    "name": "Mount Deception",
+    "kind": "peak",
+    "lon": -118.11477,
+    "lat": 34.24901,
+    "ele_m": 1767.0
+  },
+  {
+    "name": "Mount Markham",
+    "kind": "peak",
+    "lon": -118.09913,
+    "lat": 34.23677,
+    "ele_m": 1746.0
+  },
+  {
+    "name": "Mount Wilson",
+    "kind": "peak",
+    "lon": -118.06119,
+    "lat": 34.22387,
+    "ele_m": 1737.0
+  },
+  {
+    "name": "Occidental Peak",
+    "kind": "peak",
+    "lon": -118.08368,
+    "lat": 34.23498,
+    "ele_m": 1736.0
+  },
+  {
+    "name": "Mount Lowe",
+    "kind": "peak",
+    "lon": -118.10583,
+    "lat": 34.23154,
+    "ele_m": 1699.0
+  },
+  {
+    "name": "Mount Harvard",
+    "kind": "peak",
+    "lon": -118.06219,
+    "lat": 34.21324,
+    "ele_m": 1640.0
+  },
+  {
+    "name": "Mount Yale",
+    "kind": "peak",
+    "lon": -118.06389,
+    "lat": 34.20478,
+    "ele_m": 1451.0
+  },
+  {
+    "name": "Muir Peak",
+    "kind": "peak",
+    "lon": -118.10239,
+    "lat": 34.21556,
+    "ele_m": 1427.0
+  },
+  {
+    "name": "Brown Mountain",
+    "kind": "peak",
+    "lon": -118.14705,
+    "lat": 34.23684,
+    "ele_m": 1363.0
+  },
+  {
+    "name": "Clamshell Peak",
+    "kind": "peak",
+    "lon": -117.99809,
+    "lat": 34.20218,
+    "ele_m": 1338.0
+  },
+  {
+    "name": "West Fuji",
+    "kind": "peak",
+    "lon": -118.10669,
+    "lat": 34.20878,
+    "ele_m": 1122.0
+  },
+  {
+    "name": "Mount Zion",
+    "kind": "peak",
+    "lon": -118.02802,
+    "lat": 34.21399,
+    "ele_m": 1091.0
+  },
+  {
+    "name": "Jones Peak",
+    "kind": "peak",
+    "lon": -118.05282,
+    "lat": 34.18655,
+    "ele_m": 1029.0
+  },
+  {
+    "name": "Lookout Point",
+    "kind": "peak",
+    "lon": -118.04896,
+    "lat": 34.19695,
+    "ele_m": 987.0
+  },
+  {
+    "name": "Echo Mountain",
+    "kind": "peak",
+    "lon": -118.12039,
+    "lat": 34.21107,
+    "ele_m": 968.0
+  },
+  {
+    "name": "Wella's Peak",
+    "kind": "peak",
+    "lon": -118.16872,
+    "lat": 34.24201,
+    "ele_m": 910.0
+  },
+  {
+    "name": "Altadena",
+    "kind": "place",
+    "lon": -118.13166,
+    "lat": 34.18986,
+    "ele_m": null
+  },
+  {
+    "name": "Bungalow Heaven",
+    "kind": "place",
+    "lon": -118.12719,
+    "lat": 34.16125,
+    "ele_m": null
+  },
+  {
+    "name": "Craftsman Heights",
+    "kind": "place",
+    "lon": -118.13943,
+    "lat": 34.16664,
+    "ele_m": null
+  },
+  {
+    "name": "Kinneloa Mesa",
+    "kind": "place",
+    "lon": -118.08424,
+    "lat": 34.17584,
+    "ele_m": null
+  },
+  {
+    "name": "Lamanda Park",
+    "kind": "place",
+    "lon": -118.09444,
+    "lat": 34.14614,
+    "ele_m": null
+  },
+  {
+    "name": "Linda Vista",
+    "kind": "place",
+    "lon": -118.17702,
+    "lat": 34.1714,
+    "ele_m": null
+  },
+  {
+    "name": "Monrovia",
+    "kind": "place",
+    "lon": -118.00145,
+    "lat": 34.14835,
+    "ele_m": null
+  },
+  {
+    "name": "Mount Wilson",
+    "kind": "place",
+    "lon": -118.06618,
+    "lat": 34.22639,
+    "ele_m": null
+  },
+  {
+    "name": "Normandie Heights",
+    "kind": "place",
+    "lon": -118.13956,
+    "lat": 34.17005,
+    "ele_m": null
+  },
+  {
+    "name": "Orange Heights",
+    "kind": "place",
+    "lon": -118.13953,
+    "lat": 34.16227,
+    "ele_m": null
+  },
+  {
+    "name": "Pasadena",
+    "kind": "place",
+    "lon": -118.14415,
+    "lat": 34.14765,
+    "ele_m": null
+  },
+  {
+    "name": "Sierra Madre",
+    "kind": "place",
+    "lon": -118.05285,
+    "lat": 34.16167,
+    "ele_m": null
+  },
+  {
+    "name": "Washington Square",
+    "kind": "place",
+    "lon": -118.13477,
+    "lat": 34.16543,
+    "ele_m": null
+  },
+  {
+    "name": "Altadena Golf Club Debris Basin",
+    "kind": "water",
+    "lon": -118.11731,
+    "lat": 34.18068,
+    "ele_m": null
+  },
+  {
+    "name": "Bailey Canyon Debris Reservoir",
+    "kind": "water",
+    "lon": -118.06153,
+    "lat": 34.17251,
+    "ele_m": null
+  },
+  {
+    "name": "Carter Debris Basin",
+    "kind": "water",
+    "lon": -118.05009,
+    "lat": 34.17423,
+    "ele_m": null
+  },
+  {
+    "name": "Debris Basin",
+    "kind": "water",
+    "lon": -118.15818,
+    "lat": 34.20443,
+    "ele_m": null
+  },
+  {
+    "name": "Devil's Gate Reservoir",
+    "kind": "water",
+    "lon": -118.17503,
+    "lat": 34.1875,
+    "ele_m": null
+  },
+  {
+    "name": "Eaton Canyon Reservoir",
+    "kind": "water",
+    "lon": -118.09344,
+    "lat": 34.17082,
+    "ele_m": null
+  },
+  {
+    "name": "Fair Oaks Debris Basin",
+    "kind": "water",
+    "lon": -118.14094,
+    "lat": 34.20382,
+    "ele_m": null
+  },
+  {
+    "name": "Fern Debris Basin",
+    "kind": "water",
+    "lon": -118.14794,
+    "lat": 34.20405,
+    "ele_m": null
+  },
+  {
+    "name": "Gooseberry Debris Basin",
+    "kind": "water",
+    "lon": -118.11991,
+    "lat": 34.19369,
+    "ele_m": null
+  },
+  {
+    "name": "Lannan Debris Basin",
+    "kind": "water",
+    "lon": -118.03288,
+    "lat": 34.17284,
+    "ele_m": null
+  },
+  {
+    "name": "Las Flores Debris Basin",
+    "kind": "water",
+    "lon": -118.12695,
+    "lat": 34.20193,
+    "ele_m": null
+  },
+  {
+    "name": "Lincoln Debris Basin",
+    "kind": "water",
+    "lon": -118.15689,
+    "lat": 34.20306,
+    "ele_m": null
+  },
+  {
+    "name": "Pasadena Water & Power Calaveras Reservoir",
+    "kind": "water",
+    "lon": -118.14781,
+    "lat": 34.18815,
+    "ele_m": null
+  },
+  {
+    "name": "RUBY LOWER DEBRIS BASIN",
+    "kind": "water",
+    "lon": -117.99856,
+    "lat": 34.16449,
+    "ele_m": null
+  },
+  {
+    "name": "Rubio Debris Basin",
+    "kind": "water",
+    "lon": -118.12266,
+    "lat": 34.19964,
+    "ele_m": null
+  },
+  {
+    "name": "Sierra Madre Debris Basin",
+    "kind": "water",
+    "lon": -118.04244,
+    "lat": 34.17661,
+    "ele_m": null
+  },
+  {
+    "name": "Sierra Madre Spreading Grounds",
+    "kind": "water",
+    "lon": -118.03984,
+    "lat": 34.16543,
+    "ele_m": null
+  },
+  {
+    "name": "West Ravine Debris Basin",
+    "kind": "water",
+    "lon": -118.14792,
+    "lat": 34.20547,
+    "ele_m": null
+  }
+]

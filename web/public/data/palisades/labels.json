@@ -1,0 +1,282 @@
+[
+  {
+    "name": "Saddle Peak",
+    "kind": "peak",
+    "lon": -118.65506,
+    "lat": 34.07803,
+    "ele_m": 851.0
+  },
+  {
+    "name": "Calabasas Peak",
+    "kind": "peak",
+    "lon": -118.65258,
+    "lat": 34.11203,
+    "ele_m": 657.0
+  },
+  {
+    "name": "Temescal Peak",
+    "kind": "peak",
+    "lon": -118.55373,
+    "lat": 34.10229,
+    "ele_m": 648.0
+  },
+  {
+    "name": "San Vicente Mountain",
+    "kind": "peak",
+    "lon": -118.51301,
+    "lat": 34.1287,
+    "ele_m": 598.0
+  },
+  {
+    "name": "Eagle Rock",
+    "kind": "peak",
+    "lon": -118.57084,
+    "lat": 34.1075,
+    "ele_m": 596.0
+  },
+  {
+    "name": "Green Peak",
+    "kind": "peak",
+    "lon": -118.54869,
+    "lat": 34.08638,
+    "ele_m": 590.0
+  },
+  {
+    "name": "Gizmo Peak",
+    "kind": "peak",
+    "lon": -118.5369,
+    "lat": 34.1288,
+    "ele_m": 587.4
+  },
+  {
+    "name": "Goat Peak (High Point)",
+    "kind": "peak",
+    "lon": -118.53279,
+    "lat": 34.07291,
+    "ele_m": 527.0
+  },
+  {
+    "name": "Castellammare Mesa",
+    "kind": "peak",
+    "lon": -118.55953,
+    "lat": 34.0439,
+    "ele_m": 108.0
+  },
+  {
+    "name": "Parker Mesa",
+    "kind": "peak",
+    "lon": -118.57342,
+    "lat": 34.04473,
+    "ele_m": 79.0
+  },
+  {
+    "name": "Malibu Bluffs Peak",
+    "kind": "peak",
+    "lon": -118.70696,
+    "lat": 34.0328,
+    "ele_m": null
+  },
+  {
+    "name": "Braewood",
+    "kind": "place",
+    "lon": -118.61171,
+    "lat": 34.14548,
+    "ele_m": null
+  },
+  {
+    "name": "Brentwood Park",
+    "kind": "place",
+    "lon": -118.48814,
+    "lat": 34.05501,
+    "ele_m": null
+  },
+  {
+    "name": "Calabasas",
+    "kind": "place",
+    "lon": -118.6441,
+    "lat": 34.14466,
+    "ele_m": null
+  },
+  {
+    "name": "Calabasas Highlands",
+    "kind": "place",
+    "lon": -118.64548,
+    "lat": 34.13077,
+    "ele_m": null
+  },
+  {
+    "name": "Castellammare",
+    "kind": "place",
+    "lon": -118.56119,
+    "lat": 34.04251,
+    "ele_m": null
+  },
+  {
+    "name": "Crater Camp",
+    "kind": "place",
+    "lon": -118.6988,
+    "lat": 34.08022,
+    "ele_m": null
+  },
+  {
+    "name": "Fernwood",
+    "kind": "place",
+    "lon": -118.6015,
+    "lat": 34.07835,
+    "ele_m": null
+  },
+  {
+    "name": "Glenview",
+    "kind": "place",
+    "lon": -118.60147,
+    "lat": 34.12445,
+    "ele_m": null
+  },
+  {
+    "name": "Kelly Gulch",
+    "kind": "place",
+    "lon": -118.59362,
+    "lat": 34.11915,
+    "ele_m": null
+  },
+  {
+    "name": "Las Flores",
+    "kind": "place",
+    "lon": -118.63592,
+    "lat": 34.03723,
+    "ele_m": null
+  },
+  {
+    "name": "Malibu",
+    "kind": "place",
+    "lon": -118.68942,
+    "lat": 34.03559,
+    "ele_m": null
+  },
+  {
+    "name": "Malibu Beach",
+    "kind": "place",
+    "lon": -118.68842,
+    "lat": 34.03279,
+    "ele_m": null
+  },
+  {
+    "name": "Monte Nido",
+    "kind": "place",
+    "lon": -118.68718,
+    "lat": 34.0808,
+    "ele_m": null
+  },
+  {
+    "name": "Pacific Palisades",
+    "kind": "place",
+    "lon": -118.52647,
+    "lat": 34.04806,
+    "ele_m": null
+  },
+  {
+    "name": "Riviera",
+    "kind": "place",
+    "lon": -118.50157,
+    "lat": 34.05776,
+    "ele_m": null
+  },
+  {
+    "name": "Santa Monica",
+    "kind": "place",
+    "lon": -118.49123,
+    "lat": 34.01947,
+    "ele_m": null
+  },
+  {
+    "name": "Sylvia Park",
+    "kind": "place",
+    "lon": -118.58175,
+    "lat": 34.11501,
+    "ele_m": null
+  },
+  {
+    "name": "Top O' Topanga",
+    "kind": "place",
+    "lon": -118.59804,
+    "lat": 34.13851,
+    "ele_m": null
+  },
+  {
+    "name": "Topanga",
+    "kind": "place",
+    "lon": -118.60296,
+    "lat": 34.0897,
+    "ele_m": null
+  },
+  {
+    "name": "Topanga Oaks",
+    "kind": "place",
+    "lon": -118.59036,
+    "lat": 34.10112,
+    "ele_m": null
+  },
+  {
+    "name": "Topanga Park",
+    "kind": "place",
+    "lon": -118.62925,
+    "lat": 34.10751,
+    "ele_m": null
+  },
+  {
+    "name": "Wildwood",
+    "kind": "place",
+    "lon": -118.60009,
+    "lat": 34.08293,
+    "ele_m": null
+  },
+  {
+    "name": "Encino Reservoir",
+    "kind": "water",
+    "lon": -118.5141,
+    "lat": 34.14478,
+    "ele_m": null
+  },
+  {
+    "name": "Malibu Lagoon",
+    "kind": "water",
+    "lon": -118.68294,
+    "lat": 34.03398,
+    "ele_m": null
+  },
+  {
+    "name": "Pulga Debris Basin",
+    "kind": "water",
+    "lon": -118.54362,
+    "lat": 34.06472,
+    "ele_m": null
+  },
+  {
+    "name": "Santa Monica Lagoon",
+    "kind": "water",
+    "lon": -118.52019,
+    "lat": 34.02743,
+    "ele_m": null
+  },
+  {
+    "name": "Santa Ynez Lake",
+    "kind": "water",
+    "lon": -118.55193,
+    "lat": 34.04369,
+    "ele_m": null
+  },
+  {
+    "name": "Santa Ynez Reservoir",
+    "kind": "water",
+    "lon": -118.56894,
+    "lat": 34.07279,
+    "ele_m": null
+  },
+  {
+    "name": "Topanga Lagoon",
+    "kind": "water",
+    "lon": -118.5831,
+    "lat": 34.03874,
+    "ele_m": null
+  }
+]
