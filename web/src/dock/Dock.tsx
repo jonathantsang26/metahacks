@@ -1,12 +1,13 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import type {FireData} from '../data/fire';
-import {useFireJson, type Profile, type Series} from '../data/files';
+import {useFireJson, type Perimeters, type Profile, type Series} from '../data/files';
 import {formatDateTime, tickParts, zoneLabel} from '../lib/format';
 import {SPEEDS, useProgress, useTime} from '../state/time';
 import {useUi} from '../state/ui';
 import {Icon} from '../ui/Icon';
+import {arrivalWindow, useBurnedArea} from './area';
 import {ChartEmpty, ChartFrame, ElevationProfileChart, FireAreaChart, RateOfSpreadChart} from './charts';
-import {EventGlyph, KeyEventsList, useKeyEvents, type KeyEvents} from './events';
+import {EventGlyph, isMappingArtifact, KeyEventsList, stepLine, useKeyEvents, type KeyEvents} from './events';
 import {rosAxis, type ArrivalIntervals} from './scale';
 
 const HOUR = 3600_000;
@@ -156,10 +157,10 @@ function Scrubber({tz, series, events}: {tz: string; series: Series | null; even
             key={e.id}
             data-event={e.id}
             className={`absolute ${e.lane ? '-top-1' : 'top-[4px]'} -ml-[7px] flex h-3.5 w-3.5 items-center justify-center rounded-full bg-card shadow-[0_0_0_1px_var(--hairline)]`}
-            style={{left: pct(e.ms), opacity: e.ms > t ? 0.6 : 1}}
-            title={`${e.label}\n${formatDateTime(e.ms, tz)} ${zoneLabel(e.ms, tz)}`}
+            style={{left: pct(e.ms), opacity: (e.ms > t ? 0.6 : 1) * (isMappingArtifact(e.step) ? 0.75 : 1)}}
+            title={`${e.label}\n${formatDateTime(e.ms, tz)} ${zoneLabel(e.ms, tz)}${e.step ? `\n${stepLine(e.step)}` : ''}`}
           >
-            <EventGlyph kind={e.kind} size={10} />
+            <EventGlyph kind={e.kind} size={10} soft={isMappingArtifact(e.step)} />
           </span>
         ))}
         <div className="absolute top-[3px] -ml-[7px] h-4 w-4 rounded-full border-2 border-white bg-ink shadow" style={{left: pct(t)}} />
@@ -182,8 +183,8 @@ function Scrubber({tz, series, events}: {tz: string; series: Series | null; even
   );
 }
 
-/** A chart slot whose data this build does not have yet; the cursor still tracks t. */
-function PendingChart({title, unit, note}: {title: string; unit?: string; note: string}) {
+/** A chart slot this build has no data for (its header tab is disabled); the cursor still tracks t. */
+function UnavailableChart({title, unit, note}: {title: string; unit?: string; note: string}) {
   const progress = useProgress();
   return (
     <ChartFrame title={title} unit={unit}>
@@ -194,19 +195,19 @@ function PendingChart({title, unit, note}: {title: string; unit?: string; note: 
   );
 }
 
-const STREAM_C = 'Stream C (Sentinel + SAM 3.1 on drone footage) · not started yet in this build';
-const STRETCH = 'Not in this build (stretch goal)';
+const NO_DRONES = 'No drone footage in this build';
+const NO_RESOURCES = 'No aircraft, engine or crew data in this build';
 
-const PENDING = {
+const UNAVAILABLE = {
   drones: [
-    {title: 'Altitude', unit: 'ft AGL', note: STREAM_C},
-    {title: 'Detections per second', note: STREAM_C},
-    {title: 'Mask area', unit: '% of frame', note: STREAM_C}
+    {title: 'Altitude', unit: 'ft AGL', note: NO_DRONES},
+    {title: 'Detections per second', note: NO_DRONES},
+    {title: 'Mask area', unit: '% of frame', note: NO_DRONES}
   ],
   resources: [
-    {title: 'Retardant Dropped', unit: 'gal', note: STRETCH},
-    {title: 'Fire Line Built', unit: 'chains', note: STRETCH},
-    {title: 'Personnel Assigned', note: STRETCH}
+    {title: 'Retardant Dropped', unit: 'gal', note: NO_RESOURCES},
+    {title: 'Fire Line Built', unit: 'chains', note: NO_RESOURCES},
+    {title: 'Personnel Assigned', note: NO_RESOURCES}
   ]
 };
 
@@ -216,9 +217,9 @@ const SIDE = {
   resources: 'Air Ops Log'
 };
 
-const SIDE_PENDING = {
-  drones: 'Sentinel detections come from stream C, which has not started yet in this build.',
-  resources: STRETCH
+const SIDE_UNAVAILABLE = {
+  drones: 'Drone footage analysis is not part of this build, so there are no detections to list.',
+  resources: 'Aircraft, engine and crew data are not part of this build, so there is no air operations log.'
 };
 
 /** DESIGN.md §6: 226px dock under the map; side list on the right. */
@@ -229,6 +230,9 @@ export function Dock({fire}: {fire: FireData}) {
   const series = useFireJson<Series>(fire, 'series.json');
   const profile = useFireJson<Profile>(fire, 'profile.json');
   const meta = useFireJson<ArrivalIntervals>(fire, 'arrival_meta.json');
+  const perimeters = useFireJson<Perimeters>(fire, 'perimeters.geojson');
+  const span = useMemo(() => arrivalWindow(fire, meta.data), [fire, meta.data]);
+  const burned = useBurnedArea(fire, span);
   const events = useKeyEvents(fire);
   return (
     <div className="flex h-[226px] shrink-0 border-t border-hairline bg-chrome">
@@ -248,12 +252,18 @@ export function Dock({fire}: {fire: FireData}) {
         <div className="flex min-h-0 flex-1">
           {tab === 'incident' ? (
             <>
-              <FireAreaChart series={series} tz={tz} base={fire.base} />
+              <FireAreaChart
+                area={burned.area}
+                unavailable={burned.error}
+                perimeters={perimeters.data}
+                fire={fire}
+                base={fire.base}
+              />
               <RateOfSpreadChart series={series} meta={meta} tz={tz} base={fire.base} />
-              <ElevationProfileChart profile={profile} base={fire.base} />
+              <ElevationProfileChart profile={profile} tz={tz} base={fire.base} />
             </>
           ) : (
-            PENDING[tab].map(c => <PendingChart key={c.title} {...c} />)
+            UNAVAILABLE[tab].map(c => <UnavailableChart key={c.title} {...c} />)
           )}
         </div>
       </div>
@@ -265,9 +275,9 @@ export function Dock({fire}: {fire: FireData}) {
           )}
         </div>
         {tab === 'incident' ? (
-          <KeyEventsList fire={fire} data={events} meta={meta.data} />
+          <KeyEventsList fire={fire} data={events} />
         ) : (
-          <div className="px-3 py-6 text-center text-sm text-muted">{SIDE_PENDING[tab]}</div>
+          <div className="px-3 py-6 text-center text-sm text-muted">{SIDE_UNAVAILABLE[tab]}</div>
         )}
       </aside>
     </div>

@@ -1,18 +1,20 @@
 /**
- * Incident charts (DESIGN.md §6.2): Fire Area and Rate of Spread over the replay window from
- * series.json, and the Elevation Profile along the spread spine from profile.json. Paths are
- * built once per data/size; only the past/future clip and the cursor move with t.
+ * Incident charts (DESIGN.md §6.2): Fire Area from the arrival raster (the cells the map draws
+ * as burned) and Rate of Spread from series.json over the replay window, and the Elevation
+ * Profile along the spread spine from profile.json. Paths are built once per data/size; only
+ * the past/future clip and the cursor move with t.
  */
-import {useId, useMemo, type ReactNode} from 'react';
-import type {Profile, Series} from '../data/files';
-import {tickParts} from '../lib/format';
+import {useEffect, useId, useMemo, useRef, useState, type ReactNode} from 'react';
+import type {FireData} from '../data/fire';
+import {indexAtOrBefore, type Perimeters, type Profile, type Series} from '../data/files';
+import {formatDateTime, tickParts, zoneLabel} from '../lib/format';
 import {useTime} from '../state/time';
 import {Icon} from '../ui/Icon';
+import {acresAt, type BurnedArea} from './area';
 import {
   formatMinutes,
   formatValue,
   indexAtOrAfter,
-  interpolate,
   niceTicks,
   rosAxis,
   shortInterval,
@@ -34,10 +36,25 @@ const PROFILE_NOTE =
 
 type DataFile = {name: string; href: string};
 
-/** ⋮ menu: the pipeline files a chart is drawn from. */
+/** ⋮ menu: the pipeline files a chart is drawn from. A press outside it, or Escape, closes it. */
 function ChartMenu({files}: {files: DataFile[]}) {
+  const ref = useRef<HTMLDetailsElement>(null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => ref.current && (ref.current.open = false);
+    const onPointer = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && close();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    // Capture phase, so the map canvas can't swallow the press first.
+    document.addEventListener('pointerdown', onPointer, true);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onPointer, true);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
   return (
-    <details className="relative shrink-0">
+    <details ref={ref} className="relative shrink-0" onToggle={e => setOpen(e.currentTarget.open)}>
       <summary
         className="flex cursor-pointer list-none text-muted hover:text-ink [&::-webkit-details-marker]:hidden"
         title="Source files"
@@ -46,7 +63,14 @@ function ChartMenu({files}: {files: DataFile[]}) {
       </summary>
       <div className="absolute right-0 top-full z-20 mt-1 flex flex-col whitespace-nowrap rounded-md bg-card py-1 text-xs shadow-[0_0_0_1px_var(--hairline)]">
         {files.map(f => (
-          <a key={f.href} href={f.href} target="_blank" rel="noreferrer" className="px-3 py-1 hover:bg-tabgroup">
+          <a
+            key={f.href}
+            href={f.href}
+            target="_blank"
+            rel="noreferrer"
+            className="px-3 py-1 hover:bg-tabgroup"
+            onClick={() => ref.current && (ref.current.open = false)}
+          >
             Open {f.name}
           </a>
         ))}
@@ -283,18 +307,27 @@ function useTimeScales(series: Series, w: number, h: number, top: number) {
   }, [series, w, h, top, start, end]);
 }
 
-/** Fire Area: cumulative acres, linear between the hourly samples. */
-function AreaPlot({series, tz, w, h}: TimeChartProps) {
+/**
+ * Fire Area: acres burned in the arrival raster, drawn as steps at its arrival codes, so the
+ * curve, the cursor and the readout all match the burned cells on the map at any t.
+ */
+function AreaPlot({area, tz, w, h}: {area: BurnedArea; tz: string; w: number; h: number}) {
   const t = useTime(s => s.t);
-  const max = Math.max(0, ...series.area_acres);
-  const {start, end, times, yt, x, y} = useTimeScales(series, w, h, max);
-  const {line, area} = useMemo(() => {
-    const pts = times.map((ms, i) => `${x(ms).toFixed(1)},${y(series.area_acres[i]).toFixed(1)}`);
-    const line = `M${pts.join('L')}`;
-    const base = y(yt.lo).toFixed(1);
-    return {line, area: `${line}L${x(times[times.length - 1]).toFixed(1)},${base}L${x(times[0]).toFixed(1)},${base}Z`};
-  }, [times, x, y, yt, series]);
-  const v = interpolate(times, series.area_acres, t);
+  const start = useTime(s => s.start);
+  const end = useTime(s => s.end);
+  const g = useMemo(() => {
+    const yt = niceTicks(0, area.acres[area.acres.length - 1] ?? 0, 3);
+    // Clamped, in case the arrival window ever differs from the replay window.
+    const x = (ms: number) => M.l + ((Math.min(end, Math.max(start, ms)) - start) / (end - start)) * (w - M.l - M.r);
+    const y = (v: number) => M.t + (1 - (v - yt.lo) / (yt.hi - yt.lo)) * (h - M.t - M.b);
+    let line = `M${x(start).toFixed(1)},${y(0).toFixed(1)}`;
+    area.times.forEach((ms, i) => {
+      line += `H${x(ms).toFixed(1)}V${y(area.acres[i]).toFixed(1)}`;
+    });
+    line += `H${x(end).toFixed(1)}`;
+    return {yt, x, y, line, fill: `${line}V${y(yt.lo).toFixed(1)}H${x(start).toFixed(1)}Z`};
+  }, [area, w, h, start, end]);
+  const {yt, x, y} = g;
   return (
     <>
       <YAxis ticks={yt.ticks} step={yt.step} y={y} w={w} unit="ac" />
@@ -302,12 +335,12 @@ function AreaPlot({series, tz, w, h}: TimeChartProps) {
       <PastFuture past={[[0, x(t)]]} w={w} h={h}>
         {past => (
           <>
-            <path d={area} fill="var(--chart-area-fill)" />
-            <path d={line} fill="none" stroke="var(--chart-area-stroke)" strokeWidth={1.5} strokeDasharray={past ? undefined : '3 3'} />
+            <path d={g.fill} fill="var(--chart-area-fill)" />
+            <path d={g.line} fill="none" stroke="var(--chart-area-stroke)" strokeWidth={1.5} strokeDasharray={past ? undefined : '3 3'} />
           </>
         )}
       </PastFuture>
-      <Cursor x={x(t)} y={v === null ? null : y(v)} h={h} color="var(--chart-area-stroke)" />
+      <Cursor x={x(t)} y={y(acresAt(area, t))} h={h} color="var(--chart-area-stroke)" />
     </>
   );
 }
@@ -432,21 +465,69 @@ function empty<T>(file: string, s: Loaded<T>): ReactNode | null {
 
 const dataFiles = (base: string, ...names: string[]): DataFile[] => names.map(name => ({name, href: `${base}/${name}`}));
 
-export function FireAreaChart({series, tz, base}: {series: Loaded<Series>; tz: string; base: string}) {
+const stamp = (ms: number, tz: string) => `${formatDateTime(ms, tz)} ${zoneLabel(ms, tz)}`;
+const acresText = (v: number) => `${Math.round(v).toLocaleString('en-US')} acres`;
+
+/** Why the modeled acres at t differ from the mapped perimeter's and CAL FIRE's figures. */
+function areaTitle(area: BurnedArea, perimeters: Perimeters | null, finalAcres: number | null, t: number, tz: string): string {
+  const parts = [
+    `Modeled: the arrival-raster cells burned by this time (~${area.cellM.toFixed(1)} m cells, the same cells the map ` +
+      'draws as burned), summed to acres.'
+  ];
+  const feats = perimeters?.features ?? [];
+  const k = indexAtOrBefore(
+    feats.map(f => f.properties.t),
+    t
+  );
+  const measures: string[] = [];
+  if (k >= 0) {
+    const p = feats[k].properties;
+    measures.push(`the latest mapped perimeter (NIFC, ${stamp(Date.parse(p.t), tz)}) is ${acresText(p.acres)}`);
+  } else if (feats.length) measures.push(`the first mapped perimeter (NIFC) comes at ${stamp(Date.parse(feats[0].properties.t), tz)}`);
+  if (finalAcres !== null) measures.push(`CAL FIRE's final perimeter is ${acresText(finalAcres)}`);
+  if (measures.length) parts.push(`Separate measures: ${measures.join('; ')}.`);
+  return parts.join(' ');
+}
+
+export function FireAreaChart({
+  area,
+  unavailable,
+  perimeters,
+  fire,
+  base
+}: {
+  area: BurnedArea | null;
+  /** arrival.png failed to load or decode, so there are no cells to count. */
+  unavailable: boolean;
+  perimeters: Perimeters | null;
+  fire: FireData;
+  base: string;
+}) {
   const t = useTime(s => s.t);
-  const v = useMemo(() => series.data && {times: series.data.t.map(Date.parse), area: series.data.area_acres}, [series.data]);
-  const now = v ? interpolate(v.times, v.area, t) : null;
+  const tz = fire.aoi.timezone;
+  const steps = area && Math.round(area.stepMs / 60_000);
   return (
     <ChartFrame
       title="Fire Area"
-      unit="acres"
       modeled={RASTER_NOTE}
-      value={now === null ? null : `${formatValue(now)} ac`}
-      foot="From the modeled arrival raster · hourly"
-      footTitle="Burned area by hour, derived from the modeled arrival raster (interpolated between mapped perimeters); linear between hours"
-      files={dataFiles(base, 'series.json')}
+      value={area && `${formatValue(acresAt(area, t))} ac`}
+      valueTitle={area ? areaTitle(area, perimeters, fire.aoi.official.final_acres, t, tz) : undefined}
+      foot={area ? `From the modeled arrival raster · ${steps} min steps` : 'From the modeled arrival raster'}
+      footTitle={
+        area
+          ? 'Acres of the arrival raster burned by each time: the cells the map draws as burned, ' +
+            `~${area.cellM.toFixed(1)} m each. The raster is interpolated between mapped perimeters and stores its times in ` +
+            `253 steps of ${steps} min across the window, so the area rises in steps. Cells the raster places at or after ` +
+            "the window's end count at its end, as on the map."
+          : undefined
+      }
+      files={dataFiles(base, 'arrival.png', 'arrival_meta.json')}
     >
-      {empty('series.json', series) ?? <Plot>{(w, h) => <AreaPlot series={series.data!} tz={tz} w={w} h={h} />}</Plot>}
+      {area ? (
+        <Plot>{(w, h) => <AreaPlot area={area} tz={tz} w={w} h={h} />}</Plot>
+      ) : (
+        <ChartEmpty>{unavailable ? 'arrival.png unavailable' : 'Loading…'}</ChartEmpty>
+      )}
     </ChartFrame>
   );
 }
@@ -479,7 +560,6 @@ export function RateOfSpreadChart({
   return (
     <ChartFrame
       title="Rate of Spread"
-      unit="chains/hr"
       modeled={RASTER_NOTE}
       value={value}
       valueTitle={
@@ -525,8 +605,21 @@ function median(v: number[]): number {
  * Elevation along the spine. A step far wider than the usual sample spacing has no samples in
  * it (step 06 closes the spine with a straight segment to the seed), so it is drawn dashed and
  * unfilled. A segment is solid once both its samples have burned; null-t samples never burn.
+ * Once t passes the last traced arrival (`ended`), the front stays at the spine's end, hollow.
  */
-function ProfilePlot({profile, times, w, h}: {profile: Profile; times: (number | null)[]; w: number; h: number}) {
+function ProfilePlot({
+  profile,
+  times,
+  ended,
+  w,
+  h
+}: {
+  profile: Profile;
+  times: (number | null)[];
+  ended: boolean;
+  w: number;
+  h: number;
+}) {
   const t = useTime(s => s.t);
   const g = useMemo(() => {
     const d = profile.distance_km;
@@ -573,6 +666,8 @@ function ProfilePlot({profile, times, w, h}: {profile: Profile; times: (number |
   });
   const f = frontIndex(times, t);
   const fx = f < 0 ? M.l : g.x(d[f]);
+  const fy = f < 0 ? 0 : g.y(profile.elevation_m[f]);
+  const endLabel = ended ? placeLabel(fx, w, ['spine ends here', 'spine ends', 'end']) : null;
   return (
     <>
       <YAxis ticks={g.yt.ticks} step={g.yt.step} y={g.y} w={w} unit="m" compact={false} />
@@ -603,40 +698,72 @@ function ProfilePlot({profile, times, w, h}: {profile: Profile; times: (number |
       </PastFuture>
       {f >= 0 && (
         <g>
-          <line x1={fx} x2={fx} y1={M.t} y2={h - M.b} stroke="var(--text)" strokeOpacity={0.35} strokeDasharray="2 2" />
-          <circle cx={fx} cy={g.y(profile.elevation_m[f])} r={4} fill="var(--chart-rate)" stroke="var(--bg-chrome)" strokeWidth={1.5} />
+          <line x1={fx} x2={fx} y1={M.t} y2={h - M.b} stroke="var(--text)" strokeOpacity={ended ? 0.2 : 0.35} strokeDasharray="2 2" />
+          {ended ? (
+            <circle cx={fx} cy={fy} r={3.5} fill="var(--bg-chrome)" stroke="var(--chart-rate)" strokeWidth={1.5} />
+          ) : (
+            <circle cx={fx} cy={fy} r={4} fill="var(--chart-rate)" stroke="var(--bg-chrome)" strokeWidth={1.5} />
+          )}
+          {endLabel && (
+            <text
+              x={endLabel.x}
+              y={Math.max(M.t + 6, fy - 8)}
+              textAnchor={endLabel.anchor}
+              fontSize={9}
+              fill="var(--text-muted)"
+              stroke="var(--bg-chrome)"
+              strokeWidth={3}
+              paintOrder="stroke"
+            >
+              {endLabel.text}
+            </text>
+          )}
         </g>
       )}
     </>
   );
 }
 
-export function ElevationProfileChart({profile, base}: {profile: Loaded<Profile>; base: string}) {
+export function ElevationProfileChart({profile, tz, base}: {profile: Loaded<Profile>; tz: string; base: string}) {
   const t = useTime(s => s.t);
   const p = profile.data;
   const times = useMemo(() => (p ? p.t.map(s => (s === null ? null : Date.parse(s))) : []), [p]);
+  // The spine is traced only as far as its last burned sample; past that time it says nothing.
+  const lastT = useMemo(() => times.reduce<number | null>((m, at) => (at !== null && (m === null || at > m) ? at : m), null), [times]);
   const f = frontIndex(times, t);
+  const ended = lastT !== null && t > lastT;
   const short = p && p.distance_km.length > 0 && p.distance_km[p.distance_km.length - 1] < 2;
   const value =
     !p ? null : f < 0 ? (
-      <span className="font-normal text-muted">no modeled arrival yet</span>
+      <span className="font-normal text-muted">no arrival yet</span>
     ) : (
-      `${formatValue(p.elevation_m[f])} m · ${p.distance_km[f].toFixed(short ? 2 : 1)} km`
+      <>
+        {formatValue(p.elevation_m[f])} m · {p.distance_km[f].toFixed(short ? 2 : 1)} km
+        {ended && <span className="font-normal text-muted"> · end</span>}
+      </>
     );
+  const traced = lastT === null ? null : stamp(lastT, tz);
   return (
     <ChartFrame
       title="Elevation Profile"
-      unit="spread spine"
       modeled={PROFILE_NOTE}
       value={value}
+      valueTitle={
+        ended
+          ? `profile.json traces the spread spine only to ${traced}, when its farthest sample burned, so the front stays at ` +
+            'its end. Spread after that time is not on this profile.'
+          : undefined
+      }
       foot={
         <>
-          From the modeled arrival raster · <span className="text-[var(--chart-rate)]">●</span> front
+          {traced ? `Spine traced to ${traced}` : 'Along the spread spine'} · <span className="text-[var(--chart-rate)]">●</span> front
         </>
       }
       footTitle={
         'Elevation along the spread spine from the terrain model (DEM). The spine and each sample’s arrival time come from ' +
-        'the modeled arrival raster; the red dot is the farthest sample burned by the cursor time. Dashed spans have no samples.'
+        'the modeled arrival raster; the red dot is the farthest sample burned by the cursor time.' +
+        (traced ? ` The spine is traced to ${traced} (its last burned sample); after that the dot stays at the end, hollow.` : '') +
+        ' Dashed spans have no samples.'
       }
       files={dataFiles(base, 'profile.json')}
     >
@@ -644,7 +771,7 @@ export function ElevationProfileChart({profile, base}: {profile: Loaded<Profile>
         (p!.distance_km.length < 2 ? (
           <ChartEmpty>profile.json has too few samples</ChartEmpty>
         ) : (
-          <Plot>{(w, h) => <ProfilePlot profile={p!} times={times} w={w} h={h} />}</Plot>
+          <Plot>{(w, h) => <ProfilePlot profile={p!} times={times} ended={ended} w={w} h={h} />}</Plot>
         ))}
     </ChartFrame>
   );

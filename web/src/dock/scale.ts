@@ -76,8 +76,11 @@ export function rosAxis(ros: number[]): {top: number; capped: boolean} {
   return {top: hi, capped: max > hi};
 }
 
-/** arrival_meta.json (step 06), the part the dock reads: the perimeter-to-perimeter intervals. */
-export type ArrivalIntervals = {intervals: {from: string; to: string; new_cells: number}[]};
+/**
+ * arrival_meta.json (step 06), the part the dock reads: the window the arrival codes are relative
+ * to and the perimeter-to-perimeter intervals.
+ */
+export type ArrivalIntervals = {window_utc?: [string, string]; intervals: {from: string; to: string; new_cells: number}[]};
 
 /**
  * The arrival raster packs every cell between two mapped perimeters into the time between
