@@ -37,12 +37,12 @@ On the model side, Meta's Muse Spark (`muse-spark-1.3`) does tool calling over a
 | Wind field: HRRR 3 km wind on a grid over each fire, checked against airport stations and ERA5 | **Working** | [`s07_weather.py`](pipeline/steps/s07_weather.py) |
 | Ignition back-trace: where and when it started, with calibrated uncertainty and an identifiability rule | **Working and benchmarked** (see Evidence) | [`ember/spread.py`](pipeline/ember/spread.py), [`s11_ignition.py`](pipeline/steps/s11_ignition.py) |
 | House-level exposure: destruction odds by construction feature, at matched exposure | **Working** | [`s09b_exposure.py`](pipeline/steps/s09b_exposure.py) |
-| Analyst (`muse-spark-1.3`): tool calls over the fire data, with citation, number and guardrail checks on the server | **Built and tested offline. Not yet run against the live API**, which needs `MODEL_API_KEY` | [`web/api/`](web/api) |
-| Web app: 3D terrain, timeline, hover inspector, Evidence tab | **Shell working.** The fire layer is still a synthetic pattern labelled `SIM`; it doesn't read the pipeline's outputs yet (stream B) | [`web/src/`](web/src) |
+| Analyst (`muse-spark-1.3`): tool calls over the fire data, with citation, number and guardrail checks on the server, and a chat in the app whose citation chips move the map and the clock | **Built and tested offline. Not yet run against the live API**, which needs `MODEL_API_KEY`; without it the chat shows the server's message, never an answer | [`web/api/`](web/api), [`rail/analyst.tsx`](web/src/rail/analyst.tsx) |
+| Web app: replays each fire on 3D terrain from the pipeline's files. The map shows the interpolated progression from `arrival.png`, the dNBR burn scar, the mapped perimeter at the current time, the ignition estimate and its 90% region beside CAL FIRE's reported point, structures, roads and HRRR wind. Charts, key events, weather at the current time, the back-trace and house-level analysis, and the source manifest all follow one timeline | **Working** on Eaton and Palisades (switch fires from the header). The Drones and Resources tabs are disabled: there is no data for them in this build | [`web/src/`](web/src) |
 | Drone footage: Sentinel YOLOv8 + SAM 3.1 segmentation | **Not started** (stream C). Only the API smoke test exists | [`tools/smoke_meta.py`](pipeline/tools/smoke_meta.py) |
 | NASA FIRMS hotspots | **Code done**, gated on `FIRMS_MAP_KEY`; not used in the committed outputs | [`s04_firms.py`](pipeline/steps/s04_firms.py) |
 
-The build is split into three streams ([`WORKSTREAMS.md`](docs/spec/WORKSTREAMS.md)). This branch is stream A: the data, the forensics and the analyst backend.
+The build is split into three streams ([`WORKSTREAMS.md`](docs/spec/WORKSTREAMS.md)). This branch carries stream A (the data, the forensics and the analyst backend) and the web app's wiring to those outputs.
 
 ## How the hard part works
 
@@ -157,8 +157,8 @@ What it shows:
 - **Burn severity coverage.** AVIRIS-3 dNBR covers about half of Eaton's perimeter and only a sliver of Palisades (`severity_stats.json`).
 - **Not yet verified:**
   - The analyst has not been run live against the Meta API.
-  - The web app does not yet read the pipeline's outputs.
   - The drone footage stream has not started.
+  - The web app has been checked in desktop Chromium only; it needs WebGL2.
 
 ## Reproduce
 
@@ -175,6 +175,7 @@ cd ../web && npm ci
 npm test                                         # analyst tests (no key needed)
 npm run build                                    # typecheck app + API, production build
 npm run eval:analyst -- --truth --fire palisades # print an analyst eval's ground truth (no key needed)
+npm run dev                                      # the app at http://localhost:5173 (?fire=palisades); no key needed
 ```
 
 With network access, `make all` rebuilds every output from the public sources (`make FIRE=palisades all` for Palisades). `make eval-full` reruns the whole synthetic benchmark and the wind ablation, which takes one to two hours per fire.
@@ -182,7 +183,7 @@ With network access, `make all` rebuilds every output from the public sources (`
 With a Meta key in `.env` (`cp .env.example .env`):
 - `npm run ask -- "When did the fire reach Lake Avenue?"` asks the analyst one question.
 - `npm run eval:analyst` scores it.
-- `npm run dev` serves the app and `POST /api/analyst` at http://localhost:5173.
+- `npm run dev` also answers in the app's Analyst tab (`POST /api/analyst`).
 
 ## Meta models
 

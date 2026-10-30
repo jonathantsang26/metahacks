@@ -29,6 +29,8 @@ export type FireEvent = {
   lat: number;
   source: string;
   date_only?: boolean;
+  /** rapid_growth: the span between mapped perimeters that the rate is averaged over. */
+  interval?: [string, string];
 };
 
 /** series.json: hourly, from the arrival raster. */
