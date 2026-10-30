@@ -10,10 +10,11 @@ Physics (deliberately simple, documented in the model card in step 11):
     R(α) = R_h (1 − e) / (1 − e cos α), with eccentricity from Anderson's (1983)
     length-to-breadth ratio LB(U_eff) and α the angle from the effective-wind direction.
   * Arrival times come from a time-dependent Dijkstra over a 16-neighbour stencil; the wind
-    used on an edge is the 15-minute-interpolated wind at the source cell's arrival time.
+    used on an edge is the wind at the source cell, interpolated to 15-minute steps in time and
+    bilinearly in space from a coarse grid of wind points (one point = spatially uniform wind).
 
 Not modelled: spotting/ember transport, crown fire, suppression, fuel moisture dynamics, and
-any spatial variation of wind (one reanalysis point drives the whole domain).
+wind structure finer than the wind grid (HRRR, 3 km: valley channelling below that is missed).
 """
 
 from __future__ import annotations
@@ -57,6 +58,7 @@ C_WIND = 0.32      # head-rate wind coefficient (U in mph)
 B_WIND = 1.5       # wind exponent
 C_SLOPE = 3.0      # slope factor φ_s = C_SLOPE · tan²(slope)
 NEVER = np.inf
+LB_MAX = 8.0       # default cap on the length-to-breadth ratio (Anderson's curve saturates near 8)
 WIND_DT_H = 0.25   # wind is resampled to 15-minute steps
 
 # ESA WorldCover code → (R0 m/h, wind adjustment factor). R0 = 0 means non-burnable.
@@ -94,19 +96,68 @@ class Terrain:
 
 @dataclass
 class Wind:
-    """Spatially uniform wind on a regular time axis (hours since the replay start)."""
+    """Wind on a regular time axis (hours since the replay start), on a coarse grid of points.
 
-    u_mph: np.ndarray     # float64 (T,), toward-east component
-    v_mph: np.ndarray     # float64 (T,), toward-north component
+    u_mph / v_mph are (T, P): P = rows × cols points at the centers of a rows × cols partition
+    of the model domain, north row first, west to east. rows = cols = 1 is spatially uniform.
+    """
+
+    u_mph: np.ndarray     # float64 (T, P), toward-east component
+    v_mph: np.ndarray     # float64 (T, P), toward-north component
     t0_h: float           # hours of the first sample
     dt_h: float = WIND_DT_H
+    rows: int = 1
+    cols: int = 1
+
+    def __post_init__(self):
+        self.u_mph = np.ascontiguousarray(np.asarray(self.u_mph, float).reshape(len(self.u_mph), -1))
+        self.v_mph = np.ascontiguousarray(np.asarray(self.v_mph, float).reshape(len(self.v_mph), -1))
+        if self.u_mph.shape != self.v_mph.shape or self.u_mph.shape[1] != self.rows * self.cols:
+            raise ValueError(f"wind arrays {self.u_mph.shape} do not match a {self.rows}×{self.cols} grid")
 
     @classmethod
     def from_hourly(cls, t_h: np.ndarray, speed_mph: np.ndarray, dir_from_deg: np.ndarray) -> "Wind":
+        """Spatially uniform wind from one hourly series (meteorological FROM direction)."""
         to = np.radians((np.asarray(dir_from_deg) + 180.0) % 360.0)
         u, v = speed_mph * np.sin(to), speed_mph * np.cos(to)
         grid = np.arange(t_h[0], t_h[-1] + 1e-9, WIND_DT_H)
         return cls(np.interp(grid, t_h, u), np.interp(grid, t_h, v), float(t_h[0]))
+
+    @classmethod
+    def from_field(cls, t_h: np.ndarray, u_mph: np.ndarray, v_mph: np.ndarray, rows: int, cols: int) -> "Wind":
+        """Gridded wind from hourly (T, P) toward-components, resampled to 15-minute steps."""
+        grid = np.arange(t_h[0], t_h[-1] + 1e-9, WIND_DT_H)
+        resample = lambda a: np.stack([np.interp(grid, t_h, a[:, p]) for p in range(a.shape[1])], axis=1)
+        return cls(resample(np.asarray(u_mph, float)), resample(np.asarray(v_mph, float)), float(t_h[0]),
+                   rows=rows, cols=cols)
+
+    def scaled(self, factor: float) -> "Wind":
+        return Wind(self.u_mph * factor, self.v_mph * factor, self.t0_h, self.dt_h, self.rows, self.cols)
+
+    def shifted(self, hours: float) -> "Wind":
+        """The same wind history, arriving `hours` later (a timing error in the weather model)."""
+        return Wind(self.u_mph, self.v_mph, self.t0_h + hours, self.dt_h, self.rows, self.cols)
+
+    def mean(self) -> "Wind":
+        """Spatially uniform wind: the domain mean of every time step."""
+        return Wind(self.u_mph.mean(axis=1), self.v_mph.mean(axis=1), self.t0_h, self.dt_h)
+
+    def stencil(self, H: int, W: int) -> tuple[np.ndarray, np.ndarray]:
+        """Bilinear interpolation from the wind points to every cell of an H × W grid:
+        four point indices and four weights per cell, flat row-major."""
+        def axis(n_cells, n_pts):
+            x = np.clip((np.arange(n_cells) + 0.5) * n_pts / n_cells - 0.5, 0, n_pts - 1)
+            lo = np.minimum(np.floor(x).astype(np.int64), max(n_pts - 2, 0))
+            hi = np.minimum(lo + 1, n_pts - 1)
+            return lo, hi, x - lo
+        r0, r1, fy = axis(H, self.rows)
+        c0, c1, fx = axis(W, self.cols)
+        R0, C0 = np.meshgrid(r0, c0, indexing="ij")
+        R1, C1 = np.meshgrid(r1, c1, indexing="ij")
+        FY, FX = np.meshgrid(fy, fx, indexing="ij")
+        idx = np.stack([R0 * self.cols + C0, R0 * self.cols + C1, R1 * self.cols + C0, R1 * self.cols + C1], -1)
+        wts = np.stack([(1 - FY) * (1 - FX), (1 - FY) * FX, FY * (1 - FX), FY * FX], -1)
+        return np.ascontiguousarray(idx.reshape(-1, 4)), np.ascontiguousarray(wts.reshape(-1, 4))
 
 
 def terrain_from_rasters(landcover: np.ndarray, slope_deg: np.ndarray, aspect_deg: np.ndarray,
@@ -128,7 +179,7 @@ def terrain_from_rasters(landcover: np.ndarray, slope_deg: np.ndarray, aspect_de
 
 
 @njit(cache=True, inline="always")
-def _ros(r0, waf, up_e, up_n, tan_s, wu, wv, bear_e, bear_n, k):
+def _ros(r0, waf, up_e, up_n, tan_s, wu, wv, bear_e, bear_n, k, lb_max):
     """Rate of spread (m/h) from a cell along unit bearing (bear_e, bear_n)."""
     ue = waf * wu
     un = waf * wv
@@ -141,7 +192,7 @@ def _ros(r0, waf, up_e, up_n, tan_s, wu, wv, bear_e, bear_n, k):
     if u < 1e-6:
         return rh
     lb = 0.936 * np.exp(0.2566 * u) + 0.461 * np.exp(-0.1548 * u) - 0.397
-    lb = min(max(lb, 1.0), 8.0)
+    lb = min(max(lb, 1.0), lb_max)
     e = np.sqrt(1.0 - 1.0 / (lb * lb))
     cos_a = (ue * bear_e + un * bear_n) / u
     return rh * (1.0 - e) / (1.0 - e * cos_a)
@@ -182,7 +233,7 @@ def _sift_down(heap, pos, key, i, n):
 
 @njit(cache=True)
 def _arrival(seed_r, seed_c, t0, r0, waf, up_e, up_n, tan_s, dx, dy,
-             wind_u, wind_v, wind_t0, wind_dt, k, t_stop, offsets, passed, out):
+             wind_u, wind_v, wind_t0, wind_dt, widx, wwts, k, lb_max, t_stop, offsets, passed, out):
     """Time-dependent Dijkstra from one ignition cell; fills out (flat, hours) in place."""
     H, W = r0.shape
     N = H * W
@@ -223,8 +274,11 @@ def _arrival(seed_r, seed_c, t0, r0, waf, up_e, up_n, tan_s, dx, dy,
             continue
         wi = int((tu - wind_t0) / wind_dt)
         wi = 0 if wi < 0 else (nt - 1 if wi >= nt else wi)
-        wu = wind_u[wi]
-        wv = wind_v[wi]
+        wu = 0.0
+        wv = 0.0
+        for q in range(4):
+            wu += wwts[u, q] * wind_u[wi, widx[u, q]]
+            wv += wwts[u, q] * wind_v[wi, widx[u, q]]
         for j in range(n_off):
             vr = ur + offsets[j, 0]
             vc = uc + offsets[j, 1]
@@ -237,7 +291,7 @@ def _arrival(seed_r, seed_c, t0, r0, waf, up_e, up_n, tan_s, dx, dy,
                     or r0[ur + passed[j, 1, 0], uc + passed[j, 1, 1]] <= 0.0):
                 continue
             ros = _ros(r0[ur, uc], waf[ur, uc], up_e[ur, uc], up_n[ur, uc], tan_s[ur, uc],
-                       wu, wv, be[j], bn[j], k)
+                       wu, wv, be[j], bn[j], k, lb_max)
             na = tu + dist[j] / ros
             if na < out[v]:
                 out[v] = na
@@ -283,16 +337,17 @@ def _loss(arr, inside_idx, inside_ptr, band_idx, band_ptr, obs_t, obs_w, cap):
 
 
 @njit(cache=True, parallel=True)
-def _batch_losses(cands, r0, waf, up_e, up_n, tan_s, dx, dy, wind_u, wind_v, wind_t0, wind_dt,
+def _batch_losses(cands, r0, waf, up_e, up_n, tan_s, dx, dy, wind_u, wind_v, wind_t0, wind_dt, widx, wwts,
                   t_stop, offsets, passed, inside_idx, inside_ptr, band_idx, band_ptr, obs_t, obs_w, cap):
-    """cands: (M, 4) rows of (row, col, t0_hours, k). Returns (M,) losses."""
+    """cands: (M, 5) rows of (row, col, t0_hours, k, lb_max). Returns (M,) losses."""
     M = cands.shape[0]
     H, W = r0.shape
     losses = np.empty(M)
     for m in prange(M):
         out = np.empty(H * W)
         _arrival(int(cands[m, 0]), int(cands[m, 1]), cands[m, 2], r0, waf, up_e, up_n, tan_s,
-                 dx, dy, wind_u, wind_v, wind_t0, wind_dt, cands[m, 3], t_stop, offsets, passed, out)
+                 dx, dy, wind_u, wind_v, wind_t0, wind_dt, widx, wwts, cands[m, 3], cands[m, 4], t_stop,
+                 offsets, passed, out)
         losses[m] = _loss(out, inside_idx, inside_ptr, band_idx, band_ptr, obs_t, obs_w, cap)
     return losses
 
@@ -301,13 +356,14 @@ def _batch_losses(cands, r0, waf, up_e, up_n, tan_s, dx, dy, wind_u, wind_v, win
 
 
 def arrival(terrain: Terrain, wind: Wind, seed_rc: tuple[int, int], t0_h: float, k: float = 1.0,
-            t_stop_h: float = 1e9) -> np.ndarray:
+            t_stop_h: float = 1e9, lb_max: float = LB_MAX) -> np.ndarray:
     """Arrival time (hours) of fire from one ignition cell; inf where it never arrives."""
     H, W = terrain.shape
     out = np.empty(H * W)
+    widx, wwts = wind.stencil(H, W)
     _arrival(int(seed_rc[0]), int(seed_rc[1]), float(t0_h), terrain.r0, terrain.waf, terrain.up_e,
              terrain.up_n, terrain.tan_slope, terrain.dx, terrain.dy, wind.u_mph, wind.v_mph,
-             wind.t0_h, wind.dt_h, float(k), float(t_stop_h), OFFSETS, PASSED, out)
+             wind.t0_h, wind.dt_h, widx, wwts, float(k), float(lb_max), float(t_stop_h), OFFSETS, PASSED, out)
     return out.reshape(H, W)
 
 
@@ -344,12 +400,16 @@ class Observations:
 
 def batch_losses(terrain: Terrain, wind: Wind, obs: Observations, cands: np.ndarray,
                  cap_h: float = 24.0, packed=None) -> np.ndarray:
-    """Loss for many (row, col, t0_h, k) candidates, evaluated in parallel."""
+    """Loss for many (row, col, t0_h, k[, lb_max]) candidates, evaluated in parallel."""
     ins, ip, bnd, bp = packed if packed is not None else obs.packed(terrain)
+    cands = np.asarray(cands, np.float64)
+    if cands.shape[1] == 4:
+        cands = np.hstack([cands, np.full((len(cands), 1), LB_MAX)])
     t_stop = float(obs.t_h.max() + cap_h)
+    widx, wwts = wind.stencil(*terrain.shape)
     return _batch_losses(np.ascontiguousarray(cands, np.float64), terrain.r0, terrain.waf,
                          terrain.up_e, terrain.up_n, terrain.tan_slope, terrain.dx, terrain.dy,
-                         wind.u_mph, wind.v_mph, wind.t0_h, wind.dt_h, t_stop, OFFSETS, PASSED,
+                         wind.u_mph, wind.v_mph, wind.t0_h, wind.dt_h, widx, wwts, t_stop, OFFSETS, PASSED,
                          ins, ip, bnd, bp, obs.t_h.astype(np.float64), obs.w, float(cap_h))
 
 

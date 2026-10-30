@@ -78,3 +78,39 @@ def test_batch_matches_single_and_true_ignition_wins():
     assert losses[1] == pytest.approx(single, rel=1e-9)
     assert losses[0] == pytest.approx(0.0, abs=1e-9)
     assert losses[0] < min(losses[1:])
+
+
+def field(rows, cols, u_of, v_of=lambda r, c: 0.0):
+    """A steady rows × cols wind field; u_of / v_of give the toward-components per point."""
+    t = np.array([0.0, 100.0])
+    u = np.array([[u_of(r, c) for r in range(rows) for c in range(cols)]] * 2)
+    v = np.array([[v_of(r, c) for r in range(rows) for c in range(cols)]] * 2)
+    return sp.Wind.from_field(t, u, v, rows, cols)
+
+
+def test_uniform_field_matches_single_point_wind():
+    terr = flat()
+    a = sp.arrival(terr, steady(20, 270), (30, 30), 0.0)
+    b = sp.arrival(terr, field(3, 4, lambda r, c: 20.0), (30, 30), 0.0)  # 20 mph toward east everywhere
+    np.testing.assert_allclose(a, b, rtol=1e-9)
+
+
+def test_stencil_weights_interpolate_bilinearly():
+    w = field(2, 3, lambda r, c: 10.0 * c + 100.0 * r)
+    idx, wts = w.stencil(N, N)
+    assert np.allclose(wts.sum(axis=1), 1.0)
+    u = (wts * w.u_mph[0][idx]).sum(axis=1).reshape(N, N)
+    # Monotone west → east and north → south, clamped flat beyond the outermost points.
+    assert (np.diff(u, axis=1) >= -1e-9).all() and (np.diff(u, axis=0) >= -1e-9).all()
+    assert u[0, 0] == pytest.approx(0.0) and u[-1, -1] == pytest.approx(120.0)
+
+
+def test_spatial_wind_only_pushes_where_it_blows():
+    # Wind toward the east in the western half of the domain, calm in the eastern half.
+    w = field(1, 4, lambda r, c: 30.0 if c < 2 else 0.0)
+    a = sp.arrival(flat(), w, (30, 30), 0.0)
+    uniform = sp.arrival(flat(), steady(30, 270), (30, 30), 0.0)
+    calm_a = sp.arrival(flat(), calm(), (30, 30), 0.0)
+    # The eastward run slows once it leaves the windy half, but stays faster than no wind at all.
+    assert uniform[30, 58] < a[30, 58] < calm_a[30, 58]
+    assert w.mean().u_mph.shape == (w.u_mph.shape[0], 1)
