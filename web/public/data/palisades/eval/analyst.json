@@ -1,0 +1,532 @@
+{
+  "accuracy": 0.846,
+  "time_accuracy": 0.75,
+  "number_accuracy": 0.875,
+  "decline_accuracy": 1,
+  "citation_validity": 1,
+  "cite_ids_proposed": 15,
+  "cite_ids_invalid": 0,
+  "n": 13,
+  "fire": "palisades",
+  "method": "13 questions with answers computed directly from public/data/palisades by code independent of the analyst tools; answered by the analyst (runAnalyst, muse-spark-1.3); a time passes within ±30 min, a number within ±5%, matched against any time or number in the returned (verified) paragraphs. Citation validity = model-proposed cite ids that a tool actually returned.",
+  "model": "muse-spark-1.3",
+  "date": "2026-10-31",
+  "skipped": [
+    {
+      "id": "street_4",
+      "reason": "no ground truth in the data"
+    },
+    {
+      "id": "place_2",
+      "reason": "no ground truth in the data"
+    }
+  ],
+  "questions": [
+    {
+      "id": "street_1",
+      "question": "When did the fire first reach Palisades Drive? Give the time in UTC (ISO 8601).",
+      "kind": "time",
+      "truth": "2025-01-08T16:21:49Z",
+      "truth_source": "roads.geojson × arrival.png",
+      "answer": "The fire first reached Palisades Drive at 2025-01-08T16:22:00Z, which was 8:22 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate.",
+      "extracted": [
+        "2025-01-08T16:22:00.000Z",
+        "2025-01-08T16:22:00.000Z"
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": true,
+      "cites": [
+        {
+          "id": "c2",
+          "layer": "arrival",
+          "t": "2025-01-08T16:22:00Z",
+          "lon": -118.55549,
+          "lat": 34.05987,
+          "label": "First burn on Palisades Drive"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "Palisades Drive"
+          }
+        },
+        {
+          "name": "street_fire_timeline",
+          "args": {
+            "name": "Palisades Drive"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "street_2",
+      "question": "When did the fire first reach West Sunset Boulevard? Give the time in UTC (ISO 8601).",
+      "kind": "time",
+      "truth": "2025-01-08T15:44:49Z",
+      "truth_source": "roads.geojson × arrival.png",
+      "answer": "The fire first reached West Sunset Boulevard at 2025-01-08T15:45:00Z, which was 7:45 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate.",
+      "extracted": [
+        "2025-01-08T15:45:00.000Z",
+        "2025-01-08T15:45:00.000Z"
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": true,
+      "cites": [
+        {
+          "id": "c2",
+          "layer": "arrival",
+          "t": "2025-01-08T15:45:00Z",
+          "lon": -118.52545,
+          "lat": 34.04709,
+          "label": "First burn on West Sunset Boulevard"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "West Sunset Boulevard"
+          }
+        },
+        {
+          "name": "street_fire_timeline",
+          "args": {
+            "name": "West Sunset Boulevard"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "street_3",
+      "question": "When did the fire first reach Pacific Coast Highway? Give the time in UTC (ISO 8601).",
+      "kind": "time",
+      "truth": "2025-01-08T20:03:48Z",
+      "truth_source": "roads.geojson × arrival.png",
+      "answer": "The fire first reached Pacific Coast Highway at 2025-01-08T20:41:00Z (12:41 PM PST on Jan 8). This arrival time is interpolated between observed perimeters and is approximate.",
+      "extracted": [
+        "2025-01-08T20:41:00.000Z",
+        "2025-01-08T20:41:00.000Z"
+      ],
+      "pass": false,
+      "cite_time_within_tolerance": false,
+      "cites": [
+        {
+          "id": "c2",
+          "layer": "arrival",
+          "t": "2025-01-08T20:41:00Z",
+          "lon": -118.58947,
+          "lat": 34.03946,
+          "label": "First burn on Pacific Coast Highway"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "Pacific Coast Highway"
+          }
+        },
+        {
+          "name": "street_fire_timeline",
+          "args": {
+            "name": "Pacific Coast Highway"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "place_1",
+      "question": "When did the fire reach Pacific Palisades (the neighborhood label point)? Give the time in UTC (ISO 8601).",
+      "kind": "time",
+      "truth": "2025-01-08T16:21:49Z",
+      "truth_source": "labels.json × arrival.png",
+      "answer": "The fire reached the Pacific Palisades neighborhood label point at 2025-01-08T16:22:00Z, or 8:22 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate with about half-hour resolution.",
+      "extracted": [
+        "2025-01-08T16:22:00.000Z",
+        "2025-01-08T16:22:00.000Z"
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": true,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "labels",
+          "lon": -118.52647,
+          "lat": 34.04806,
+          "label": "Pacific Palisades (place)"
+        },
+        {
+          "id": "c2",
+          "layer": "arrival",
+          "t": "2025-01-08T16:22:00Z",
+          "lon": -118.52647,
+          "lat": 34.04806,
+          "label": "Fire arrival Wed, Jan 8, 2025, 8:22 AM PST"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "Pacific Palisades"
+          }
+        },
+        {
+          "name": "arrival_at",
+          "args": {
+            "lat": 34.04806,
+            "lon": -118.52647
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "area_1",
+      "question": "How many acres had burned by 2025-01-08T06:00:00Z? Give the number.",
+      "kind": "number",
+      "truth": 95.7,
+      "truth_source": "series.json",
+      "answer": "95.7 acres had burned by 10:00 PM PST on Jan 7, which is 2025-01-08T06:00:00Z.",
+      "extracted": [
+        95.7
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "series",
+          "t": "2025-01-08T06:00:00Z",
+          "label": "95.7 acres burned"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "fire_state_at",
+          "args": {
+            "t": "2025-01-08T06:00:00Z"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "area_2",
+      "question": "How many acres had burned by 2025-01-08T18:00:00Z? Give the number.",
+      "kind": "number",
+      "truth": 6346.7,
+      "truth_source": "series.json",
+      "answer": "By Wed, Jan 8, 2025, 10:00 AM PST, 6,346.7 acres had burned.",
+      "extracted": [
+        6346.7
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "series",
+          "t": "2025-01-08T18:00:00Z",
+          "label": "6,346.7 acres burned"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "fire_state_at",
+          "args": {
+            "t": "2025-01-08T18:00:00Z"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "ros_1",
+      "question": "What was the head rate of spread, in chains per hour, at 2025-01-08T21:00:00Z? Give the number.",
+      "kind": "number",
+      "truth": 98.1,
+      "truth_source": "series.json",
+      "answer": "The head rate of spread was 98.1 chains per hour at 1:00 PM PST on Jan 8.",
+      "extracted": [
+        98.1
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "series",
+          "t": "2025-01-08T21:00:00Z",
+          "label": "13,837.8 acres burned"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "fire_state_at",
+          "args": {
+            "t": "2025-01-08T21:00:00Z"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "gust_1",
+      "question": "What was the wind gust in mph at 2025-01-08T04:00:00Z? Give the number.",
+      "kind": "number",
+      "truth": 64,
+      "truth_source": "weather.json",
+      "answer": "The wind gust was 64 mph at 8:00 PM PST on Jan 7 (2025-01-08T04:00:00Z).",
+      "extracted": [
+        64
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "weather",
+          "t": "2025-01-08T04:00:00Z",
+          "lon": -118.57266,
+          "lat": 34.078316,
+          "label": "Wind 37.8 mph from N, gusts 64 mph, RH 19%"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "weather_at",
+          "args": {
+            "t": "2025-01-08T04:00:00Z"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "rh_1",
+      "question": "What was the relative humidity in percent at 2025-01-09T16:00:00Z? Give the number.",
+      "kind": "number",
+      "truth": 8,
+      "truth_source": "weather.json",
+      "answer": "The relative humidity was 8 percent at 8:00 AM PST on Jan 9.",
+      "extracted": [
+        8
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "weather",
+          "t": "2025-01-09T16:00:00Z",
+          "lon": -118.57266,
+          "lat": 34.078316,
+          "label": "Wind 17 mph from N, gusts 21.5 mph, RH 8%"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "weather_at",
+          "args": {
+            "t": "2025-01-09T16:00:00Z"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "structures_1",
+      "question": "How many inspected structures within 1000 m of the Pacific Palisades place label were destroyed? Give the number.",
+      "kind": "number",
+      "truth": 2465,
+      "truth_source": "structures.geojson",
+      "answer": "2,465 inspected structures within 1,000 m of the Pacific Palisades place label were destroyed.",
+      "extracted": [
+        2465,
+        1000
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "labels",
+          "lon": -118.52647,
+          "lat": 34.04806,
+          "label": "Pacific Palisades (place)"
+        },
+        {
+          "id": "c2",
+          "layer": "structures",
+          "lon": -118.52647,
+          "lat": 34.04806,
+          "label": "3213 inspected structures within 1000 m (2465 destroyed)"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "Pacific Palisades"
+          }
+        },
+        {
+          "name": "structures_near",
+          "args": {
+            "lat": 34.04806,
+            "lon": -118.52647,
+            "radius_m": 1000
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "structures_2",
+      "question": "How many inspected structures within 1000 m of the Parker Mesa peak were destroyed? Give the number.",
+      "kind": "number",
+      "truth": 388,
+      "truth_source": "structures.geojson",
+      "answer": "388 inspected structures within 1000 m of the Parker Mesa peak were recorded as destroyed, out of 750 inspected structures in that radius.",
+      "extracted": [
+        388,
+        1000,
+        750
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c3",
+          "layer": "structures",
+          "lon": -118.57342,
+          "lat": 34.04473,
+          "label": "750 inspected structures within 1000 m (388 destroyed)"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "Parker Mesa"
+          }
+        },
+        {
+          "name": "structures_near",
+          "args": {
+            "lat": 34.04473,
+            "lon": -118.57342,
+            "radius_m": 1000
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "ignition_1",
+      "question": "When does the model ignition estimate put the start of the fire? Give the time in UTC (ISO 8601).",
+      "kind": "decline",
+      "truth": "decline (withheld 2025-01-08T19:17:41Z)",
+      "truth_source": "ignition.json",
+      "answer": "The model ignition estimate lists its start time as not identifiable from the data; it is a statistical back-trace, not an investigated origin.\nFor reference, the CAL FIRE reported start in the same result is 2025-01-07T18:30:00Z.",
+      "extracted": [
+        1736274600000
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "ignition",
+          "lon": -118.527805,
+          "lat": 34.070072,
+          "label": "Ignition location (est.), start time not identifiable"
+        },
+        {
+          "id": "c2",
+          "layer": "events",
+          "t": "2025-01-07T18:30:00Z",
+          "lon": -118.54453,
+          "lat": 34.07022,
+          "label": "Reported start (CAL FIRE)"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "ignition_summary",
+          "args": {}
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "exposure_1",
+      "question": "What is the odds ratio of destruction for fine-mesh or no vents versus coarse or unscreened vents? Give the number.",
+      "kind": "number",
+      "truth": 0.501,
+      "truth_source": "exposure_stats.json",
+      "answer": "",
+      "extracted": [],
+      "pass": false,
+      "cite_time_within_tolerance": null,
+      "cites": [],
+      "tool_calls": [],
+      "dropped": null,
+      "error": "400 The response was filtered due to the prompt triggering our content management policy."
+    }
+  ]
+}

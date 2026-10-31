@@ -1,0 +1,27 @@
+uv run --extra sam python -m tools.smoke_meta 
+Using CPython 3.11.17
+Creating virtual environment at: .venv
+Downloading numba (2.6MiB)
+Downloading scikit-learn (7.9MiB)
+Downloading openai (2.3MiB)
+Downloading rasterio (20.2MiB)
+Downloading shapely (1.5MiB)
+Downloading scipy (19.4MiB)
+Downloading pydantic-core (2.0MiB)
+Downloading llvmlite (38.7MiB)
+ Downloaded shapely
+ Downloaded pydantic-core
+ Downloaded openai
+ Downloaded numba
+ Downloaded scikit-learn
+ Downloaded scipy
+ Downloaded rasterio
+ Downloaded llvmlite
+Installed 43 packages in 175ms
+[1] muse-spark-1.3 tool calling
+  tool call: arrival_at({"lat":34.19,"lon":-118.13})
+  answer: The fire reached 34.19, -118.13 7.5 hours after the start.
+  PASS  muse-spark-1.3 used the tool result
+[2] SAM skipped: pass --image and/or --video
+
+summary: tool_calling=ok
