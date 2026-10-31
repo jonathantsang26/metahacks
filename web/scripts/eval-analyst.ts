@@ -179,7 +179,7 @@ function buildQuestions(): {questions: Question[]; skipped: {id: string; reason:
     const ms = Date.parse(ig.map.t);
     return ig.timing?.identifiable === false ? {kind: 'decline', withheldMs: ms} : time(ms);
   });
-  add('exposure_1', `What is the odds ratio of destruction for fine-mesh or no vents versus coarse or unscreened vents?${N}`, 'exposure_stats.json', () => {
+  add('exposure_1', `From the exposure statistics, what odds ratio is reported for the vents feature (fine-mesh or no vents compared with coarse or unscreened vents)?${N}`, 'exposure_stats.json', () => {
     if (!has('exposure_stats.json')) return null;
     const c = read<{contrasts: {feature: string; or: number | null}[]}>('exposure_stats.json').contrasts.find(x => x.feature === 'vents');
     return c?.or != null ? value(c.or) : null;
