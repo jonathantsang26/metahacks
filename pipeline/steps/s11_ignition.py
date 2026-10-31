@@ -622,6 +622,9 @@ def main() -> None:
     else:
         src = eval_dir / "ignition_synthetic.json"
         synthetic = with_summaries(json.loads((src if src.exists() else committed_path).read_text()))
+        print("synthetic benchmark cases loaded, not rerun, from",
+              (f"the committed {os.path.relpath(committed_path)}" if not src.exists() or src.resolve() == committed_path.resolve() else str(src)) + ";",
+              "summary and calibration re-derived from them (make eval-full reruns the cases)")
     (eval_dir / "ignition_synthetic.json").write_text(json.dumps(synthetic, indent=2) + "\n")
     print("synthetic:", json.dumps(synthetic["summary"]))
     print("synthetic, all observations:", json.dumps(synthetic["summary_all_observations"]))

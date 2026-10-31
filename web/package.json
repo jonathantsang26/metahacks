@@ -11,7 +11,8 @@
     "build": "tsc --noEmit && tsc --noEmit -p api && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p api",
-    "test": "vitest run api",
+    "test": "vitest run api && node --test --test-reporter=spec tests-smoke/demo.smoke.mjs",
+    "test:smoke": "node --test --test-reporter=spec tests-smoke/demo.smoke.mjs",
     "ask": "tsx scripts/ask.ts",
     "eval:analyst": "tsx scripts/eval-analyst.ts"
   },
@@ -37,6 +38,7 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.4.1",
     "autoprefixer": "^10.4.20",
+    "playwright-core": "^1.64.1",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.23.15",
