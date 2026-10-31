@@ -48,7 +48,7 @@ The 6 h identifiability rule would have withheld the start time in all 15 of tho
 
 ## Ignition back-trace: real hold-out
 
-The hold-out fit is fitted without the first two perimeters (apart from the sliver of their area the cumulative footprints keep, stated per fire) and never uses CAL FIRE's reference. CAL FIRE's point is the reported incident location, not an investigated origin.
+The hold-out fit is fitted without the first two perimeters (apart from the sliver of their area the cumulative footprints keep, stated per fire) and never uses CAL FIRE's reference. It mainly tests timing: the later footprints it fits still contain most of the early perimeters' area, so its location says less than its start time. CAL FIRE's point is the reported incident location, not an investigated origin.
 
 **Eaton Fire**: fit on 4 perimeters from 2025-01-08T10:33:59Z; held out 2025-01-08T07:06:14Z, 2025-01-08T07:12:13Z.
 

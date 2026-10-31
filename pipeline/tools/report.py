@@ -326,8 +326,12 @@ def headline(fires) -> list[str]:
                 + ("" if c["reached_on_calibration_half"] else "; uncalibrated, widest temperature tried") + regime)
 
     def holdout_place(f):
-        e = hold(f)["errors"]
-        return f"{e['backtrace_distance_m']:,.0f} m ({e['baseline_distance_m']:,.0f} m)"
+        h = hold(f)
+        e = h["errors"]
+        text = f"{e['backtrace_distance_m']:,.0f} m ({e['baseline_distance_m']:,.0f} m)"
+        if after_held_out(h) or all(x["predicted_cells"] == 0 for x in h["held_out"]):
+            text += "; the hold-out fit predicts neither held-out perimeter, so this is not a result"
+        return text
 
     def real_start(f):
         i, a = ign(f), read(f, "aoi.json")["official"]["incident"]
@@ -340,8 +344,9 @@ def headline(fires) -> list[str]:
     def wind(f):
         v = ab(f)
         before = next(x for k, x in v.items() if k.startswith("era5_lb"))
-        return (f"IoU {v['field']['mean_iou']:.2f}, k {v['field']['k']:g} vs IoU {before['mean_iou']:.2f}, "
-                f"k {before['k']:g}{' (ceiling)' if before['k_at_ceiling'] else ''}")
+        ceiling = lambda x: " (ceiling)" if x["k_at_ceiling"] else ""
+        return (f"IoU {v['field']['mean_iou']:.2f}, k {v['field']['k']:g}{ceiling(v['field'])} vs IoU {before['mean_iou']:.2f}, "
+                f"k {before['k']:g}{ceiling(before)}")
 
     def station(f):
         w = ws(f)
@@ -401,8 +406,9 @@ def main() -> None:
         lines += synthetic_section(f)
     lines += ["## Ignition back-trace: real hold-out", "",
               "The hold-out fit is fitted without the first two perimeters (apart from the sliver of their area the "
-              "cumulative footprints keep, stated per fire) and never uses CAL FIRE's reference. CAL FIRE's point is the "
-              "reported incident location, not an investigated origin.", ""]
+              "cumulative footprints keep, stated per fire) and never uses CAL FIRE's reference. It mainly tests timing: the "
+              "later footprints it fits still contain most of the early perimeters' area, so its location says less than its "
+              "start time. CAL FIRE's point is the reported incident location, not an investigated origin.", ""]
     for f in fires:
         lines += holdout_section(f)
     lines += ["## Wind ablation: does the HRRR field help?", ""]
