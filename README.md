@@ -16,6 +16,14 @@ cd web && npm ci && npm run dev
 
 Then open http://localhost:5173/?fire=eaton&t=2025-01-08T23:30:00Z for this view; `&tab=risk` opens the post-fire debris-flow view ([screenshot](docs/img/eaton-risk.jpg)), and `?fire=palisades` switches fires.
 
+A one-minute tour, one stop per point above:
+1. **Streets:** drag the timeline at the bottom. The progression, the mapped perimeter, the charts and the key events follow it; hover any point for when it burned.
+2. **Start:** the right-hand rail's Analysis tab shows the back-trace, its 90% region beside CAL FIRE's reported point, and why the start time is withheld.
+3. **Homes:** under Analysis, Homes compares destruction odds by construction feature at matched exposure. Turn on Structures under Layers and click one to see its inspection outcome; addresses and parcels are never shown.
+4. **Debris flows:** the header's Risk tab colours each stream segment by likelihood; pick the model and the design storm.
+5. **Sources and questions:** the rail's Evidence tab lists every source as real, modeled or simulated. The Analyst tab (needs `MODEL_API_KEY`) answers questions such as "When did the fire reach Lake Avenue?"; its citation chips move the map and the clock.
+6. **Palisades:** switch fires in the header. The same views load; its back-trace sits at the spread-rate ceiling, so its start is withheld too.
+
 Every number traces back to a public source or a committed evaluation file. The README's headline table below is generated from those files, and a test fails if it drifts.
 
 Built for the **Meta Global AI Developer Hackathon** (2026). The two fires covered are the January 2025 **Eaton** and **Palisades** fires in Los Angeles County.
@@ -51,7 +59,7 @@ The analyst runs on Meta's Muse Spark (`muse-spark-1.3`), whose tool calling let
 | House-level exposure: destruction odds by construction feature, at matched exposure | **Working** | [`s09b_exposure.py`](pipeline/steps/s09b_exposure.py) |
 | Post-fire debris flows (Risk tab): USGS M1 against M1 recalibrated, a random forest and an MLP, scored leaving one fire out on USGS's observed inventory, and mapped on USGS's stream segments | **Working**; compared with USGS's assessment, not validated (no 2025 outcomes) | [`s14_debris_models.py`](pipeline/steps/s14_debris_models.py), [`s15_debris_fire.py`](pipeline/steps/s15_debris_fire.py), [`rail/risk.tsx`](web/src/rail/risk.tsx) |
 | Analyst (`muse-spark-1.3`): tool calls over the fire data, with citation, number and guardrail checks on the server, and a chat in the app whose citation chips move the map and the clock | **Working; run live** on both fires (2026-10-31): 13 of 14 Eaton and 12 of 13 Palisades answers match the data-derived truth, and all 37 cited ids came from a tool result. Both misses were the street tool's sampling, since fixed (see Analyst below). Without `MODEL_API_KEY` the chat shows the server's message, never an answer | [`web/api/`](web/api), [`rail/analyst.tsx`](web/src/rail/analyst.tsx) |
-| Web app: replays each fire on 3D terrain from the pipeline's files. The map shows the interpolated progression from `arrival.png`, the burn scar (AVIRIS-3 dNBR, the differenced Normalized Burn Ratio, a standard burn-severity index), the mapped perimeter at the current time, the ignition estimate and its 90% region beside CAL FIRE's reported point, structures, roads and HRRR wind arrows (a layer toggle, off by default). Charts, key events, weather at the current time, the back-trace and house-level analysis, and the source manifest all follow one timeline | **Working** on Eaton and Palisades (switch fires from the header). The Drones tab is disabled (no drone data in this build); the Risk tab replaces the reference design's Resources tab | [`web/src/`](web/src) |
+| Web app: replays each fire on 3D terrain from the pipeline's files. The map shows the interpolated progression from `arrival.png`, the burn scar (AVIRIS-3 dNBR, the differenced Normalized Burn Ratio, a standard burn-severity index), the mapped perimeter at the current time, the ignition estimate and its 90% region beside CAL FIRE's reported point, structures, roads and HRRR wind arrows (a layer toggle, off by default). Charts, key events, weather at the current time, the back-trace and house-level analysis, and the source manifest all follow one timeline | **Working** on Eaton and Palisades (switch fires from the header). The Drones tab is disabled (no drone data in this build); the Risk tab takes the place of the Resources tab in the original design | [`web/src/`](web/src) |
 | Drone footage: Sentinel YOLOv8 + SAM 3.1 segmentation | **Not in this branch** (a teammate's part of the build). The live API smoke test passes: SAM 3.1 masks smoke in a public-domain photo ([log](pipeline/logs/smoke-meta.log)) | [`tools/smoke_meta.py`](pipeline/tools/smoke_meta.py) |
 | NASA FIRMS hotspots | **Code done**, gated on `FIRMS_MAP_KEY`; not used in the committed outputs | [`s04_firms.py`](pipeline/steps/s04_firms.py) |
 
@@ -241,7 +249,7 @@ With a Meta key in `.env` (`cp .env.example .env`):
 | Model | Role | Status |
 |---|---|---|
 | `muse-spark-1.3` (Meta Model API, OpenAI-compatible) | The analyst: a tool-calling loop over the reconstructed fire. Citations and numbers are verified server-side, and an independent per-fire eval includes must-decline questions | Run live on both fires: 25 of 27 eval answers right, all 37 cited ids valid ([`RESULTS.md`](docs/RESULTS.md#analyst-eval)) |
-| `sam-3.1` (Meta Model API, Responses API) | Fire and smoke masks in drone video; destroyed-building masks in post-fire imagery | Live smoke test passes ([`tools/smoke_meta.py`](pipeline/tools/smoke_meta.py), [log](pipeline/logs/smoke-meta.log)); the drone part of the build is not in this branch |
+| `sam-3.1` (Meta Model API, Responses API) | Fire and smoke masks in drone video; destroyed-building masks in post-fire imagery | Live smoke test passes ([`tools/smoke_meta.py`](pipeline/tools/smoke_meta.py), [log](pipeline/logs/smoke-meta.log)). The two SAM pipeline steps, drone video ([`s12c_sam_video.py`](pipeline/steps/s12c_sam_video.py)) and destroyed buildings ([`s09c_sam_structures.py`](pipeline/steps/s09c_sam_structures.py)), are stubs in this branch |
 
 ## Prior work and credits
 
