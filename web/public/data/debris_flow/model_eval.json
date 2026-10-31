@@ -3,6 +3,8 @@
     "title": "USGS runoff-generated postfire debris-flow inventory (Graber et al. 2026)",
     "doi": "10.5066/P1R9VXC4",
     "url": "https://www.sciencebase.gov/catalog/item/69612c8ed4be02298529c522",
+    "published": "2026-08-17",
+    "version": "v1 (USGS_RG_PFDF_Inventory_v1.csv)",
     "records": 8981,
     "fires": 80,
     "debris_flows": 1140,

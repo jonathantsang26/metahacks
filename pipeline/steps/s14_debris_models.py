@@ -74,7 +74,8 @@ from ember import debris as db
 from ember.config import REPO_DIR
 
 INVENTORY = {"title": "USGS runoff-generated postfire debris-flow inventory (Graber et al. 2026)",
-             "doi": "10.5066/P1R9VXC4", "url": "https://www.sciencebase.gov/catalog/item/69612c8ed4be02298529c522"}
+             "doi": "10.5066/P1R9VXC4", "url": "https://www.sciencebase.gov/catalog/item/69612c8ed4be02298529c522",
+             "published": "2026-08-17", "version": "v1 (USGS_RG_PFDF_Inventory_v1.csv)"}  # ScienceBase publication date
 INVENTORY_CSV = "USGS_RG_PFDF_Inventory_v1.csv"
 INVENTORY_FILE_URL = ("https://www.sciencebase.gov/catalog/file/get/69612c8ed4be02298529c522"
                       "?f=__disk__33%2F41%2F73%2F3341735a5292e0943dec6938f37dc6765e4aa69b")
