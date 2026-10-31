@@ -4,9 +4,9 @@
  * assessment on this fire under the selected storm, the selected segment's inputs, and the
  * models' scores on USGS's observed inventory.
  */
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
 import type {FireData} from '../data/fire';
-import type {DebrisFlowStats, DebrisModelEval} from '../data/files';
+import type {DebrisFlowStats, DebrisModelEval, WithinStorm, WithinStormDiff} from '../data/files';
 import {DESIGN_I15, useUi} from '../state/ui';
 import {
   accumulationMm,
@@ -47,6 +47,48 @@ const noStation = (id: string) =>
     : 'No Station Fire score in model_eval.json';
 /** m1_check's largest difference, in likelihood units: tiny values in scientific notation. */
 const tiny = (v: number) => (v === 0 ? '0' : v < 0.001 ? v.toExponential(1) : v.toFixed(3));
+/** A 95% interval of ROC AUCs, "[0.69–0.86]"; empty when the file has none. */
+const interval = (c: [number, number] | undefined, d = 2) => (c ? `[${fixed(c[0], d)}–${fixed(c[1], d)}]` : '');
+/**
+ * A difference with its sign (true minus), "+0.05" / "−0.05". A nonzero value that would round to
+ * 0 gets more decimals, up to the file's 4, so −0.0015 reads "−0.002", not "−0.00" beside a mark
+ * that says its interval excludes 0.
+ */
+const signedFixed = (v: number, d = 2): string => {
+  if (!Number.isFinite(v)) return '—';
+  if (v !== 0 && d < 4 && Number(Math.abs(v).toFixed(d)) === 0) return signedFixed(v, d + 1);
+  return `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(d)}`;
+};
+const span = (c: [number, number], d = 2) => `[${signedFixed(c[0], d)}, ${signedFixed(c[1], d)}]`;
+const diffText = (v: number, c: [number, number], d = 2) => `${signedFixed(v, d)} ${span(c, d)}`;
+const excludesZero = (c: [number, number]) => c[0] > 0 || c[1] < 0;
+/**
+ * '*' when a paired interval excludes 0 in the stored draw and again in the file's larger check
+ * draw (vs_m1's *_check), '†' when only one of them does (borderline: an end within resampling
+ * noise of 0), '' otherwise. Without a check draw, the stored interval decides.
+ */
+const zeroMark = (c: [number, number], check?: [number, number]) => {
+  const [a, b] = [excludesZero(c), check ? excludesZero(check) : excludesZero(c)];
+  return a && b ? '*' : a !== b ? '†' : '';
+};
+const marks = (d: WithinStormDiff) => [zeroMark(d.ci95, d.ci95_check), zeroMark(d.ci95_weighted, d.ci95_weighted_check)] as const;
+
+/**
+ * Which records the Storm figures are on: each model's own (the trained models on every usable
+ * record, M1 published on the fewer outside the inventory it was fitted on), or M1 published's for
+ * every row, like for like.
+ */
+type StormBasis = 'own' | 'm1';
+const stormOf = (m: EvalRow, basis: StormBasis): WithinStorm | undefined =>
+  basis === 'm1' ? m.within_storm_on_m1_records : m.within_storm;
+/** The row minus M1 on the same groups: M1 published on its records, M1 recalibrated on every record. */
+const diffOf = (m: EvalRow, basis: StormBasis): WithinStormDiff | null | undefined =>
+  basis === 'm1' ? m.vs_m1?.published : m.vs_m1?.refit;
+const stormTitle = (ws: WithinStorm | undefined) =>
+  ws
+    ? `Median ${fixed(ws.median_roc_auc, 3)} ${interval(ws.ci95_median, 3)}, record-weighted ${fixed(ws.weighted_roc_auc, 3)} ` +
+      `${interval(ws.ci95_weighted, 3)}, over ${ws.groups} groups (${count(ws.records)} records; 95% cluster-bootstrap intervals)`
+    : undefined;
 
 function Dot({p}: {p: number | null}) {
   const c = p === null ? NO_VALUE.css : LIKELIHOOD_CLASSES[classOf(p)].css;
@@ -272,9 +314,87 @@ function rowRole(m: EvalRow): string | null {
   return null;
 }
 
+/**
+ * The Storm figures with their 95% intervals, and each row minus M1 on the same groups (paired):
+ * M1 recalibrated on every record, or M1 published on its records when the table is like for like.
+ */
+function StormIntervals({ev, basis, shown, refName}: {ev: DebrisModelEval; basis: StormBasis; shown: string | undefined; refName: string}) {
+  const rows = ev.models.map(m => ({m, ws: stormOf(m, basis), d: diffOf(m, basis)}));
+  if (!rows.some(r => r.ws?.ci95_median)) return null;
+  const refId = basis === 'm1' ? 'm1_published' : 'm1_refit';
+  const groups = rows.find(r => r.m.id === refId)?.ws?.groups;
+  const shownMarks = new Set(rows.flatMap(r => (r.d ? marks(r.d) : [])));
+  const two = (a: string, b: string, strong?: [boolean, boolean]) => (
+    <>
+      <span className={`block ${strong?.[0] ? 'text-ink' : ''}`}>{a}</span>
+      <span className={`block ${strong?.[1] ? 'text-ink' : ''}`}>{b}</span>
+    </>
+  );
+  return (
+    <div className="mt-2 text-2xs text-muted">
+      <div className="mb-0.5 text-ink">Storm with 95% intervals, and minus {refName} on the same groups</div>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-x-2 tabular-nums">
+        <span>Model</span>
+        <span className="text-right" title="Median above, record-weighted mean below, each with its 95% interval">
+          Storm [95%]
+        </span>
+        <span
+          className="text-right"
+          title={`The row's figure minus ${refName}'s on the same ${groups ?? ''} groups and the same bootstrap resamples (paired), with its 95% interval`}
+        >
+          − M1 [95%]
+        </span>
+        {rows.map(({m, ws, d}) => {
+          const bold = m.id === shown ? 'font-semibold' : '';
+          const [mm, mw] = d ? marks(d) : ['', ''];
+          return [
+            // Wraps onto the row's second line rather than truncating: the figures take two lines anyway.
+            <span key={`${m.id}-n`} className={`min-w-0 break-words ${bold}`} title={m.label}>
+              {evalShort(m.id)}
+            </span>,
+            <span key={`${m.id}-c`} className={`text-right ${bold}`} title={stormTitle(ws)}>
+              {ws
+                ? two(`${fixed(ws.median_roc_auc, 2)} ${interval(ws.ci95_median)}`, `${fixed(ws.weighted_roc_auc, 2)} ${interval(ws.ci95_weighted)}`)
+                : '—'}
+            </span>,
+            <span
+              key={`${m.id}-d`}
+              className={`text-right ${bold}`}
+              title={
+                m.id === refId
+                  ? 'The reference'
+                  : d
+                    ? `Minus ${refName} on ${d.groups} groups, paired: median ${diffText(d.median_diff, d.ci95, 3)}, ` +
+                      `record-weighted ${diffText(d.weighted_diff, d.ci95_weighted, 3)}` +
+                      (d.ci95_check && d.ci95_weighted_check
+                        ? `\nWith more resamples (check draw): median ${span(d.ci95_check, 3)}, record-weighted ${span(d.ci95_weighted_check, 3)}`
+                        : '')
+                    : `Not paired with ${refName}: scored on other records`
+              }
+            >
+              {d
+                ? two(`${diffText(d.median_diff, d.ci95)}${mm}`, `${diffText(d.weighted_diff, d.ci95_weighted)}${mw}`,
+                      [mm === '*', mw === '*'])
+                : m.id === refId ? 'reference' : '—'}
+            </span>
+          ];
+        })}
+      </div>
+      <p className="mt-1">
+        Intervals: a cluster bootstrap that redraws whole fire-storm groups, on the predictions as made, so they show how
+        much a figure depends on which storms the inventory holds.{' '}
+        {shownMarks.has('*') ? '*: the paired interval excludes 0, and still does with more resamples.' : 'No paired interval here excludes 0.'}{' '}
+        {shownMarks.has('†') ? '†: borderline, it excludes 0 with one number of resamples and not the other (an end within resampling noise of 0). ' : ''}
+        Not adjusted for multiple comparisons. The caveats say what all the intervals show.
+      </p>
+    </div>
+  );
+}
+
 /** model_eval.json: the models scored on USGS's observed inventory. */
 function ModelComparison({ev, error, stats}: {ev: DebrisModelEval | null; error: string | null; stats: DebrisFlowStats | null}) {
   const model = useUi(s => s.risk.model);
+  const [basisPicked, setBasis] = useState<StormBasis>('own');
   const head = <SubHead aside={<Chip tone="modeled">MODELED</Chip>}>Scored on observed debris flows</SubHead>;
   if (!ev)
     return (
@@ -306,10 +426,38 @@ function ModelComparison({ev, error, stats}: {ev: DebrisModelEval | null; error:
   const station = analogueShown(stats, ev);
   const cell = 'text-right';
   const cols = station ? 'grid-cols-[minmax(0,1fr)_repeat(5,auto)]' : 'grid-cols-[minmax(0,1fr)_repeat(4,auto)]';
+  // Every row on M1 published's groups, when the file scores every model there.
+  const likeForLike = !!m1 && ev.models.every(m => m.within_storm_on_m1_records);
+  const basis: StormBasis = likeForLike ? basisPicked : 'own';
+  const m1Groups = m1?.within_storm.groups;
+  const restGroups = distinct(rest, r => String(r.within_storm.groups));
+  const refName = basis === 'm1' ? evalShort('m1_published') : evalShort('m1_refit');
+  const on = 'bg-btndark text-white';
+  const off = 'bg-card shadow-[0_0_0_1px_var(--hairline)]';
   return (
     <>
       {head}
       <div className="px-3 py-2 text-xs">
+        {likeForLike && (
+          <div className="mb-1.5 flex items-center gap-1 text-2xs">
+            <span className="mr-0.5 text-muted">Storm over</span>
+            {(
+              [
+                ['own', 'each row’s records', `M1 published on its ${m1Groups} groups, the others on their ${restGroups}`],
+                ['m1', `M1’s ${m1Groups} groups`, `Every row on M1 published’s ${m1Groups} groups (its records), like for like`]
+              ] as const
+            ).map(([id, label, title]) => (
+              <button
+                key={id}
+                onClick={() => setBasis(id)}
+                title={title}
+                className={`rounded-md px-1.5 py-0.5 ${basis === id ? on : off}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         <div className={`grid ${cols} gap-x-1.5 tabular-nums`}>
           <span className="text-muted">Model</span>
           <span className={`${cell} text-muted`} title="Pooled ROC AUC: all held-out predictions together (0.5 is chance). It mostly ranks records of different storms against each other">
@@ -320,7 +468,14 @@ function ModelComparison({ev, error, stats}: {ev: DebrisModelEval | null; error:
           </span>
           <span
             className={`${cell} text-muted`}
-            title="ROC AUC within one fire and storm, over the groups with both outcomes (the ranking a design-storm map shows): the median above, the record-weighted mean below. Most groups are small, so the median is coarse; the record-weighted mean leans on the largest storms"
+            title={
+              'ROC AUC within one fire and storm, over the groups with both outcomes (the ranking a design-storm map shows): the ' +
+              'median above, the record-weighted mean below. Most groups are small, so the median is coarse; the record-weighted ' +
+              'mean leans on the largest storms. ' +
+              (basis === 'm1'
+                ? `Every row on M1 published’s ${m1Groups} groups, like for like.`
+                : `On each row’s own records: M1 published’s ${m1Groups} groups, the others’ ${restGroups}.`)
+            }
           >
             Storm
           </span>
@@ -335,16 +490,28 @@ function ModelComparison({ev, error, stats}: {ev: DebrisModelEval | null; error:
           {ev.models.map(m => {
             const bold = m.id === shown ? 'font-semibold' : '';
             const role = rowRole(m);
-            const ws = m.within_storm;
+            const ws = stormOf(m, basis);
+            const own = m.within_storm;
+            const vs = m.vs_m1;
             const title =
               `${m.label} (${m.id})\nFeatures: ${m.features.join(', ')}\nCross-validation: ${m.cv}\n${count(m.n)} records, ` +
               `${count(m.flows)} debris flows, base rate ${rate(m.pooled.base_rate)}; pooled PR AUC ${fixed(m.pooled.pr_auc, 2)}\n` +
               `Per-fire ROC AUC over ${m.per_fire.fires} fires: median ${fixed(m.per_fire.median_roc_auc, 2)}, IQR ` +
               `${fixed(m.per_fire.iqr[0], 2)}–${fixed(m.per_fire.iqr[1], 2)}\n` +
-              (ws
-                ? `Within one fire and storm: ${ws.groups} groups, ${count(ws.records)} records; median ROC AUC ` +
-                  `${fixed(ws.median_roc_auc, 2)}, record-weighted ${fixed(ws.weighted_roc_auc, 2)}`
+              (own
+                ? `Within one fire and storm: ${own.groups} groups, ${count(own.records)} records; median ROC AUC ` +
+                  `${fixed(own.median_roc_auc, 2)} ${interval(own.ci95_median)}, record-weighted ${fixed(own.weighted_roc_auc, 2)} ` +
+                  interval(own.ci95_weighted)
                 : 'No within-storm score in model_eval.json') +
+              (vs?.published
+                ? `\nMinus M1 published on its ${vs.published.groups} groups (paired): median ` +
+                  `${diffText(vs.published.median_diff, vs.published.ci95)}, record-weighted ` +
+                  diffText(vs.published.weighted_diff, vs.published.ci95_weighted)
+                : '') +
+              (vs?.refit
+                ? `\nMinus M1 recalibrated on ${vs.refit.groups} groups (paired): median ${diffText(vs.refit.median_diff, vs.refit.ci95)}, ` +
+                  `record-weighted ${diffText(vs.refit.weighted_diff, vs.refit.ci95_weighted)}`
+                : '') +
               (station ? (m.analogue ? `\nStation Fire: ${m.analogue.n} records, ${m.analogue.flows} flows, Brier ${fixed(m.analogue.brier, 3)}` : `\n${noStation(m.id)}`) : '');
             const row = [
               <span key={`${m.id}-n`} className={`min-w-0 ${bold}`} title={title}>
@@ -357,11 +524,7 @@ function ModelComparison({ev, error, stats}: {ev: DebrisModelEval | null; error:
               <span key={`${m.id}-f`} className={`${cell} ${bold}`}>
                 {fixed(m.per_fire.median_roc_auc, 2)}
               </span>,
-              <span
-                key={`${m.id}-w`}
-                className={`${cell} ${bold}`}
-                title={ws ? `Median ${fixed(ws.median_roc_auc, 3)}, record-weighted ${fixed(ws.weighted_roc_auc, 3)}, over ${ws.groups} groups` : undefined}
-              >
+              <span key={`${m.id}-w`} className={`${cell} ${bold}`} title={stormTitle(ws)}>
                 {/* Stacked, so the name column keeps its width in the rail. */}
                 <span className="block">{fixed(ws?.median_roc_auc, 2)}</span>
                 <span className="block">{fixed(ws?.weighted_roc_auc, 2)}</span>
@@ -383,13 +546,24 @@ function ModelComparison({ev, error, stats}: {ev: DebrisModelEval | null; error:
                   Not cross-validated: published coefficients scored on {count(m.n)} other records (base rate{' '}
                   {rate(m.pooled.base_rate)}, against {distinct(rest, r => count(r.n))} at{' '}
                   {distinct(rest, r => rate(r.pooled.base_rate))}); Fire over {m.per_fire.fires} fires (others{' '}
-                  {distinct(rest, r => String(r.per_fire.fires))}), Storm over {m.within_storm.groups} groups (others{' '}
-                  {distinct(rest, r => String(r.within_storm.groups))}). Not like-for-like with the rows below.
+                  {distinct(rest, r => String(r.per_fire.fires))})
+                  {basis === 'm1' ? (
+                    <>
+                      . Storm: every row on these {m.within_storm.groups} groups, like for like; AUC, Fire and Brier are not
+                      like-for-like with the rows below.
+                    </>
+                  ) : (
+                    <>
+                      , Storm over {m.within_storm.groups} groups (others {restGroups}). Not like-for-like with the rows below
+                      {likeForLike ? `: “M1’s ${m.within_storm.groups} groups” puts every Storm figure on its records.` : '.'}
+                    </>
+                  )}
                 </span>
               );
             return row;
           })}
         </div>
+        <StormIntervals ev={ev} basis={basis} shown={shown} refName={refName} />
         <div className="mt-1.5 space-y-1 text-2xs text-muted">
           <p>
             AUC: pooled ROC AUC (0.5 is chance), which mostly ranks records of different storms against each other · Fire:

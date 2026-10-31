@@ -4,9 +4,9 @@
  * likelihood class under the selected storm (debris_flow_stats.json's counts). The side list
  * ranks the segments by the selected model at the selected storm.
  */
-import {useMemo, type ReactNode} from 'react';
+import {useMemo, useState, type ReactNode} from 'react';
 import {FIRE_ID, type FireData} from '../data/fire';
-import type {DebrisFlowSegments, DebrisFlowStats, DebrisModelEval} from '../data/files';
+import type {DebrisFlowSegments, DebrisFlowStats, DebrisModelEval, WithinStorm} from '../data/files';
 import {DESIGN_I15, useUi, type RiskModel} from '../state/ui';
 import {
   accumulationMm,
@@ -249,12 +249,41 @@ const SKILL_LABEL_PX = 104;
 const rate = (v: number) => (finite(v) ? `${(v * 100).toFixed(1)}%` : '—');
 
 /**
- * Pooled ROC AUC per model as bars, the per-fire IQR as a whisker, the within-storm median as a
- * ring and its record-weighted mean as a dot, and (on a fire whose analogue it is) the held-out
- * Station Fire as a diamond. A swatch in the storm chart's colour marks the rows behind the map's
- * columns.
+ * Which records the within-storm marks are on: each row's own (M1 published on the fewer outside
+ * the inventory it was fitted on), or M1 published's for every row, like for like.
  */
-function SkillPlot({ev, station, w, h}: {ev: DebrisModelEval; station: boolean; w: number; h: number}) {
+type StormBasis = 'own' | 'm1';
+const stormOf = (m: DebrisModelEval['models'][number], basis: StormBasis): WithinStorm | undefined =>
+  basis === 'm1' ? m.within_storm_on_m1_records : m.within_storm;
+const interval = (c: [number, number] | undefined) => (c ? ` [${fixed(c[0], 2)}–${fixed(c[1], 2)}]` : '');
+
+/**
+ * A 95% interval as an open box around the row's centre line: a box, not lines above and below the
+ * bar, because the rows sit a few pixels apart and a line between two rows reads as either's.
+ */
+function Interval({x0, x1, cy, hh}: {x0: number; x1: number; cy: number; hh: number}) {
+  return (
+    <rect
+      x={x0}
+      y={cy - hh}
+      width={Math.max(1, x1 - x0)}
+      height={2 * hh}
+      rx={1.5}
+      fill="none"
+      stroke="var(--text)"
+      strokeOpacity={0.55}
+      strokeWidth={1}
+    />
+  );
+}
+
+/**
+ * Pooled ROC AUC per model as bars, the per-fire IQR as a whisker, the within-storm median as a
+ * ring, with its 95% interval as an open box, and its record-weighted mean as a dot (its interval
+ * in the tooltip), and (on a fire whose analogue it is) the held-out Station Fire as a diamond. A
+ * swatch in the storm chart's colour marks the rows behind the map's columns.
+ */
+function SkillPlot({ev, station, basis, w, h}: {ev: DebrisModelEval; station: boolean; basis: StormBasis; w: number; h: number}) {
   const shown = riskModel(useUi(s => s.risk.model)).evalId;
   const x = (v: number) => SKILL_LABEL_PX + v * (w - SKILL_LABEL_PX - M.r);
   const rowH = (h - M.t - M.b) / ev.models.length;
@@ -282,7 +311,8 @@ function SkillPlot({ev, station, w, h}: {ev: DebrisModelEval; station: boolean; 
         const on = m.id === shown;
         const [q1, q3] = m.per_fire.iqr;
         const a = station ? m.analogue : null;
-        const ws = m.within_storm;
+        const ws = stormOf(m, basis);
+        const [cm, cw] = [ws?.ci95_median, ws?.ci95_weighted];
         const col = columnForEval(m.id);
         const role = m.on_map
           ? `\nOn the map as ${col?.label ?? 'one of our columns'}`
@@ -298,8 +328,9 @@ function SkillPlot({ev, station, w, h}: {ev: DebrisModelEval; station: boolean; 
                 `${m.flows.toLocaleString('en-US')} flows, base rate ${rate(m.pooled.base_rate)})\nPer-fire ROC AUC over ` +
                 `${m.per_fire.fires} fires: median ${fixed(m.per_fire.median_roc_auc, 2)}, IQR ${fixed(q1, 2)}–${fixed(q3, 2)}` +
                 (ws
-                  ? `\nWithin one fire and storm (${ws.groups} groups, ${ws.records.toLocaleString('en-US')} records): median ` +
-                    `${fixed(ws.median_roc_auc, 2)}, record-weighted ${fixed(ws.weighted_roc_auc, 2)}`
+                  ? `\nWithin one fire and storm (${ws.groups} groups, ${ws.records.toLocaleString('en-US')} records` +
+                    `${basis === 'm1' ? ", M1 published's" : ''}): median ${fixed(ws.median_roc_auc, 2)}${interval(cm)}, ` +
+                    `record-weighted ${fixed(ws.weighted_roc_auc, 2)}${interval(cw)} (95% intervals)`
                   : '') +
                 (!station
                   ? ''
@@ -339,6 +370,7 @@ function SkillPlot({ev, station, w, h}: {ev: DebrisModelEval; station: boolean; 
                 <line x1={x(q3)} x2={x(q3)} y1={cy - 3} y2={cy + 3} />
               </g>
             )}
+            {cm && finite(cm[0]) && finite(cm[1]) && <Interval x0={x(cm[0])} x1={x(cm[1])} cy={cy} hh={barH / 2 + 1} />}
             {ws && finite(ws.median_roc_auc) && (
               <circle cx={x(ws.median_roc_auc)} cy={cy} r={3} fill="var(--bg-chrome)" stroke="var(--text)" strokeWidth={1.4} />
             )}
@@ -377,6 +409,13 @@ function SkillChart({ev, stats}: {ev: Loaded<DebrisModelEval>; stats: DebrisFlow
         '.'
       : '';
   const analogueNote = stats?.analogue && !stats.analogue.fire ? ` No Station Fire marker for this fire: ${stats.analogue.note}` : '';
+  // The within-storm marks on each row's records, or every row on M1 published's (like for like).
+  const [basisPicked, setBasis] = useState<StormBasis>('own');
+  const m1 = ev.data?.models.find(m => m.id === 'm1_published');
+  const others = [...new Set(ev.data?.models.filter(m => m !== m1).map(m => m.within_storm.groups))].join(' / ');
+  const likeForLike = !!m1 && !!ev.data?.models.every(m => m.within_storm_on_m1_records);
+  const basis: StormBasis = likeForLike ? basisPicked : 'own';
+  const ws = row && stormOf(row, basis);
   return (
     <ChartFrame
       title="Skill on past fires"
@@ -389,17 +428,32 @@ function SkillChart({ev, stats}: {ev: Loaded<DebrisModelEval>; stats: DebrisFlow
       }
       value={
         row &&
-        `${shown.short} ${fixed(row.pooled.roc_auc, 2)} · storm ${fixed(row.within_storm?.median_roc_auc, 2)} / ${fixed(row.within_storm?.weighted_roc_auc, 2)}`
+        `${shown.short} ${fixed(row.pooled.roc_auc, 2)} · storm ${fixed(ws?.median_roc_auc, 2)} / ${fixed(ws?.weighted_roc_auc, 2)}`
       }
       valueTitle={
         row
-          ? `${row.label}: pooled ROC AUC, then ROC AUC within one fire and storm, median / record-weighted mean over the groups ` +
-            `(the eval row behind the map's ${shown.label} colours)`
+          ? `${row.label}: pooled ROC AUC, then ROC AUC within one fire and storm, median${interval(ws?.ci95_median)} / ` +
+            `record-weighted mean${interval(ws?.ci95_weighted)} over ${ws?.groups ?? ''} groups` +
+            `${basis === 'm1' ? " (M1 published's)" : ''}, with 95% intervals (the eval row behind the map's ${shown.label} colours)`
           : undefined
       }
       foot={
         <>
-          bar pooled · ⊢⊣ per-fire IQR · ○ within-storm median · ● record-weighted
+          {likeForLike && (
+            <button
+              onClick={() => setBasis(basis === 'm1' ? 'own' : 'm1')}
+              title={
+                basis === 'm1'
+                  ? `Within-storm marks: every row on M1 published's ${m1!.within_storm.groups} groups, like for like. Click for each row's own records`
+                  : `Within-storm marks: each row's own records (M1 published's ${m1!.within_storm.groups} groups, the others' ` +
+                    `${others}). Click to put every row on M1 published's`
+              }
+              className="mr-1 rounded bg-card px-1 text-ink shadow-[0_0_0_1px_var(--hairline)]"
+            >
+              storm: {basis === 'm1' ? `M1’s ${m1!.within_storm.groups} groups` : 'own records'}
+            </button>
+          )}
+          bar pooled · ⊢⊣ per-fire IQR · ○ within-storm median, ▭ its 95% interval · ● record-weighted
           {analogue ? (
             <>
               {' '}
@@ -415,7 +469,10 @@ function SkillChart({ev, stats}: {ev: Loaded<DebrisModelEval>; stats: DebrisFlow
         'Whisker: interquartile range of the per-fire ROC AUCs. Ring: median ROC AUC within one fire and storm, the ranking a ' +
         'design-storm map shows; dot: the record-weighted mean of the same. Most groups are small, so a median lands on ' +
         'fractions with small denominators; the record-weighted mean is less coarse but leans on the largest storms. Read ' +
-        'the two together (model_eval.json’s notes give the group sizes).' +
+        'the two together (model_eval.json’s notes give the group sizes). Box: the median’s 95% interval, from a cluster ' +
+        'bootstrap that redraws whole fire-storm groups (each row’s tooltip gives both intervals; the notes say which paired ' +
+        'differences from M1 exclude 0). The storm button puts every row’s within-storm marks on M1 published’s records, ' +
+        'like for like (the bar and whisker stay on each row’s own).' +
         (analogue ? ` Diamond: the held-out ${analogue.fire} Fire (${analogue.year}), this fire's inventory analogue.` : '') +
         ' Swatch: the rows behind the map’s columns, in the storm chart’s colours (M1 published: the coefficients behind ' +
         'USGS’s own column). Each fire is scored by a model fitted without it; M1 published is not cross-validated and is ' +
@@ -429,7 +486,7 @@ function SkillChart({ev, stats}: {ev: Loaded<DebrisModelEval>; stats: DebrisFlow
     >
       {empty('model_eval.json', ev) ??
         (ev.data!.models.length ? (
-          <Plot>{(w, h) => <SkillPlot ev={ev.data!} station={station} w={w} h={h} />}</Plot>
+          <Plot>{(w, h) => <SkillPlot ev={ev.data!} station={station} basis={basis} w={w} h={h} />}</Plot>
         ) : (
           <ChartEmpty>model_eval.json lists no models</ChartEmpty>
         ))}
