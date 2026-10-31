@@ -1,7 +1,7 @@
 {
-  "accuracy": 0.857,
+  "accuracy": 0.929,
   "time_accuracy": 0.8,
-  "number_accuracy": 0.875,
+  "number_accuracy": 1,
   "decline_accuracy": 1,
   "citation_validity": 1,
   "cite_ids_proposed": 20,
@@ -24,7 +24,7 @@
       "kind": "time",
       "truth": "2025-01-08T12:48:23Z",
       "truth_source": "roads.geojson × arrival.png",
-      "answer": "The fire first reached North Lake Avenue at 2025-01-08T12:48:00Z (4:48 AM PST on Jan 8). Arrival times are interpolated between observed perimeters and are approximate.",
+      "answer": "The fire first reached North Lake Avenue at 2025-01-08T12:48:00Z, which was 4:48 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate (about half-hour resolution).",
       "extracted": [
         "2025-01-08T12:48:00.000Z",
         "2025-01-08T12:48:00.000Z"
@@ -67,8 +67,9 @@
       "kind": "time",
       "truth": "2025-01-08T20:23:43Z",
       "truth_source": "roads.geojson × arrival.png",
-      "answer": "The fire first reached East Altadena Drive at 2025-01-08T20:24:00Z. This arrival time is interpolated between observed perimeters and is approximate.",
+      "answer": "The fire first reached East Altadena Drive at 2025-01-08T20:24:00Z, which was 12:24 PM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate.",
       "extracted": [
+        "2025-01-08T20:24:00.000Z",
         "2025-01-08T20:24:00.000Z"
       ],
       "pass": true,
@@ -109,22 +110,22 @@
       "kind": "time",
       "truth": "2025-01-09T04:27:31Z",
       "truth_source": "roads.geojson × arrival.png",
-      "answer": "The data doesn't show the fire reaching Kinneloa Canyon Road, so there is no arrival time to give in UTC. The street timeline found no burned points along the street, and the arrival check at the street center recorded no fire arrival.",
+      "answer": "The data doesn't show the fire reaching Kinneloa Canyon Road during the data window, with none of the sampled points along the street burned.",
       "extracted": [],
       "pass": false,
       "cite_time_within_tolerance": false,
       "cites": [
         {
+          "id": "c1",
+          "layer": "roads",
+          "lon": -118.08863,
+          "lat": 34.17832,
+          "label": "Kinneloa Canyon Road (street)"
+        },
+        {
           "id": "c2",
           "layer": "roads",
           "label": "Kinneloa Canyon Road: no burned points"
-        },
-        {
-          "id": "c3",
-          "layer": "arrival",
-          "lon": -118.08863,
-          "lat": 34.17832,
-          "label": "No fire arrival recorded here"
         }
       ],
       "tool_calls": [
@@ -138,13 +139,6 @@
           "name": "street_fire_timeline",
           "args": {
             "name": "Kinneloa Canyon Road"
-          }
-        },
-        {
-          "name": "arrival_at",
-          "args": {
-            "lat": 34.17832,
-            "lon": -118.08863
           }
         }
       ],
@@ -160,7 +154,7 @@
       "kind": "time",
       "truth": "2025-01-08T16:36:03Z",
       "truth_source": "roads.geojson × arrival.png",
-      "answer": "The fire first reached Fair Oaks Avenue at 2025-01-08T16:36:00Z, which was 8:36 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate.",
+      "answer": "The fire first reached Fair Oaks Avenue at 2025-01-08T16:36:00Z, or 8:36 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate.",
       "extracted": [
         "2025-01-08T16:36:00.000Z",
         "2025-01-08T16:36:00.000Z"
@@ -211,7 +205,7 @@
       "kind": "time",
       "truth": "2025-01-08T21:49:05Z",
       "truth_source": "labels.json × arrival.png",
-      "answer": "The fire reached the Altadena neighborhood label point at 2025-01-08T21:49:00Z (1:49 PM PST on Jan 8). Arrival times are interpolated between observed perimeters and are approximate (about half-hour resolution).",
+      "answer": "The fire reached the Altadena neighborhood label point at 2025-01-08T21:49:00Z (1:49 PM PST on Jan 8). Arrival times are interpolated between observed perimeters and are approximate, about half-hour resolution.",
       "extracted": [
         "2025-01-08T21:49:00.000Z",
         "2025-01-08T21:49:00.000Z"
@@ -296,7 +290,7 @@
       "kind": "number",
       "truth": 8976.6,
       "truth_source": "series.json",
-      "answer": "By 4:00 PM PST on Jan 8 (2025-01-09T00:00:00Z), 8,976.6 acres had burned.",
+      "answer": "About 8,976.6 acres had burned by 4:00 PM PST on Jan 8.",
       "extracted": [
         8976.6
       ],
@@ -372,7 +366,7 @@
       "kind": "number",
       "truth": 64.4,
       "truth_source": "weather.json",
-      "answer": "The wind gust was 64.4 mph at Tue, Jan 7, 2025, 11:00 PM PST (2025-01-08T07:00:00Z).",
+      "answer": "The wind gust was 64.4 mph at 11:00 PM PST on Jan 7.",
       "extracted": [
         64.4
       ],
@@ -444,10 +438,11 @@
       "kind": "number",
       "truth": 2561,
       "truth_source": "structures.geojson",
-      "answer": "2,561 inspected structures within 1000 m of the Altadena place label were destroyed.",
+      "answer": "2,561 inspected structures within 1000 m of the Altadena place label were destroyed, out of 3,854 inspected structures in that radius.",
       "extracted": [
         2561,
-        1000
+        1000,
+        3854
       ],
       "pass": true,
       "cite_time_within_tolerance": null,
@@ -495,11 +490,10 @@
       "kind": "number",
       "truth": 12,
       "truth_source": "structures.geojson",
-      "answer": "12 inspected structures within 1000 m of Echo Mountain peak were recorded as destroyed, out of 21 inspected in that radius.",
+      "answer": "12 inspected structures within 1000 m of Echo Mountain peak were destroyed.",
       "extracted": [
         12,
-        1000,
-        21
+        1000
       ],
       "pass": true,
       "cite_time_within_tolerance": null,
@@ -547,10 +541,8 @@
       "kind": "decline",
       "truth": "decline (withheld 2025-01-08T01:09:51Z)",
       "truth_source": "ignition.json",
-      "answer": "The model ignition estimate does not put a start time for the fire; its start_time is listed as not identifiable from the data because the 90% start-time interval is 10.6 h wide. This is a statistical model estimate, not an investigated origin.\nFor reference, the CAL FIRE reported start in the same record is 2025-01-08T02:18:00Z.",
-      "extracted": [
-        1736302680000
-      ],
+      "answer": "The ignition summary is a statistical model estimate, not an investigated origin, and the data doesn't show an identifiable start time in UTC, because the 90% start-time interval is 10.6 h wide.",
+      "extracted": [],
       "pass": true,
       "cite_time_within_tolerance": null,
       "cites": [
@@ -560,14 +552,6 @@
           "lon": -118.094686,
           "lat": 34.195745,
           "label": "Ignition location (est.), start time not identifiable"
-        },
-        {
-          "id": "c2",
-          "layer": "events",
-          "t": "2025-01-08T02:18:00Z",
-          "lon": -118.069155,
-          "lat": 34.203483,
-          "label": "Reported start (CAL FIRE)"
         }
       ],
       "tool_calls": [
@@ -584,18 +568,34 @@
     },
     {
       "id": "exposure_1",
-      "question": "What is the odds ratio of destruction for fine-mesh or no vents versus coarse or unscreened vents? Give the number.",
+      "question": "What odds ratio does exposure_stats list for the vents contrast? Give the number.",
       "kind": "number",
       "truth": 0.349,
       "truth_source": "exposure_stats.json",
-      "answer": "",
-      "extracted": [],
-      "pass": false,
+      "answer": "The exposure_stats vents contrast odds ratio is 0.349. This is an association in observational data, not an effect of the feature.",
+      "extracted": [
+        0.349
+      ],
+      "pass": true,
       "cite_time_within_tolerance": null,
-      "cites": [],
-      "tool_calls": [],
-      "dropped": null,
-      "error": "400 The response was filtered due to the prompt triggering our content management policy."
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "exposure_stats",
+          "label": "Vents: fine mesh (≤ 1/8\") or none vs coarse/unscreened: odds ratio 0.349 (95% CI 0.307–0.397)"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "exposure_stats",
+          "args": {}
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
     }
   ]
 }

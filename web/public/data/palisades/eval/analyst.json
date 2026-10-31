@@ -1,10 +1,10 @@
 {
-  "accuracy": 0.846,
+  "accuracy": 0.923,
   "time_accuracy": 0.75,
-  "number_accuracy": 0.875,
+  "number_accuracy": 1,
   "decline_accuracy": 1,
   "citation_validity": 1,
-  "cite_ids_proposed": 15,
+  "cite_ids_proposed": 17,
   "cite_ids_invalid": 0,
   "n": 13,
   "fire": "palisades",
@@ -28,7 +28,7 @@
       "kind": "time",
       "truth": "2025-01-08T16:21:49Z",
       "truth_source": "roads.geojson × arrival.png",
-      "answer": "The fire first reached Palisades Drive at 2025-01-08T16:22:00Z, which was 8:22 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate.",
+      "answer": "The fire first reached Palisades Drive at 2025-01-08T16:22:00Z, or 8:22 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate (about half-hour resolution).",
       "extracted": [
         "2025-01-08T16:22:00.000Z",
         "2025-01-08T16:22:00.000Z"
@@ -36,6 +36,13 @@
       "pass": true,
       "cite_time_within_tolerance": true,
       "cites": [
+        {
+          "id": "c1",
+          "layer": "roads",
+          "lon": -118.5577,
+          "lat": 34.06109,
+          "label": "Palisades Drive (street)"
+        },
         {
           "id": "c2",
           "layer": "arrival",
@@ -71,7 +78,7 @@
       "kind": "time",
       "truth": "2025-01-08T15:44:49Z",
       "truth_source": "roads.geojson × arrival.png",
-      "answer": "The fire first reached West Sunset Boulevard at 2025-01-08T15:45:00Z, which was 7:45 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate.",
+      "answer": "The fire first reached West Sunset Boulevard at 2025-01-08T15:45:00Z, which was 7:45 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate at about half-hour resolution.",
       "extracted": [
         "2025-01-08T15:45:00.000Z",
         "2025-01-08T15:45:00.000Z"
@@ -114,7 +121,7 @@
       "kind": "time",
       "truth": "2025-01-08T20:03:48Z",
       "truth_source": "roads.geojson × arrival.png",
-      "answer": "The fire first reached Pacific Coast Highway at 2025-01-08T20:41:00Z (12:41 PM PST on Jan 8). This arrival time is interpolated between observed perimeters and is approximate.",
+      "answer": "The fire first reached Pacific Coast Highway at 2025-01-08T20:41:00Z (12:41 PM PST on Jan 8). Arrival times are interpolated between observed perimeters and are approximate (about half-hour resolution).",
       "extracted": [
         "2025-01-08T20:41:00.000Z",
         "2025-01-08T20:41:00.000Z"
@@ -157,7 +164,7 @@
       "kind": "time",
       "truth": "2025-01-08T16:21:49Z",
       "truth_source": "labels.json × arrival.png",
-      "answer": "The fire reached the Pacific Palisades neighborhood label point at 2025-01-08T16:22:00Z, or 8:22 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate with about half-hour resolution.",
+      "answer": "The fire reached the Pacific Palisades neighborhood label point at 2025-01-08T16:22:00Z, which was 8:22 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate, at about half-hour resolution.",
       "extracted": [
         "2025-01-08T16:22:00.000Z",
         "2025-01-08T16:22:00.000Z"
@@ -208,7 +215,7 @@
       "kind": "number",
       "truth": 95.7,
       "truth_source": "series.json",
-      "answer": "95.7 acres had burned by 10:00 PM PST on Jan 7, which is 2025-01-08T06:00:00Z.",
+      "answer": "About 95.7 acres had burned by 10:00 PM PST on Jan 7 (2025-01-08T06:00:00Z).",
       "extracted": [
         95.7
       ],
@@ -242,7 +249,7 @@
       "kind": "number",
       "truth": 6346.7,
       "truth_source": "series.json",
-      "answer": "By Wed, Jan 8, 2025, 10:00 AM PST, 6,346.7 acres had burned.",
+      "answer": "By 10:00 AM PST on Jan 8, 6,346.7 acres had burned.",
       "extracted": [
         6346.7
       ],
@@ -310,7 +317,7 @@
       "kind": "number",
       "truth": 64,
       "truth_source": "weather.json",
-      "answer": "The wind gust was 64 mph at 8:00 PM PST on Jan 7 (2025-01-08T04:00:00Z).",
+      "answer": "64 mph.",
       "extracted": [
         64
       ],
@@ -346,7 +353,7 @@
       "kind": "number",
       "truth": 8,
       "truth_source": "weather.json",
-      "answer": "The relative humidity was 8 percent at 8:00 AM PST on Jan 9.",
+      "answer": "The relative humidity was 8%.",
       "extracted": [
         8
       ],
@@ -433,7 +440,7 @@
       "kind": "number",
       "truth": 388,
       "truth_source": "structures.geojson",
-      "answer": "388 inspected structures within 1000 m of the Parker Mesa peak were recorded as destroyed, out of 750 inspected structures in that radius.",
+      "answer": "388 inspected structures within 1000 m of the Parker Mesa peak were destroyed, out of 750 inspected in that radius.",
       "extracted": [
         388,
         1000,
@@ -442,6 +449,13 @@
       "pass": true,
       "cite_time_within_tolerance": null,
       "cites": [
+        {
+          "id": "c1",
+          "layer": "labels",
+          "lon": -118.57342,
+          "lat": 34.04473,
+          "label": "Parker Mesa (peak)"
+        },
         {
           "id": "c3",
           "layer": "structures",
@@ -478,10 +492,8 @@
       "kind": "decline",
       "truth": "decline (withheld 2025-01-08T19:17:41Z)",
       "truth_source": "ignition.json",
-      "answer": "The model ignition estimate lists its start time as not identifiable from the data; it is a statistical back-trace, not an investigated origin.\nFor reference, the CAL FIRE reported start in the same result is 2025-01-07T18:30:00Z.",
-      "extracted": [
-        1736274600000
-      ],
+      "answer": "The data doesn't show an identifiable start time in UTC ISO 8601 from the model ignition estimate, which lists its start time as not identifiable from the data; this ignition summary is a statistical model estimate, not an investigated origin.",
+      "extracted": [],
       "pass": true,
       "cite_time_within_tolerance": null,
       "cites": [
@@ -491,14 +503,6 @@
           "lon": -118.527805,
           "lat": 34.070072,
           "label": "Ignition location (est.), start time not identifiable"
-        },
-        {
-          "id": "c2",
-          "layer": "events",
-          "t": "2025-01-07T18:30:00Z",
-          "lon": -118.54453,
-          "lat": 34.07022,
-          "label": "Reported start (CAL FIRE)"
         }
       ],
       "tool_calls": [
@@ -515,18 +519,38 @@
     },
     {
       "id": "exposure_1",
-      "question": "What is the odds ratio of destruction for fine-mesh or no vents versus coarse or unscreened vents? Give the number.",
+      "question": "What odds ratio does exposure_stats list for the vents contrast? Give the number.",
       "kind": "number",
       "truth": 0.501,
       "truth_source": "exposure_stats.json",
-      "answer": "",
-      "extracted": [],
-      "pass": false,
+      "answer": "The odds ratio for Vents: fine mesh (≤ 1/8\") or none vs coarse/unscreened is 0.501. These exposure_stats are associations in observational data, not effects of a feature.",
+      "extracted": [
+        1,
+        8,
+        0.501
+      ],
+      "pass": true,
       "cite_time_within_tolerance": null,
-      "cites": [],
-      "tool_calls": [],
-      "dropped": null,
-      "error": "400 The response was filtered due to the prompt triggering our content management policy."
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "exposure_stats",
+          "label": "Vents: fine mesh (≤ 1/8\") or none vs coarse/unscreened: odds ratio 0.501 (95% CI 0.453–0.555)"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "exposure_stats",
+          "args": {
+            "feature": "vents"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
     }
   ]
 }
