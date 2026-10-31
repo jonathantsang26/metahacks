@@ -27,11 +27,18 @@ a pandas DataFrame works too):
                        the same fire and storm, from their features only. In the inventory a row
                        is an observation point, and several can share one location; on a USGS
                        segment network a row is a stream segment, and segments sit much closer.
+                       Used only by the evaluated variant FEATURES_CONTEXT, not by FEATURES_EXTENDED:
+                       under a design storm ctx_R15 equals R15, and the map's neighbours are much
+                       nearer than the inventory's.
 
-Area and spatial context vary between watersheds within a storm. days_since_fire is one value per
-fire and storm, and soil moisture varies only between 0.1° cells: both vary within a fire across
-storms, but are constant (or nearly) across a design-storm map, where they set the level of the
-likelihood rather than the ranking of watersheds.
+Area varies between watersheds within a storm. days_since_fire is one value per fire and storm,
+and soil moisture varies only between 0.1° cells: both vary within a fire across storms, but are
+constant (or nearly) across a design-storm map, where they set the level of the likelihood rather
+than the ranking of watersheds.
+
+Random forests are constrained to be non-decreasing in rainfall (monotonic_cst: +1 on R15, 0
+elsewhere), as M1 is by its form: a likelihood that falls when rain rises has no place on a
+design-storm map. Nothing constrains an MLP, so the MLPs are evaluated but not mapped.
 """
 
 from __future__ import annotations
@@ -56,7 +63,10 @@ R_PER_I15 = 0.25  # R [mm] = I15 [mm/h] × 0.25 h
 FEATURES_M1 = ["T", "F", "S", "R15"]
 CONTEXT_OF = ["T", "F", "S", "R15"]  # columns whose neighbour means become ctx_<name>
 SPATIAL_K = 5
-FEATURES_EXTENDED = FEATURES_M1 + ["log_area_km2", "days_since_fire", "soil_moisture_0_7cm"] + [f"ctx_{c}" for c in CONTEXT_OF]
+FEATURES_EXTENDED = FEATURES_M1 + ["log_area_km2", "days_since_fire", "soil_moisture_0_7cm"]
+FEATURES_CONTEXT = FEATURES_EXTENDED + [f"ctx_{c}" for c in CONTEXT_OF]  # the mlp_context variant: evaluated, not mapped
+RISES_WITH = ("R15",)  # a random forest's likelihood is constrained to be non-decreasing in these
+DESIGN_I15 = (16, 20, 24, 28, 32, 36, 40)  # mm/h, USGS's design storms
 
 FEATURE_DESCRIPTIONS = {
     "T": "Proportion of the upstream area burned at moderate/high severity and steeper than 23° (inventory HM23)",
@@ -68,7 +78,8 @@ FEATURE_DESCRIPTIONS = {
                        "One value per fire and storm, so constant across a design-storm map",
     "soil_moisture_0_7cm": "Antecedent soil moisture 0–7 cm, m³/m³: ERA5-Land (Open-Meteo archive), mean of the UTC day before the storm. "
                            "Varies only between 0.1° cells within a storm",
-    **{f"ctx_{c}": f"Spatial context: mean {c} of the {SPATIAL_K} nearest other watersheds in the same fire and storm (features only)"
+    **{f"ctx_{c}": f"Spatial context: mean {c} of the {SPATIAL_K} nearest other watersheds in the same fire and storm "
+                   "(features only); used only by the mlp_context variant"
        for c in CONTEXT_OF},
 }
 
@@ -98,6 +109,12 @@ def m1_likelihood(T, F, S, i15_mm_h, params: dict = M1_15) -> np.ndarray:
     X = params["B"] + (params["Ct"] * np.asarray(T, float) + params["Cf"] * np.asarray(F, float)
                        + params["Cs"] * np.asarray(S, float)) * R
     return 1.0 / (1.0 + np.exp(-X))
+
+
+def monotonic_cst(features: list[str]) -> list[int]:
+    """RandomForestClassifier(monotonic_cst=...) for these features: +1 (the likelihood does not
+    fall as the feature rises) on RISES_WITH, 0 (unconstrained) elsewhere."""
+    return [1 if f in RISES_WITH else 0 for f in features]
 
 
 def m1_interactions(X: np.ndarray) -> np.ndarray:
@@ -243,9 +260,13 @@ def save_models(models: dict, path: Path = MODELS_PATH) -> Path:
 
     Every estimator (m1_refit included) takes feature_matrix(df, features) and imputes missing
     values itself (median of its training rows), so a NaN soil moisture is handled the same way as
-    in training. Step 14's entries also carry spatial_k and context_distance_m, the quartiles of
-    the training rows' mean distance to their context neighbours, to compare with the spacing the
-    models are applied at.
+    in training. Step 14 saves m1_refit, rf_extended and mlp_extended, fitted on every usable
+    record. Each entry also carries n_train, flows_train, train_medians, spatial_k and
+    context_distance_m (the quartiles of the training rows' mean distance to their spatial-context
+    neighbours, to compare with the spacing on a segment map; no saved model uses the context).
+    m1_refit carries "coefficients" {B, Ct, Cf, Cs}, in M1_15's shape, so
+    m1_likelihood(T, F, S, i15, entry["coefficients"]) gives its likelihood; rf_* entries carry
+    "monotonic_cst".
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(models, path)
