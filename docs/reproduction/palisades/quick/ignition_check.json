@@ -1,0 +1,38 @@
+{
+  "cases_checked": 2,
+  "identical": true,
+  "cases": [
+    {
+      "case": 0,
+      "max_abs_diff": 0.0,
+      "estimate": {
+        "row": 52,
+        "col": 136,
+        "t0_h": -24.0,
+        "k": 2.357
+      },
+      "committed_estimate": {
+        "row": 52,
+        "col": 136,
+        "t0_h": -24.0,
+        "k": 2.357
+      }
+    },
+    {
+      "case": 1,
+      "max_abs_diff": 0.0,
+      "estimate": {
+        "row": 20,
+        "col": 56,
+        "t0_h": 12.454,
+        "k": 1.179
+      },
+      "committed_estimate": {
+        "row": 20,
+        "col": 56,
+        "t0_h": 12.454,
+        "k": 1.179
+      }
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "fit_observations": [
+    "2025-01-08T10:33:59Z",
+    "2025-01-08T23:10:23Z",
+    "2025-01-09T04:30:17Z",
+    "2025-01-09T22:10:35Z"
+  ],
+  "held_out": [
+    {
+      "t": "2025-01-08T07:06:14Z",
+      "observed_cells": 571,
+      "predicted_cells": 168,
+      "iou": 0.232
+    },
+    {
+      "t": "2025-01-08T07:12:13Z",
+      "observed_cells": 1077,
+      "predicted_cells": 191,
+      "iou": 0.15
+    }
+  ],
+  "estimate": {
+    "lonlat": [
+      -118.094686,
+      34.195745
+    ],
+    "t": "2025-01-08T04:37:36Z",
+    "k": 0.5,
+    "lb_max": 1.0,
+    "r90_m": 1799.5,
+    "t90": [
+      "2025-01-07T23:15:09Z",
+      "2025-01-08T09:51:33Z"
+    ],
+    "timing": {
+      "identifiable": false,
+      "reasons": [
+        "90% start-time interval is 10.6 h wide (limit 6 h)"
+      ],
+      "interval90_width_h": 10.61
+    },
+    "tau_h": 0.3,
+    "uncertainty_calibrated": true
+  },
+  "lb_selection": [
+    {
+      "lb_max": 1.0,
+      "loss_h": 3.253,
+      "k": 0.5
+    },
+    {
+      "lb_max": 1.25,
+      "loss_h": 3.3591,
+      "k": 1.414
+    },
+    {
+      "lb_max": 1.5,
+      "loss_h": 3.6741,
+      "k": 2.0
+    },
+    {
+      "lb_max": 2.0,
+      "loss_h": 4.1024,
+      "k": 4.0
+    },
+    {
+      "lb_max": 3.0,
+      "loss_h": 4.4347,
+      "k": 6.667
+    },
+    {
+      "lb_max": 8.0,
+      "loss_h": 5.2648,
+      "k": 16.0
+    }
+  ],
+  "uncertainty_calibrated": true,
+  "baselines": {
+    "first_fit_footprint_centroid_lonlat": [
+      -118.093907,
+      34.19515
+    ],
+    "area_backcast_t": "2025-01-06T19:23:49Z"
+  },
+  "reference": {
+    "source": "CAL FIRE incidents API",
+    "url": "https://www.fire.ca.gov/incidents/2025/1/7/eaton-fire/",
+    "t": "2025-01-08T02:18:00Z",
+    "lonlat": [
+      -118.069155,
+      34.203483
+    ],
+    "note": "Reported incident location, not an investigated origin."
+  },
+  "errors": {
+    "backtrace_distance_m": 2503.5,
+    "baseline_distance_m": 2460.5,
+    "backtrace_time_error_min": 139.6,
+    "baseline_time_error_min": -1854.2,
+    "reference_within_r90": false,
+    "reference_outside_first_fit_footprint_m": 1141.8,
+    "reference_within_t90": true
+  }
+}
