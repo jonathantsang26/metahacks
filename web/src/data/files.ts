@@ -190,6 +190,42 @@ export type Exposure = {
   exposed: boolean[];
 };
 
+/** debris_flow.geojson: USGS stream segments with debris-flow likelihood per model and design storm. */
+export type DebrisFlowSegments = Collection<
+  {type: 'LineString'; coordinates: number[][]},
+  {id: number; area_km2: number; T: number; F: number; S: number; usgs_hazard_24: 1 | 2 | 3} & Record<string, number>
+>;
+
+/** debris_flow_stats.json: provenance, the scenario behind the ML columns, and agreement with USGS. */
+export type DebrisFlowStats = {
+  source: {title: string; doi: string; url: string; license: string};
+  design_i15_mm_h: number[];
+  scenario: {date: string; days_since_fire: number; soil_moisture_0_7cm: number | null; soil_moisture_source: string};
+  segments: number;
+  m1_check: {max_abs_diff_vs_usgs: number};
+  agreement: Record<string, {spearman_vs_usgs_24: number; class_agreement_24: number}>;
+  likelihood_class_counts_24: Record<string, Record<string, number>>;
+  usgs_median_thresholds_mm_h: {I15_50: number; I15_75: number};
+  notes: string[];
+};
+
+type Scores = {roc_auc: number; pr_auc: number; brier: number; base_rate: number};
+
+/** debris_flow/model_eval.json (shared across fires): the models scored on USGS's observed inventory. */
+export type DebrisModelEval = {
+  inventory: {title: string; doi: string; url: string; records: number; fires: number; debris_flows: number;
+              used_records: number; used_fires: number; used_flows: number; filters: string[]};
+  cv: {scheme: string; folds: number};
+  features: Record<string, string>;
+  models: {
+    id: string; label: string; features: string[]; cv: string; n: number; flows: number;
+    pooled: Scores; per_fire: {fires: number; median_roc_auc: number; iqr: [number, number]};
+    analogue: {fire: string; year: number; n: number; flows: number; roc_auc: number; brier: number} | null;
+  }[];
+  importance: Record<string, {feature: string; drop_in_auc: number}[]>;
+  notes: string[];
+};
+
 const cache = new Map<string, Promise<unknown>>();
 
 /** Fetches public/data/<fire>/<file> once per session. */

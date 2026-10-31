@@ -5,11 +5,11 @@ import {useTime} from '../state/time';
 import {useUi, type Tab} from '../state/ui';
 import {Icon, Logo} from '../ui/Icon';
 
-/** Drones and Resources have no data in this build (DESIGN.md §5.2–5.3), so their tabs are disabled. */
+/** Drones has no data in this build (DESIGN.md §5.2), so its tab is disabled. Risk replaces the reference's Resources tab. */
 const TABS: {id: Tab; label: string; icon: string; unavailable?: string}[] = [
   {id: 'incident', label: 'Incident', icon: 'map'},
   {id: 'drones', label: 'Drones', icon: 'drone', unavailable: 'Drone footage analysis is not part of this build yet'},
-  {id: 'resources', label: 'Resources', icon: 'truck', unavailable: 'Aircraft, engine and crew data are not part of this build'}
+  {id: 'risk', label: 'Risk', icon: 'chart'}
 ];
 
 function Divider({dotted = false}: {dotted?: boolean}) {

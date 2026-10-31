@@ -9,6 +9,7 @@ import {arrivalWindow, useBurnedArea} from './area';
 import {ChartEmpty, ChartFrame, ElevationProfileChart, FireAreaChart, RateOfSpreadChart} from './charts';
 import {EventGlyph, isMappingArtifact, KeyEventsList, stepLine, useKeyEvents, type KeyEvents} from './events';
 import {rosAxis, type ArrivalIntervals} from './scale';
+import {RiskCharts, RiskSide} from './risk';
 
 const HOUR = 3600_000;
 
@@ -196,30 +197,23 @@ function UnavailableChart({title, unit, note}: {title: string; unit?: string; no
 }
 
 const NO_DRONES = 'No drone footage in this build';
-const NO_RESOURCES = 'No aircraft, engine or crew data in this build';
 
 const UNAVAILABLE = {
   drones: [
     {title: 'Altitude', unit: 'ft AGL', note: NO_DRONES},
     {title: 'Detections per second', note: NO_DRONES},
     {title: 'Mask area', unit: '% of frame', note: NO_DRONES}
-  ],
-  resources: [
-    {title: 'Retardant Dropped', unit: 'gal', note: NO_RESOURCES},
-    {title: 'Fire Line Built', unit: 'chains', note: NO_RESOURCES},
-    {title: 'Personnel Assigned', note: NO_RESOURCES}
   ]
 };
 
 const SIDE = {
   incident: 'Key Events',
   drones: 'Detections',
-  resources: 'Air Ops Log'
+  risk: 'Debris-Flow Models'
 };
 
 const SIDE_UNAVAILABLE = {
-  drones: 'Drone footage analysis is not part of this build, so there are no detections to list.',
-  resources: 'Aircraft, engine and crew data are not part of this build, so there is no air operations log.'
+  drones: 'Drone footage analysis is not part of this build, so there are no detections to list.'
 };
 
 /** DESIGN.md §6: 226px dock under the map; side list on the right. */
@@ -262,6 +256,8 @@ export function Dock({fire}: {fire: FireData}) {
               <RateOfSpreadChart series={series} meta={meta} tz={tz} base={fire.base} />
               <ElevationProfileChart profile={profile} tz={tz} base={fire.base} />
             </>
+          ) : tab === 'risk' ? (
+            <RiskCharts fire={fire} />
           ) : (
             UNAVAILABLE[tab].map(c => <UnavailableChart key={c.title} {...c} />)
           )}
@@ -276,6 +272,8 @@ export function Dock({fire}: {fire: FireData}) {
         </div>
         {tab === 'incident' ? (
           <KeyEventsList fire={fire} data={events} />
+        ) : tab === 'risk' ? (
+          <RiskSide />
         ) : (
           <div className="px-3 py-6 text-center text-sm text-muted">{SIDE_UNAVAILABLE[tab]}</div>
         )}

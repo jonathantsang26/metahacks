@@ -4,6 +4,7 @@ import {LAYERS, useUi, type LayerId} from '../state/ui';
 import {Analysis} from './analysis';
 import {Analyst} from './analyst';
 import {IncidentOverview} from './overview';
+import {RiskRail} from './risk';
 import {POSTERIOR_THUMB, SCAR_THUMB} from './ramps';
 import {Card, Pending} from './ui';
 import {WeatherCard} from './weather';
@@ -146,11 +147,7 @@ export function Rail({fire}: {fire: FireData}) {
           <Pending>Drone footage is not available in this build.</Pending>
         </Card>
       )}
-      {tab === 'resources' && (
-        <Card title="Resources">
-          <Pending>Aircraft, engines and crews are not available in this build.</Pending>
-        </Card>
-      )}
+      {tab === 'risk' && <RiskRail fire={fire} />}
     </aside>
   );
 }

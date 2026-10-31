@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 
-export type Tab = 'incident' | 'drones' | 'resources';
+export type Tab = 'incident' | 'drones' | 'risk';
 export type ViewMode = '2d' | '3d';
 
 /**
@@ -17,7 +17,8 @@ export type LayerId =
   | 'wind'
   | 'structures'
   | 'roads'
-  | 'labels';
+  | 'labels'
+  | 'debrisFlow';
 
 export type LayerDef = {
   id: LayerId;
@@ -39,8 +40,14 @@ export const LAYERS: LayerDef[] = [
   {id: 'wind', label: 'Weather (Wind Vectors)', visible: false, opacity: 0.7, ready: true},
   {id: 'structures', label: 'Structures', visible: false, opacity: null, ready: true},
   {id: 'roads', label: 'Roads & Trails', visible: false, opacity: null, ready: true},
-  {id: 'labels', label: 'Place Labels', visible: true, opacity: null, ready: true}
+  {id: 'labels', label: 'Place Labels', visible: true, opacity: null, ready: true},
+  {id: 'debrisFlow', label: 'Debris-Flow Likelihood', visible: false, opacity: 1, ready: true}
 ];
+
+/** Debris-flow models shown on the Risk tab (debris_flow.geojson: `<model>_p_<I15>`). */
+export type RiskModel = 'usgs' | 'm1' | 'rf' | 'mlp';
+/** USGS's design storms: peak 15-minute rainfall intensity, mm/h. */
+export const DESIGN_I15 = [16, 20, 24, 28, 32, 36, 40] as const;
 
 export type Hover = {
   x: number;
@@ -65,6 +72,8 @@ type UiState = {
   highlight: Highlight;
   /** Structure id picked on the map (Analysis → Homes). */
   selectedStructure: number | null;
+  /** Risk tab: which debris-flow model colours the segments, under which design storm. */
+  risk: {model: RiskModel; i15: (typeof DESIGN_I15)[number]; segment: number | null};
   setTab: (tab: Tab) => void;
   setViewMode: (mode: ViewMode) => void;
   setBearing: (bearing: number) => void;
@@ -73,6 +82,7 @@ type UiState = {
   requestFlyTo: (lon: number, lat: number, zoom?: number) => void;
   setHighlight: (highlight: Highlight) => void;
   selectStructure: (id: number | null) => void;
+  setRisk: (patch: Partial<UiState['risk']>) => void;
 };
 
 export const useUi = create<UiState>(set => ({
@@ -84,12 +94,14 @@ export const useUi = create<UiState>(set => ({
   flyTo: null,
   highlight: null,
   selectedStructure: null,
-  setTab: tab => set({tab}),
+  risk: {model: 'usgs', i15: 24, segment: null},
+  setTab: tab => set(s => ({tab, layers: tab === 'risk' ? {...s.layers, debrisFlow: {...s.layers.debrisFlow, visible: true}} : s.layers})),
   setViewMode: viewMode => set({viewMode}),
   setBearing: bearing => set({bearing}),
   setLayer: (id, patch) => set(s => ({layers: {...s.layers, [id]: {...s.layers[id], ...patch}}})),
   setHover: hover => set({hover}),
   requestFlyTo: (lon, lat, zoom) => set(s => ({flyTo: {lon, lat, zoom, seq: (s.flyTo?.seq ?? 0) + 1}})),
   setHighlight: highlight => set({highlight}),
-  selectStructure: selectedStructure => set({selectedStructure})
+  selectStructure: selectedStructure => set({selectedStructure}),
+  setRisk: patch => set(s => ({risk: {...s.risk, ...patch}}))
 }));

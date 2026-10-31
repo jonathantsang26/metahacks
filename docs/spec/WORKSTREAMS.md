@@ -55,6 +55,16 @@ These are what let the streams work in parallel. The producer writes files to `w
   - The model is `muse-spark-1.3` on `https://api.meta.ai/v1`, and the key stays server-side.
   - The response never states a cause and never includes addresses.
 
+### A → B (post-fire debris flows, Risk tab)
+
+Steps `s14_debris_models.py` (shared across fires) and `s15_debris_fire.py` (per fire). The per-fire segments, their M1 inputs and USGS's own likelihoods come from the USGS postfire debris-flow hazard assessments for Eaton (doi:10.5066/P14EWYME) and Palisades (Palisades item on ScienceBase), CC0. Design storms are USGS's: peak 15-minute intensity I15 = 16, 20, 24, 28, 32, 36, 40 mm/h.
+
+| File | Shape |
+|---|---|
+| `debris_flow/model_eval.json` (shared, not per fire) | `{inventory: {title, doi, url, records, fires, debris_flows, used_records, used_fires, used_flows, filters[]}, cv: {scheme: "leave-one-fire-out", folds}, features: {name: description}, models: [{id, label, features[], cv, n, flows, pooled: {roc_auc, pr_auc, brier, base_rate}, per_fire: {fires, median_roc_auc, iqr[2]}, analogue: {fire, year, n, flows, roc_auc, brier} \| null}], importance: {model_id: [{feature, drop_in_auc}]}, notes[]}`. Model ids: `m1_published` (USGS M1, Staley 2017, published coefficients, scored only on records outside its 2016 training inventory), `m1_refit` (M1's form refitted per fold), `rf_m1vars` / `mlp_m1vars` (M1's four inputs), `rf_extended` / `mlp_extended` (plus the extra features). `analogue` is the held-out Station Fire (2009, San Gabriel front). |
+| `<fire>/debris_flow.geojson` | LineStrings (USGS stream segments, lon/lat), `properties: {id, area_km2, T, F, S, usgs_hazard_24, usgs_p_<I>, m1_p_<I>, rf_p_<I>, mlp_p_<I>}` for each design I15 `<I>`. T = proportion of the upstream area burned at moderate/high severity and steeper than 23°, F = mean dNBR / 1000, S = mean soil KF-factor. `usgs_hazard_24` is USGS's combined hazard class at I15 = 24 mm/h (1 low, 2 moderate, 3 high). `rf_p_*`/`mlp_p_*` are the `*_extended` models under the scenario in the stats file. |
+| `<fire>/debris_flow_stats.json` | `{source: {title, doi, url, license}, design_i15_mm_h[], scenario: {date, days_since_fire, soil_moisture_0_7cm, soil_moisture_source}, segments, m1_check: {max_abs_diff_vs_usgs}, agreement: {model: {spearman_vs_usgs_24, class_agreement_24}}, likelihood_class_counts_24: {model: {"0-20%": n, ...}}, usgs_median_thresholds_mm_h: {I15_50, I15_75}, notes[]}`. `m1_check` is an implementation check (our M1 reproduces USGS's numbers), not a validation. |
+
 ### C → B (footage files): `web/public/data/<fire>/footage/`
 
 | File | Shape |
