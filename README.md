@@ -1,14 +1,20 @@
 # Sentinel Ember
 
 **A forensic reconstruction of a real wildfire from public records.**
-- **When the fire reached each street:** an arrival time for every place that burned.
+- **When the fire reached each street:** an arrival time for every burned cell, interpolated between mapped perimeters and labelled MODELED; hover the map for any point.
 - **Where and when it started:** a location estimate with a calibrated 90% radius. A start time is shown only when the data pin it to within 6 h; for both fires they don't, so it is withheld.
 - **Which homes survived:** outcomes compared at the same exposure.
 - **Where debris flows could follow:** post-fire debris-flow likelihood on every stream segment under USGS's design storms, with USGS's model and two models fitted on USGS's observed debris-flow inventory.
 
 ![Eaton Fire replay at Jan 8, 15:30 PST: the interpolated fire progression and burn scar on 3D terrain, the mapped perimeter, the ignition estimate with its start time withheld, and the timeline, charts and key events](docs/img/eaton-replay.jpg)
 
-Open it at that moment with `?fire=eaton&t=2025-01-08T23:30:00Z`; `&tab=risk` opens the post-fire debris-flow view below ([screenshot](docs/img/eaton-risk.jpg)).
+Run it (Node 20.19+, no key needed):
+
+```bash
+cd web && npm ci && npm run dev
+```
+
+Then open http://localhost:5173/?fire=eaton&t=2025-01-08T23:30:00Z for this view; `&tab=risk` opens the post-fire debris-flow view ([screenshot](docs/img/eaton-risk.jpg)), and `?fire=palisades` switches fires.
 
 Every number traces back to a public source or a committed evaluation file. The README's headline table below is generated from those files, and a test fails if it drifts.
 
@@ -25,13 +31,14 @@ Built for the **Meta Global AI Developer Hackathon** (2026). The two fires cover
 
 This project joins them into one timeline, estimates where and when each fire started with checked uncertainty, and compares structure outcomes at equal exposure.
 
-**Why now:** for the January 2025 fires, every input is public and machine-readable:
-- NIFC's 2025 operational perimeter archive.
-- CAL FIRE's damage inspections (DINS), with construction attributes for each structure.
-- NASA JPL's AVIRIS-3 burn-severity flights.
-- NOAA's HRRR 3 km weather model, through Open-Meteo's historical archive.
+**Why now:** the burn scars face their first winters now, and the evidence to reconstruct these fires only recently became public in machine-readable form:
+- USGS's observed post-fire debris-flow inventory for the western US was published in 2026 (Graber et al.), and USGS's debris-flow hazard assessments for Eaton and Palisades in 2025. Together they let the Risk tab test models against observed outcomes and against USGS's own assessment.
+- NIFC's 2025 operational perimeter archive keeps each fire's timed perimeters.
+- CAL FIRE's damage inspections (DINS) give construction attributes for every inspected structure.
+- NASA JPL's AVIRIS-3 flew burn-severity imagery over these fires.
+- NOAA's HRRR 3 km weather model is in Open-Meteo's historical archive.
 
-On the model side, Meta's Muse Spark (`muse-spark-1.3`) offers tool calling over an OpenAI-compatible API. The analyst is designed around it: every paragraph must cite a tool result, and its numbers are checked against the cited results before they are shown. It is built and tested offline; it has not yet answered live, which needs a key.
+The analyst is built for Meta's Muse Spark (`muse-spark-1.3`), whose tool calling lets every paragraph cite a tool result (see the Analyst row below).
 
 ## What works today
 
@@ -44,7 +51,7 @@ On the model side, Meta's Muse Spark (`muse-spark-1.3`) offers tool calling over
 | House-level exposure: destruction odds by construction feature, at matched exposure | **Working** | [`s09b_exposure.py`](pipeline/steps/s09b_exposure.py) |
 | Post-fire debris flows (Risk tab): USGS M1 against M1 recalibrated, a random forest and an MLP, scored leaving one fire out on USGS's observed inventory, and mapped on USGS's stream segments | **Working**; compared with USGS's assessment, not validated (no 2025 outcomes) | [`s14_debris_models.py`](pipeline/steps/s14_debris_models.py), [`s15_debris_fire.py`](pipeline/steps/s15_debris_fire.py), [`rail/risk.tsx`](web/src/rail/risk.tsx) |
 | Analyst (`muse-spark-1.3`): tool calls over the fire data, with citation, number and guardrail checks on the server, and a chat in the app whose citation chips move the map and the clock | **Built and tested offline. Not yet run against the live API**, which needs `MODEL_API_KEY`; without it the chat shows the server's message, never an answer | [`web/api/`](web/api), [`rail/analyst.tsx`](web/src/rail/analyst.tsx) |
-| Web app: replays each fire on 3D terrain from the pipeline's files. The map shows the interpolated progression from `arrival.png`, the burn scar (AVIRIS-3 dNBR, the differenced Normalized Burn Ratio, a standard burn-severity index), the mapped perimeter at the current time, the ignition estimate and its 90% region beside CAL FIRE's reported point, structures, roads and HRRR wind arrows (a layer toggle, off by default). Charts, key events, weather at the current time, the back-trace and house-level analysis, and the source manifest all follow one timeline | **Working** on Eaton and Palisades (switch fires from the header). The Drones and Resources tabs are disabled: there is no data for them in this build | [`web/src/`](web/src) |
+| Web app: replays each fire on 3D terrain from the pipeline's files. The map shows the interpolated progression from `arrival.png`, the burn scar (AVIRIS-3 dNBR, the differenced Normalized Burn Ratio, a standard burn-severity index), the mapped perimeter at the current time, the ignition estimate and its 90% region beside CAL FIRE's reported point, structures, roads and HRRR wind arrows (a layer toggle, off by default). Charts, key events, weather at the current time, the back-trace and house-level analysis, and the source manifest all follow one timeline | **Working** on Eaton and Palisades (switch fires from the header). The Drones tab is disabled (no drone data in this build); the Risk tab replaces the reference design's Resources tab | [`web/src/`](web/src) |
 | Drone footage: Sentinel YOLOv8 + SAM 3.1 segmentation | **Not started** (stream C). Only the API smoke test exists | [`tools/smoke_meta.py`](pipeline/tools/smoke_meta.py) |
 | NASA FIRMS hotspots | **Code done**, gated on `FIRMS_MAP_KEY`; not used in the committed outputs | [`s04_firms.py`](pipeline/steps/s04_firms.py) |
 
@@ -82,12 +89,14 @@ Each cell's arrival is then interpolated by distance between consecutive footpri
 - **When the start time is withheld:** if the interval is wider than 6 h, k sits at the model's ceiling, or the uncertainty is uncalibrated. The timeline then omits the estimated start and the analyst declines to give one.
 - **Inputs to the rule:** it looks only at the fit, never at CAL FIRE's reference. The synthetic benchmark does borrow the real fire's observation delays, measured from CAL FIRE's reported start.
 
-**Synthetic benchmark.** Each synthetic fire runs on the fire's real terrain, fuels and HRRR wind field, and is observed on its real perimeter schedule. The truth differs from the inverting model in kind, not just in parameters:
+**Synthetic benchmark.** Each synthetic fire runs on the fire's real terrain, fuels and HRRR wind field, and is observed on its real perimeter schedule. The truth runs the same spread equations as the inverting model, but on inputs the model never sees:
 - per-fuel rates ±25–30%;
 - a smooth, patchy fuel field the model never sees;
 - wind speed ±15%, direction ±15° and timing ±1.5 h;
 - a perturbed length-to-breadth cap;
 - ±1-cell mapping noise.
+
+Synthetic start times are drawn uniformly 2–8 h into the replay window, a range that brackets CAL FIRE's reported start for both fires (2.3 h and 6.5 h in); the inversion itself never uses this prior.
 
 The spread-rate range is centred on the fuel table itself: k log-uniform 0.25–4, i.e. its base rates off by up to 4× either way. It has not always been: commit `0eab9dc` drew k from 4–16 to resemble the real Eaton fit of the time (k ≈ 11), and `66e8516` moved it to 0.25–4 when the HRRR fit brought Eaton's k to 0.42. Other design choices (the shape cap, the start-time lags) were also diagnosed on the real Eaton grid, so the real Eaton hold-out is a sanity check rather than an independent test. The real Palisades fits (k 22.6 in the hold-out, 76.8 at the ceiling in the full fit) lie outside the synthetic range, so Palisades' synthetic coverage describes slower fires than the real one. Each case is inverted twice: on every footprint, as the app does, and with the first two held out, as in the real hold-out. `make eval QUICK=1` recomputes the first cases and checks that they match the committed ones exactly.
 
@@ -108,7 +117,7 @@ The analysis on top:
   - Every number and clock time in it must appear in the cited tool results or in the question. Rounding is allowed; computed numbers are not. Small whole numbers up to 10 are exempt.
   - It must not match the cause, attribution or address patterns.
 - **What happens to failures:** dropped paragraphs are counted by reason.
-- **Eval** ([`scripts/eval-analyst.ts`](web/scripts/eval-analyst.ts)): 15 questions per fire, with ground truth computed from the data files by code independent of the tools. Questions with no truth in the data are skipped and listed, so 14 are scored for Eaton and 13 for Palisades. Where the back-trace withholds a start time, the ignition question becomes a must-decline question.
+- **Eval** ([`scripts/eval-analyst.ts`](web/scripts/eval-analyst.ts)): 15 questions per fire, with ground truth computed from the data files by code independent of the tools. Arrival-time truths come from the interpolated arrival raster, so they are MODELED, not observed. Questions with no truth in the data are skipped and listed, so 14 are scored for Eaton and 13 for Palisades. Where the back-trace withholds a start time, the ignition question becomes a must-decline question.
 
 ## Evidence
 
@@ -120,9 +129,10 @@ The table is generated by `make report` from the committed eval files. The full 
 | Synthetic fires, location error (median): back-trace vs first-footprint centroid | 588 m vs 449 m | 526 m vs 1,624 m |
 | Synthetic fires, start-time error (median): back-trace vs √area back-extrapolation | 78 min vs 21.6 h | 4.6 h vs 37.0 h |
 | The same with the first two perimeters held out: location; start time | 924 m vs 1,406 m; 3.1 h vs 52.2 h | 786 m vs 1,744 m; 16.4 h vs 109.7 h |
-| 90% radius / interval contains the truth, on synthetic cases the calibration never saw | 87% / 93% (radius 1,717 m, interval 10.31 h) | 100% / 100% (radius 1,681 m, interval 43.25 h) |
+| 90% radius / interval contains the truth, on synthetic cases the calibration never saw | 87% / 93% (radius 1,717 m, interval 10.31 h) | 100% / 100% (radius 1,681 m, interval 43.25 h); the real fit's k (76.8) lies above every synthetic truth (max 3.6) |
 | Unseen synthetic cases where the app would show a start time | 0 of 15 | 0 of 15 |
 | Real fire: estimated start time | withheld (not identifiable) | withheld (not identifiable) |
+| Real hold-out: distance to CAL FIRE's reported point (baseline: first-footprint centroid) | 2,504 m (2,460 m) | 315 m (3,557 m) |
 | Real hold-out: start-time error vs CAL FIRE (baseline) | 2.3 h (-30.9 h); withheld as not identifiable | 40.0 h (-707.9 h); the estimate is later than the held-out perimeters, so not a credible start, and withheld as not identifiable |
 | CAL FIRE's reported point, distance outside the first mapped footprint | 1,772 m | 0 m |
 | Real fit with the HRRR wind field vs the old single ERA5 point (footprint IoU, spread-rate scale k) | IoU 0.45, k 0.424 vs IoU 0.30, k 11.314 | IoU 0.38, k 76.8 vs IoU 0.40, k 76.8 (ceiling) |
@@ -136,7 +146,7 @@ How to read it:
 - **Coverage row:** whether the stated 90% uncertainty holds on cases the calibration never saw.
 - **"Would show a start time" row:** how often the identifiability rule lets a start time through, and how good it is when it does.
 - **Real-fire rows** compare against CAL FIRE's *reported* start. That is a reported time and incident location, not an investigated origin.
-  - For Eaton, the reported point lies outside the first four mapped perimeters (up to 10:37Z): 1,721 m outside the 07:06Z polygon (1,772 m on the analysis grid, as in the table) and 1,108 m outside the 10:34Z one. The search is confined to the first fitted footprint, so it can't reach that point: the early perimeters missed the origin area, or the point is approximate.
+  - For Eaton, the reported point lies outside the first four mapped perimeters (up to 10:37Z): 1,721 m outside the 07:06Z polygon and 1,108 m outside the 10:34Z one (vector distances, computed in `RESULTS.md`; 1,772 m and 1,142 m on the analysis grid, as in the table and `ignition.json`). The search is confined to the first fitted footprint, so it can't reach that point: the early perimeters missed the origin area, or the point is approximate.
 - **IoU** (intersection over union) compares the modeled and observed burned areas: 1 means identical, 0 means no overlap.
 - **Wind row:** the current fit against the pipeline before HRRR (one ERA5 point, shape cap 8), so it mixes the wind change with the shape-cap change. [`eval/wind_ablation.json`](web/public/data/eaton/eval/wind_ablation.json) separates them, and `RESULTS.md` lists all four variants.
 - **Odds ratios** are associations, adjusted only for the recorded exposure.
@@ -144,14 +154,14 @@ How to read it:
 What it shows:
 - **Start time is where the back-trace beats the baseline.** On synthetic fires its start time is closer than √area back-extrapolation in 93% (Eaton) and 83% (Palisades) of cases.
 - **Location is mixed.** For Eaton the first footprint's centroid is closer on the median (449 m vs 588 m; the back-trace wins 57% of cases). With the shape cap at 1 the model fire is round, and a round fire's first footprint is centred near its start, so the centroid is a strong guess. The back-trace wins when the early perimeters are held out (924 m vs 1,406 m), and for Palisades, whose first map comes 26 h in.
-- **No start time is shown yet.** Under the 6 h rule, no unseen synthetic case (in either scenario) and neither real fit gets one: the honest intervals are 10–13 h wide for Eaton and 43–64 h for Palisades. Eaton's real hold-out interval (23:15Z on Jan 7 to 09:52Z on Jan 8, 10.6 h) does hold CAL FIRE's 02:18Z, and its estimate is 2.3 h late. An earlier posterior that also counted the dense second-stage candidates gave Eaton's hold-out a 5.9 h interval that let the time through and missed CAL FIRE's start; that is why the posterior now comes from the regular grid alone.
+- **No start time is shown yet.** Under the 6 h rule, no unseen synthetic case (in either scenario) and neither real fit gets one: Eaton's intervals are 10–13 h wide (real fits and synthetic cases). Palisades' synthetic and hold-out intervals are 43–64 h; its full fit's 7.5 h interval is withheld because k sits at the model's ceiling. The Palisades hold-out's temperature (38.4 h) is the top of the grid tried, so its 100% coverage says little. Eaton's real hold-out interval (23:15Z on Jan 7 to 09:52Z on Jan 8, 10.6 h) does hold CAL FIRE's 02:18Z, and its estimate is 2.3 h late. An earlier posterior that also counted the dense second-stage candidates gave Eaton's hold-out a 5.9 h interval that let the time through and missed CAL FIRE's start; that is why the posterior now comes from the regular grid alone.
 - **Coverage is close to, not always at, 90%.** On unseen synthetic cases the 90% radius held the true origin in 87% of Eaton's full-fit cases (13 of 15) and 93% of its hold-out cases; the start interval held the true start in 87–100%.
 - **HRRR helps Eaton, not Palisades.** For Eaton at the same shape cap, the HRRR field lowers the fit loss (2.16 → 2.02 h) and raises the mean footprint IoU (0.41 → 0.45) over the ERA5 point. Most of the gain over the old pipeline (IoU 0.30) comes from the shape cap, though, and one uniform HRRR wind matches the field (IoU 0.46). For Palisades every wind variant leaves k at the ceiling: the model can't grow that fire fast enough under any of them.
 
 ## Post-fire debris flows
 
 Burned, steep slopes can shed debris flows in the first winters' storms. The Risk tab shows USGS's stream segments for each fire (956 for Eaton, 1,864 for Palisades) with the chance of a debris flow under USGS's seven design storms (peak 15-minute rainfall 16–40 mm/h), from three models:
-- **USGS M1 (published):** USGS's own hazard assessments for these fires (Staley et al. 2017 coefficients; [doi:10.5066/P14EWYME](https://doi.org/10.5066/P14EWYME), CC0). Our implementation reproduces its likelihoods to within 4×10⁻¹⁶, which checks our code, not the model.
+- **USGS M1 (published):** USGS's own hazard assessments for these fires (Staley et al. 2017 coefficients; [doi:10.5066/P14EWYME](https://doi.org/10.5066/P14EWYME), CC0). Our implementation reproduces its likelihoods to within 5×10⁻¹⁶ (largest difference 4.4×10⁻¹⁶), which checks our code, not the model.
 - **M1 recalibrated:** the same form refitted on USGS's observed debris-flow inventory ([Graber et al. 2026](https://doi.org/10.5066/P1R9VXC4): 7,639 usable watershed-storm records from 77 fires, 2000–2024, 955 of them debris flows).
 - **Random forest:** fitted on that inventory with M1's inputs plus watershed area, days since the fire and antecedent soil moisture (ERA5-Land via Open-Meteo), and constrained never to fall as rainfall rises.
 
@@ -201,6 +211,7 @@ Requires Python 3.11+ with [uv](https://docs.astral.sh/uv/), and Node 20.19+ (`w
 cd pipeline && uv sync
 make test                                        # pipeline tests on the Eaton and Palisades outputs, incl. README headline drift
 make eval EVAL_DIR=/tmp/ember-eval               # re-run the real Eaton hold-out; matches eval/ignition_holdout.json (5-15 min)
+make eval FIRE=palisades EVAL_DIR=/tmp/ember-eval-pal  # the same for Palisades (about 12 min)
 make eval QUICK=1 EVAL_DIR=/tmp/ember-eval-quick # recompute 2 synthetic cases and check them against the committed ones (about 8 min)
 make report                                      # regenerate docs/RESULTS.md and the README headline table
 make debris                                      # debris-flow models and maps (needs network: ScienceBase, Open-Meteo)

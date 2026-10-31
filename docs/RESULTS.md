@@ -48,7 +48,7 @@ The 6 h identifiability rule would have withheld the start time in all 15 of tho
 
 ## Ignition back-trace: real hold-out
 
-The model never sees the first two perimeters or CAL FIRE's reference. CAL FIRE's point is the reported incident location, not an investigated origin.
+The hold-out fit is fitted without the first two perimeters (apart from the sliver of their area the cumulative footprints keep, stated per fire) and never uses CAL FIRE's reference. CAL FIRE's point is the reported incident location, not an investigated origin.
 
 **Eaton Fire**: fit on 4 perimeters from 2025-01-08T10:33:59Z; held out 2025-01-08T07:06:14Z, 2025-01-08T07:12:13Z.
 
@@ -60,6 +60,8 @@ The model never sees the first two perimeters or CAL FIRE's reference. CAL FIRE'
 | Official start inside the 90% interval (2025-01-07T23:15:09Z – 2025-01-08T09:51:33Z) | yes | – |
 | IoU with held-out perimeter 2025-01-08T07:06:14Z | 0.23 | – |
 | IoU with held-out perimeter 2025-01-08T07:12:13Z | 0.15 | – |
+
+CAL FIRE's reported point, by vector distance to the perimeter polygons: the first mapped perimeter (2025-01-08T07:06:14Z): 1,721 m outside it; the hold-out fit's first perimeter (2025-01-08T10:33:59Z): 1,108 m outside it. The analysis-grid distances the fits use differ by up to a few cells. Footprints are cumulative, so 0.2 ha of the held-out perimeters that lies outside the hold-out fit's first perimeter stays in its footprints.
 
 Hold-out fit: **start time not identifiable**: 90% start-time interval is 10.6 h wide (limit 6 h). The timeline omits the estimated start.
 
@@ -77,6 +79,8 @@ Full fit: **start time not identifiable**: 90% start-time interval is 10.6 h wid
 | Official start inside the 90% interval (2025-01-07T06:53:47Z – 2025-01-09T22:23:47Z) | yes | – |
 | IoU with held-out perimeter 2025-01-08T20:34:03Z | 0.00 | – |
 | IoU with held-out perimeter 2025-01-08T21:24:23Z | 0.00 | – |
+
+CAL FIRE's reported point, by vector distance to the perimeter polygons: the first mapped perimeter (2025-01-08T20:34:03Z): inside it; the hold-out fit's first perimeter (2025-01-09T22:53:47Z): inside it. The analysis-grid distances the fits use differ by up to a few cells. Footprints are cumulative, so 0.5 ha of the held-out perimeters that lies outside the hold-out fit's first perimeter stays in its footprints.
 
 The hold-out estimate starts at 2025-01-09T10:27:04Z, after the held-out perimeters, which it therefore predicts as unburned: its start time is not a credible back-trace, and the start-time error above is not a result.
 

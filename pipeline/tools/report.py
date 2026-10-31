@@ -131,6 +131,15 @@ def holdout_section(fire) -> list[str]:
             ]
     rows += [f"| IoU with held-out perimeter {x['t']} | {x['iou']:.2f} | – |" for x in h["held_out"]]
     rows.append("")
+    geo = reference_geometry(fire, h)
+    if geo:
+        (t0, d0), (t1, d1) = geo["first"], geo["first_fit"]
+        where = lambda d: "inside it" if d == 0 else f"{d:,.0f} m outside it"
+        rows += [f"CAL FIRE's reported point, by vector distance to the perimeter polygons: the first mapped perimeter "
+                 f"({t0}): {where(d0)}; the hold-out fit's first perimeter ({t1}): {where(d1)}. The analysis-grid "
+                 f"distances the fits use differ by up to a few cells. Footprints are cumulative, so "
+                 f"{geo['held_out_outside_fit_ha']:.1f} ha of the held-out perimeters that lies outside the hold-out "
+                 "fit's first perimeter stays in its footprints.", ""]
     if after_held_out(h):
         rows += [f"The hold-out estimate starts at {est['t']}, after the held-out perimeters, which it therefore predicts as "
                  "unburned: its start time is not a credible back-trace, and the start-time error above is not a result.", ""]
@@ -149,6 +158,30 @@ def holdout_section(fire) -> list[str]:
             rows += ["", timing_line("Full fit", ign["timing"])]
         rows.append("")
     return rows
+
+
+def reference_geometry(fire, h: dict) -> dict | None:
+    """Vector distances from CAL FIRE's reported point to the early perimeter polygons, and how much
+    of the held-out perimeters' area lies outside the first fitted one (the cumulative union keeps it).
+    Metres in a local equirectangular projection around the point, which is exact to well under 1%
+    at these distances."""
+    import math
+    from shapely.geometry import Point, shape
+    from shapely.ops import transform, unary_union
+    inc = (read(fire, "aoi.json") or {}).get("official", {}).get("incident")
+    feats = (read(fire, "perimeters.geojson") or {}).get("features", [])
+    if not inc or not feats:
+        return None
+    lon0, lat0 = inc["reported_location"]
+    k = math.cos(math.radians(lat0))
+    metres = lambda g: transform(lambda x, y, z=None: ((x - lon0) * k * 111_320.0, (y - lat0) * 110_574.0), shape(g))
+    polys = sorted(((f["properties"]["t"], metres(f["geometry"])) for f in feats), key=lambda p: p[0])
+    held = {x["t"] for x in h["held_out"]}
+    first_fit = next((t, g) for t, g in polys if t not in held)
+    outside = lambda g: 0.0 if g.contains(Point(0, 0)) else g.distance(Point(0, 0))
+    held_area = unary_union([g for t, g in polys if t in held])
+    return {"first": (polys[0][0], outside(polys[0][1])), "first_fit": (first_fit[0], outside(first_fit[1])),
+            "held_out_outside_fit_ha": held_area.difference(first_fit[1]).area / 1e4}
 
 
 def after_held_out(h: dict) -> bool:
@@ -285,9 +318,16 @@ def headline(fires) -> list[str]:
 
     def coverage(f):
         c = syn(f)["calibration_all_observations"]
+        k_hi = max(case["truth"]["k"] for case in syn(f)["cases"])
+        regime = (f"; the real fit's k ({ign(f)['map']['k']:g}) lies above every synthetic truth (max {k_hi:.1f})"
+                  if ign(f)["map"]["k"] > k_hi else "")
         return (f"{c['test_coverage']['distance']:.0%} / {c['test_coverage']['time']:.0%} "
                 f"(radius {c['median_test_r90_m']:,.0f} m, interval {c['median_test_t90_width_h']:g} h)"
-                + ("" if c["reached_on_calibration_half"] else "; uncalibrated, widest temperature tried"))
+                + ("" if c["reached_on_calibration_half"] else "; uncalibrated, widest temperature tried") + regime)
+
+    def holdout_place(f):
+        e = hold(f)["errors"]
+        return f"{e['backtrace_distance_m']:,.0f} m ({e['baseline_distance_m']:,.0f} m)"
 
     def real_start(f):
         i, a = ign(f), read(f, "aoi.json")["official"]["incident"]
@@ -326,6 +366,7 @@ def headline(fires) -> list[str]:
         f"| 90% radius / interval contains the truth, on synthetic cases the calibration never saw | {cells(coverage)} |",
         f"| Unseen synthetic cases where the app would show a start time | {cells(shown)} |",
         f"| Real fire: estimated start time | {cells(real_start)} |",
+        f"| Real hold-out: distance to CAL FIRE's reported point (baseline: first-footprint centroid) | {cells(holdout_place)} |",
         f"| Real hold-out: start-time error vs CAL FIRE (baseline) | {cells(lambda f: holdout_time(hold(f)))} |",
         f"| CAL FIRE's reported point, distance outside the first mapped footprint | {cells(outside)} |",
         f"| Real fit with the HRRR wind field vs the old single ERA5 point (footprint IoU, spread-rate scale k) | {cells(wind)} |",
@@ -359,7 +400,8 @@ def main() -> None:
     for f in fires:
         lines += synthetic_section(f)
     lines += ["## Ignition back-trace: real hold-out", "",
-              "The model never sees the first two perimeters or CAL FIRE's reference. CAL FIRE's point is the "
+              "The hold-out fit is fitted without the first two perimeters (apart from the sliver of their area the "
+              "cumulative footprints keep, stated per fire) and never uses CAL FIRE's reference. CAL FIRE's point is the "
               "reported incident location, not an investigated origin.", ""]
     for f in fires:
         lines += holdout_section(f)
