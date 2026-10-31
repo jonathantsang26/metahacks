@@ -10,6 +10,11 @@
  *
  * Pass it to a TerrainLayer: extensions are forwarded to the mesh sublayer, and the
  * arrival image is sampled with the same UVs as the base texture, so both stay aligned.
+ *
+ * The arrival image uses nearest filtering and no mipmaps. Linear filtering blends
+ * the 255 "never burned" code into its neighbours and paints a false "burns last"
+ * ring on the perimeter (BUILD.md §3). Nearest also keeps the hover inspector's
+ * texel lookup on the same cell the shader draws.
  */
 import {LayerExtension} from '@deck.gl/core';
 import type {DefaultProps, Layer, LayerContext} from '@deck.gl/core';
@@ -76,7 +81,18 @@ const fireModule = {
 } as const satisfies ShaderModule<FireModuleProps, FireUniforms, FireBindings>;
 
 const defaultProps: DefaultProps<FireExtensionProps> = {
-  fireArrival: {type: 'image', value: null, async: true},
+  fireArrival: {
+    type: 'image',
+    value: null,
+    async: true,
+    parameters: {
+      minFilter: 'nearest',
+      magFilter: 'nearest',
+      mipmapFilter: 'none',
+      addressModeU: 'clamp-to-edge',
+      addressModeV: 'clamp-to-edge'
+    }
+  },
   fireTime: 0,
   fireGlow: 0.012
 };
