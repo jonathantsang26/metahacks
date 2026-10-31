@@ -1,0 +1,310 @@
+{
+  "metric": "frame-level fire-or-smoke detection",
+  "precision": 0.734,
+  "recall": 0.635,
+  "f1": 0.681,
+  "n": 300,
+  "n_positive": 200,
+  "dataset": {
+    "kind": "folder",
+    "name": "DeepQuest Fire-Smoke test split",
+    "sample": 0,
+    "seed": 0
+  },
+  "weights": {
+    "file": "sentinel_fire.pt",
+    "sha256": "f4c860f27df4daefe3b31d9943d3b92db5759a25f4fcf220d5b22e384b1a84a8",
+    "classes": 2,
+    "fire_classes": [
+      "fire",
+      "smoke"
+    ],
+    "training": {
+      "base": {
+        "file": "fire_yolov8n.pt",
+        "sha256": "31e20dde3def09e2cf938c7be6fe23d9150bbbe503982af13345706515f2ef95",
+        "note": "Sentinel's shipped weights (stock COCO YOLOv8n)"
+      },
+      "data": {
+        "firenet": {
+          "train": 412,
+          "val": 90
+        }
+      },
+      "classes": [
+        "fire",
+        "smoke"
+      ],
+      "epochs": 30,
+      "imgsz": 416,
+      "val": {
+        "map50": 0.72,
+        "map50_95": 0.342,
+        "precision": 0.738,
+        "recall": 0.714
+      },
+      "date": "2026-10-31"
+    }
+  },
+  "threshold": 0.25,
+  "any": {
+    "precision": 0.734,
+    "recall": 0.635,
+    "f1": 0.681,
+    "tp": 127,
+    "fp": 46,
+    "fn": 73,
+    "tn": 54
+  },
+  "fire": {
+    "precision": 0.561,
+    "recall": 0.97,
+    "f1": 0.711,
+    "tp": 97,
+    "fp": 76,
+    "fn": 3,
+    "tn": 124
+  },
+  "smoke": {
+    "precision": null,
+    "recall": 0.0,
+    "f1": 0.0,
+    "tp": 0,
+    "fp": 0,
+    "fn": 100,
+    "tn": 200
+  },
+  "sweep": [
+    {
+      "threshold": 0.05,
+      "precision": 0.668,
+      "recall": 0.835
+    },
+    {
+      "threshold": 0.1,
+      "precision": 0.683,
+      "recall": 0.785
+    },
+    {
+      "threshold": 0.15,
+      "precision": 0.685,
+      "recall": 0.73
+    },
+    {
+      "threshold": 0.2,
+      "precision": 0.707,
+      "recall": 0.7
+    },
+    {
+      "threshold": 0.25,
+      "precision": 0.734,
+      "recall": 0.635
+    },
+    {
+      "threshold": 0.3,
+      "precision": 0.753,
+      "recall": 0.565
+    },
+    {
+      "threshold": 0.35,
+      "precision": 0.791,
+      "recall": 0.53
+    },
+    {
+      "threshold": 0.4,
+      "precision": 0.817,
+      "recall": 0.47
+    },
+    {
+      "threshold": 0.45,
+      "precision": 0.838,
+      "recall": 0.415
+    },
+    {
+      "threshold": 0.5,
+      "precision": 0.904,
+      "recall": 0.375
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.897,
+      "recall": 0.305
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.944,
+      "recall": 0.255
+    },
+    {
+      "threshold": 0.65,
+      "precision": 0.921,
+      "recall": 0.175
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.962,
+      "recall": 0.125
+    },
+    {
+      "threshold": 0.75,
+      "precision": 0.944,
+      "recall": 0.085
+    },
+    {
+      "threshold": 0.8,
+      "precision": 0.923,
+      "recall": 0.06
+    },
+    {
+      "threshold": 0.85,
+      "precision": 1.0,
+      "recall": 0.01
+    },
+    {
+      "threshold": 0.9,
+      "precision": null,
+      "recall": 0.0
+    },
+    {
+      "threshold": 0.95,
+      "precision": null,
+      "recall": 0.0
+    }
+  ],
+  "method": "Sentinel YOLOv8 (sentinel_fire.pt) on 300 labelled frames. A frame counts as a detection when any fire or smoke box has confidence \u2265 0.25; scored against the frame's fire/smoke label. Frame-level, not box-level: the labels have no boxes.",
+  "date": "2026-10-31",
+  "baseline": {
+    "weights": {
+      "file": "fire_yolov8n.pt",
+      "sha256": "31e20dde3def09e2cf938c7be6fe23d9150bbbe503982af13345706515f2ef95",
+      "classes": 80,
+      "fire_classes": [],
+      "training": null
+    },
+    "threshold": 0.25,
+    "any": {
+      "precision": null,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 200,
+      "tn": 100
+    },
+    "fire": {
+      "precision": null,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 100,
+      "tn": 200
+    },
+    "smoke": {
+      "precision": null,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 100,
+      "tn": 200
+    },
+    "sweep": [
+      {
+        "threshold": 0.05,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.1,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.15,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.2,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.25,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.3,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.35,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.4,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.45,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.5,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.55,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.6,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.65,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.7,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.75,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.8,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.85,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.9,
+        "precision": null,
+        "recall": 0.0
+      },
+      {
+        "threshold": 0.95,
+        "precision": null,
+        "recall": 0.0
+      }
+    ]
+  }
+}

@@ -69,10 +69,10 @@ Steps `s14_debris_models.py` (shared across fires) and `s15_debris_fire.py` (per
 
 | File | Shape |
 |---|---|
-| `clips.json` | `[{id, title, src, fps, width, height, source, note}]`. `note` is shown in the PiP, e.g. `"FLAME 2 · prescribed burn · not this fire"`. |
+| `clips.json` | `[{id, title, src, fps, width, height, source, note, publish?, window_s?, sentinel?}]`. `note` is shown in the PiP, e.g. `"FLAME 2 · prescribed burn · not this fire"`. `src` is relative to `footage/` (`clips/<id>.mp4`). `publish: false` marks a clip we may not redistribute: its MP4 stays local (gitignored) and the player draws the overlays over a dark frame. `window_s` is the `[start, end]` of the source video that Sentinel picked; `sentinel` is `{weights, fps, conf}`. |
 | `detections/<id>.json` | Sentinel boxes: `[{frame, box: [x1, y1, x2, y2], cls: "fire"\|"smoke", conf}]` in source pixels |
-| `masks/<id>.json` | SAM 3.1: `[{frame, object_id, prompt, bounds: [left, top, right, bottom], size: [w, h], path, conf}]`. `path` comes from `meta_sam_parser.decode_mask_to_svg_path` and is in the mask raster's own coordinates (`size`), not source pixels. `bounds` is the record's `SegmentationMaskBounds` in source pixels. B draws it with `translate(left, top) scale((right−left)/w, (bottom−top)/h)`. |
-| `../eval/*.json` | `sentinel.json`, `sam_video.json`, `sam_structures.json`, `analyst.json`: `{metric: value, n, method, date}` |
+| `masks/<id>.json` | SAM 3.1: `[{frame, object_id, prompt, bounds: [left, top, right, bottom], size: [w, h], path, conf}]`. `path` comes from `meta_sam_parser.decode_mask_to_svg_path` and is in the mask raster's own coordinates (`size`), not source pixels. `bounds` is the record's `SegmentationMaskBounds` in source pixels. B draws it with `translate(left, top) scale((right−left)/w, (bottom−top)/h)`. Optional `area_frac`: the share of the frame the mask covers, for the Mask Cover chart. |
+| `../eval/*.json` | `sentinel.json`, `sam_video.json`, `sam_structures.json`, `analyst.json`: `{metric: value, n, method, date}`. `sentinel.json` and `sam_video.json` (steps 12b, 12c) add `precision, recall, f1, n_positive, threshold, dataset, any, fire, smoke, sweep`; Sentinel's adds `weights` and `baseline` (the shipped weights' scores), SAM's adds `clips` (per-clip mask counts and Sentinel/SAM agreement). |
 
 **Footage licensing**: FLAME 2 has no stated license. Don't commit its clips to this public repo until that's checked. Until then, `src` can point to a local file, and the team's own drone footage is safe to publish.
 
