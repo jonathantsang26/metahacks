@@ -72,7 +72,7 @@ export function Stage({fire}: {fire: FireData}) {
         material: {ambient: 0.72, diffuse: 0.4, shininess: 4, specularColor: [20, 20, 20]},
         pickable: true,
         extensions: [fireExtension],
-        fireArrival: spread.visible ? arrival : null,
+        fireArrival: spread.visible ? arrival.canvas : null,
         fireTime: progress,
         fireGlow: 0.012
       }),
@@ -115,7 +115,7 @@ export function Stage({fire}: {fire: FireData}) {
       />
       <SyntheticChip visible={spread.visible} />
       <MapControls />
-      <HoverInspector dem={dem} fire={fire} />
+      <HoverInspector dem={dem} fire={fire} arrival={spread.visible ? arrival.grid : null} />
     </div>
   );
 }

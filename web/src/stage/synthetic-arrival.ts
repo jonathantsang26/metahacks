@@ -10,12 +10,20 @@
  */
 import type {PerimeterCollection} from '../data/fire';
 import {perimeterRings} from '../data/fire';
+import type {ArrivalGrid} from './arrival';
+
+export type SyntheticArrival = {
+  /** Canvas the terrain shader samples. */
+  canvas: HTMLCanvasElement;
+  /** Same codes, for the hover inspector. */
+  grid: ArrivalGrid;
+};
 
 export function syntheticArrival(
   perimeter: PerimeterCollection,
   bounds: [number, number, number, number],
   width = 1024
-): HTMLCanvasElement {
+): SyntheticArrival {
   const [w, s, e, n] = bounds;
   const height = Math.round((width * (n - s)) / (e - w) / Math.cos(((s + n) / 2) * (Math.PI / 180)));
   const canvas = document.createElement('canvas');
@@ -49,6 +57,7 @@ export function syntheticArrival(
 
   const mask = ctx.getImageData(0, 0, width, height);
   const out = ctx.createImageData(width, height);
+  const codes = new Uint8Array(width * height);
   const ox = sumX / Math.max(count, 1);
   const oy = minY + height * 0.08;
   let maxD = 1;
@@ -65,6 +74,7 @@ export function syntheticArrival(
       const wobble = 1 + 0.08 * Math.sin(Math.atan2(y - oy, x - ox) * 5);
       const d = (Math.hypot(x - ox, (y - oy) * 0.8) / maxD) * wobble;
       const code = burned ? 1 + Math.round(Math.min(1, d * 0.85) * 253) : 255;
+      codes[y * width + x] = code;
       out.data[i] = code;
       out.data[i + 1] = code;
       out.data[i + 2] = code;
@@ -72,5 +82,5 @@ export function syntheticArrival(
     }
   }
   ctx.putImageData(out, 0, 0);
-  return canvas;
+  return {canvas, grid: {codes, width, height, bounds, simulated: true}};
 }

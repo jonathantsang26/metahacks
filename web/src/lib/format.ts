@@ -57,6 +57,16 @@ export function formatLatLon(lat: number, lon: number): string {
   return `${dm(lat)}${lat >= 0 ? 'N' : 'S'} ${dm(lon)}${lon >= 0 ? 'E' : 'W'}`;
 }
 
+/** "42 h 29 min", matching the hover inspector's burned-ago line. */
+export function formatElapsed(ms: number): string {
+  const total = Math.max(0, Math.round(ms / 60_000));
+  if (total < 1) return 'less than 1 min';
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  if (h === 0) return `${m} min`;
+  return `${h} h ${m} min`;
+}
+
 const COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
 export function compassPoint(deg: number): string {
   return COMPASS[Math.round(((deg % 360) + 360) % 360 / 22.5) % 16];
