@@ -20,8 +20,11 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import base64
 import hashlib
+import io
 import json
+import time
 from pathlib import Path
 
 from steps.s12_footage import (
@@ -39,6 +42,7 @@ from steps.s12_footage import (
 from ember.config import load_fire
 
 SAM_MODEL = "sam-3.1"
+RATE_LIMIT_RETRIES = 8
 
 
 def _hash(path: Path) -> str:
@@ -69,6 +73,19 @@ async def _request(key: str, text: str, media_part: dict, video: bool) -> str:
     return result.raw_output
 
 
+def _image_url(path: Path) -> str:
+    """Data URL for SAM, re-encoded unless really JPEG/PNG: DeepQuest's Neutral frames are TIFFs named .jpg."""
+    from PIL import Image
+    from tools.smoke_meta import data_url
+
+    with Image.open(path) as im:
+        if im.format in ("JPEG", "PNG"):
+            return data_url(path)
+        buf = io.BytesIO()
+        im.convert("RGB").save(buf, "JPEG", quality=95)
+    return f"data:image/jpeg;base64,{base64.b64encode(buf.getvalue()).decode()}"
+
+
 def segment(media: Path, text: str, tag: str, video: bool, key_fn) -> str:
     """Raw SAM output for one media file and prompt, from the cache when present."""
     SAM_CACHE.mkdir(parents=True, exist_ok=True)
@@ -76,12 +93,21 @@ def segment(media: Path, text: str, tag: str, video: bool, key_fn) -> str:
     cached = SAM_CACHE / f"{slug}_{_hash(media)}_{hashlib.sha1(text.encode()).hexdigest()[:8]}.txt"
     if cached.exists():
         return cached.read_text()
-    from tools.smoke_meta import data_url, upload_file
+    from tools.smoke_meta import upload_file
 
     key = key_fn()
     part = ({"type": "input_video", "file_id": upload_file(key, media)} if video
-            else {"type": "input_image", "image_url": data_url(media)})
-    raw = asyncio.run(_request(key, text, part, video))
+            else {"type": "input_image", "image_url": _image_url(media)})
+    for attempt in range(RATE_LIMIT_RETRIES + 1):
+        try:
+            raw = asyncio.run(_request(key, text, part, video))
+            break
+        except Exception as e:
+            if "HTTP 429" not in str(e.__cause__ or e) or attempt == RATE_LIMIT_RETRIES:
+                raise
+            wait = min(120, 15 * 2**attempt)
+            print(f"  rate limited; waiting {wait}s")
+            time.sleep(wait)
     cached.write_text(raw)
     return raw
 

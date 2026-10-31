@@ -1,0 +1,145 @@
+{
+  "metric": "frame-level fire-or-smoke detection",
+  "precision": 1.0,
+  "recall": 0.945,
+  "f1": 0.972,
+  "n": 300,
+  "n_positive": 200,
+  "dataset": {
+    "kind": "folder",
+    "name": "DeepQuest Fire-Smoke test split",
+    "sample": 0,
+    "seed": 0
+  },
+  "prompts": [
+    "fire",
+    "smoke"
+  ],
+  "threshold": 0.25,
+  "any": {
+    "precision": 1.0,
+    "recall": 0.945,
+    "f1": 0.972,
+    "tp": 189,
+    "fp": 0,
+    "fn": 11,
+    "tn": 100
+  },
+  "fire": {
+    "precision": 0.896,
+    "recall": 0.95,
+    "f1": 0.922,
+    "tp": 95,
+    "fp": 11,
+    "fn": 5,
+    "tn": 189
+  },
+  "smoke": {
+    "precision": 0.659,
+    "recall": 0.91,
+    "f1": 0.765,
+    "tp": 91,
+    "fp": 47,
+    "fn": 9,
+    "tn": 153
+  },
+  "sweep": [
+    {
+      "threshold": 0.05,
+      "precision": 1.0,
+      "recall": 0.945
+    },
+    {
+      "threshold": 0.1,
+      "precision": 1.0,
+      "recall": 0.945
+    },
+    {
+      "threshold": 0.15,
+      "precision": 1.0,
+      "recall": 0.945
+    },
+    {
+      "threshold": 0.2,
+      "precision": 1.0,
+      "recall": 0.945
+    },
+    {
+      "threshold": 0.25,
+      "precision": 1.0,
+      "recall": 0.945
+    },
+    {
+      "threshold": 0.3,
+      "precision": 1.0,
+      "recall": 0.945
+    },
+    {
+      "threshold": 0.35,
+      "precision": 1.0,
+      "recall": 0.945
+    },
+    {
+      "threshold": 0.4,
+      "precision": 1.0,
+      "recall": 0.945
+    },
+    {
+      "threshold": 0.45,
+      "precision": 1.0,
+      "recall": 0.945
+    },
+    {
+      "threshold": 0.5,
+      "precision": 1.0,
+      "recall": 0.945
+    },
+    {
+      "threshold": 0.55,
+      "precision": 1.0,
+      "recall": 0.89
+    },
+    {
+      "threshold": 0.6,
+      "precision": 1.0,
+      "recall": 0.855
+    },
+    {
+      "threshold": 0.65,
+      "precision": 1.0,
+      "recall": 0.83
+    },
+    {
+      "threshold": 0.7,
+      "precision": 1.0,
+      "recall": 0.725
+    },
+    {
+      "threshold": 0.75,
+      "precision": 1.0,
+      "recall": 0.58
+    },
+    {
+      "threshold": 0.8,
+      "precision": 1.0,
+      "recall": 0.455
+    },
+    {
+      "threshold": 0.85,
+      "precision": 1.0,
+      "recall": 0.27
+    },
+    {
+      "threshold": 0.9,
+      "precision": 1.0,
+      "recall": 0.115
+    },
+    {
+      "threshold": 0.95,
+      "precision": 1.0,
+      "recall": 0.005
+    }
+  ],
+  "method": "SAM 3.1 (Meta Model API, image mode) prompted with fire, smoke on the same stratified sample as Sentinel's eval. A frame counts as a detection when any returned box has confidence \u2265 0.25 (no confidence returned counts as 1).",
+  "date": "2026-10-31"
+}
