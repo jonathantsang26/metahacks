@@ -6,6 +6,10 @@
 - **Which homes survived:** outcomes compared at the same exposure.
 - **Where debris flows could follow:** post-fire debris-flow likelihood on every stream segment under USGS's design storms, with USGS's model and two models fitted on USGS's observed debris-flow inventory.
 
+![Eaton Fire replay at Jan 8, 15:30 PST: the interpolated fire progression and burn scar on 3D terrain, the mapped perimeter, the ignition estimate with its start time withheld, and the timeline, charts and key events](docs/img/eaton-replay.jpg)
+
+Open it at that moment with `?fire=eaton&t=2025-01-08T23:30:00Z`; `&tab=risk` opens the post-fire debris-flow view below ([screenshot](docs/img/eaton-risk.jpg)).
+
 Every number traces back to a public source or a committed evaluation file. The README's headline table below is generated from those files, and a test fails if it drifts.
 
 Built for the **Meta Global AI Developer Hackathon** (2026). The two fires covered are the January 2025 **Eaton** and **Palisades** fires in Los Angeles County.
