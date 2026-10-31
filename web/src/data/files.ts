@@ -203,8 +203,14 @@ export type DebrisFlowStats = {
   scenario: {date: string; days_since_fire: number; soil_moisture_0_7cm: number | null; soil_moisture_source: string};
   segments: number;
   m1_check: {max_abs_diff_vs_usgs: number};
-  agreement: Record<string, {spearman_vs_usgs_24: number; class_agreement_24: number}>;
-  likelihood_class_counts_24: Record<string, Record<string, number>>;
+  /** M1's form refitted on every usable inventory record: the map's `m1_p_*` column. */
+  m1_recalibrated: {B: number; Ct: number; Cf: number; Cs: number; records: number};
+  /** Keyed by design I15 (mm/h), then by model (`usgs`, `m1`, `rf`). */
+  agreement_by_i15: Record<string, Record<string, {spearman_vs_usgs: number; class_agreement: number}>>;
+  likelihood_class_counts: Record<string, Record<string, Record<string, number>>>;
+  mean_likelihood: Record<string, Record<string, number>>;
+  /** The inventory fire that stands in for this one, or null with a note saying there is none. */
+  analogue: {fire: string | null; note: string};
   usgs_median_thresholds_mm_h: {I15_50: number; I15_75: number};
   notes: string[];
 };
@@ -220,7 +226,11 @@ export type DebrisModelEval = {
   models: {
     id: string; label: string; features: string[]; cv: string; n: number; flows: number;
     pooled: Scores; per_fire: {fires: number; median_roc_auc: number; iqr: [number, number]};
+    /** ROC AUC within each fire and storm with both outcomes: the ranking a design-storm map shows. */
+    within_storm: {groups: number; records: number; median_roc_auc: number; weighted_roc_auc: number};
     analogue: {fire: string; year: number; n: number; flows: number; roc_auc: number; brier: number} | null;
+    /** True for the models behind the map's columns. */
+    on_map: boolean;
   }[];
   importance: Record<string, {feature: string; drop_in_auc: number}[]>;
   notes: string[];

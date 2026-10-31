@@ -45,7 +45,8 @@ export const LAYERS: LayerDef[] = [
 ];
 
 /** Debris-flow models shown on the Risk tab (debris_flow.geojson: `<model>_p_<I15>`). */
-export type RiskModel = 'usgs' | 'm1' | 'rf' | 'mlp';
+/** usgs = USGS's published M1; m1 = M1 recalibrated on the inventory; rf = random forest (monotone in rainfall). */
+export type RiskModel = 'usgs' | 'm1' | 'rf';
 /** USGS's design storms: peak 15-minute rainfall intensity, mm/h. */
 export const DESIGN_I15 = [16, 20, 24, 28, 32, 36, 40] as const;
 
