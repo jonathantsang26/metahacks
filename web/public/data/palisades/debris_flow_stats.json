@@ -24,67 +24,337 @@
   "m1_check": {
     "max_abs_diff_vs_usgs": 4.440892098500626e-16
   },
-  "agreement": {
-    "m1": {
-      "spearman_vs_usgs_24": 1.0,
-      "class_agreement_24": 1.0
+  "m1_recalibrated": {
+    "B": -3.246364882934207,
+    "Ct": 0.26479815994816075,
+    "Cf": -0.017953348731349298,
+    "Cs": 0.3422514102952008,
+    "records": 7639
+  },
+  "agreement_by_i15": {
+    "16": {
+      "usgs": {
+        "spearman_vs_usgs": 1.0,
+        "class_agreement": 1.0
+      },
+      "m1": {
+        "spearman_vs_usgs": 0.942,
+        "class_agreement": 0.2141
+      },
+      "rf": {
+        "spearman_vs_usgs": 0.6269,
+        "class_agreement": 0.2141
+      }
     },
-    "rf": {
-      "spearman_vs_usgs_24": 0.6593,
-      "class_agreement_24": 0.0751
+    "20": {
+      "usgs": {
+        "spearman_vs_usgs": 1.0,
+        "class_agreement": 1.0
+      },
+      "m1": {
+        "spearman_vs_usgs": 0.942,
+        "class_agreement": 0.1057
+      },
+      "rf": {
+        "spearman_vs_usgs": 0.7238,
+        "class_agreement": 0.1062
+      }
     },
-    "mlp": {
-      "spearman_vs_usgs_24": 0.7604,
-      "class_agreement_24": 0.2076
+    "24": {
+      "usgs": {
+        "spearman_vs_usgs": 1.0,
+        "class_agreement": 1.0
+      },
+      "m1": {
+        "spearman_vs_usgs": 0.942,
+        "class_agreement": 0.0612
+      },
+      "rf": {
+        "spearman_vs_usgs": 0.7746,
+        "class_agreement": 0.0612
+      }
+    },
+    "28": {
+      "usgs": {
+        "spearman_vs_usgs": 1.0,
+        "class_agreement": 1.0
+      },
+      "m1": {
+        "spearman_vs_usgs": 0.942,
+        "class_agreement": 0.0349
+      },
+      "rf": {
+        "spearman_vs_usgs": 0.8072,
+        "class_agreement": 0.0349
+      }
+    },
+    "32": {
+      "usgs": {
+        "spearman_vs_usgs": 1.0,
+        "class_agreement": 1.0
+      },
+      "m1": {
+        "spearman_vs_usgs": 0.942,
+        "class_agreement": 0.0268
+      },
+      "rf": {
+        "spearman_vs_usgs": 0.8241,
+        "class_agreement": 0.0284
+      }
+    },
+    "36": {
+      "usgs": {
+        "spearman_vs_usgs": 1.0,
+        "class_agreement": 1.0
+      },
+      "m1": {
+        "spearman_vs_usgs": 0.942,
+        "class_agreement": 0.0177
+      },
+      "rf": {
+        "spearman_vs_usgs": 0.7987,
+        "class_agreement": 0.0306
+      }
+    },
+    "40": {
+      "usgs": {
+        "spearman_vs_usgs": 1.0,
+        "class_agreement": 1.0
+      },
+      "m1": {
+        "spearman_vs_usgs": 0.942,
+        "class_agreement": 0.008
+      },
+      "rf": {
+        "spearman_vs_usgs": 0.7269,
+        "class_agreement": 0.0284
+      }
     }
   },
-  "likelihood_class_counts_24": {
-    "usgs": {
-      "0-20%": 114,
-      "20-40%": 245,
-      "40-60%": 394,
-      "60-80%": 739,
-      "80-100%": 372
+  "likelihood_class_counts": {
+    "16": {
+      "usgs": {
+        "0-20%": 399,
+        "20-40%": 977,
+        "40-60%": 482,
+        "60-80%": 6,
+        "80-100%": 0
+      },
+      "m1": {
+        "0-20%": 1864,
+        "20-40%": 0,
+        "40-60%": 0,
+        "60-80%": 0,
+        "80-100%": 0
+      },
+      "rf": {
+        "0-20%": 1844,
+        "20-40%": 20,
+        "40-60%": 0,
+        "60-80%": 0,
+        "80-100%": 0
+      }
     },
-    "m1": {
-      "0-20%": 114,
-      "20-40%": 245,
-      "40-60%": 394,
-      "60-80%": 739,
-      "80-100%": 372
+    "20": {
+      "usgs": {
+        "0-20%": 197,
+        "20-40%": 431,
+        "40-60%": 750,
+        "60-80%": 478,
+        "80-100%": 8
+      },
+      "m1": {
+        "0-20%": 1864,
+        "20-40%": 0,
+        "40-60%": 0,
+        "60-80%": 0,
+        "80-100%": 0
+      },
+      "rf": {
+        "0-20%": 1748,
+        "20-40%": 116,
+        "40-60%": 0,
+        "60-80%": 0,
+        "80-100%": 0
+      }
     },
-    "rf": {
-      "0-20%": 1067,
-      "20-40%": 611,
-      "40-60%": 186,
-      "60-80%": 0,
-      "80-100%": 0
+    "24": {
+      "usgs": {
+        "0-20%": 114,
+        "20-40%": 245,
+        "40-60%": 394,
+        "60-80%": 739,
+        "80-100%": 372
+      },
+      "m1": {
+        "0-20%": 1861,
+        "20-40%": 3,
+        "40-60%": 0,
+        "60-80%": 0,
+        "80-100%": 0
+      },
+      "rf": {
+        "0-20%": 1464,
+        "20-40%": 400,
+        "40-60%": 0,
+        "60-80%": 0,
+        "80-100%": 0
+      }
     },
-    "mlp": {
-      "0-20%": 326,
-      "20-40%": 796,
-      "40-60%": 416,
-      "60-80%": 286,
-      "80-100%": 40
+    "28": {
+      "usgs": {
+        "0-20%": 65,
+        "20-40%": 145,
+        "40-60%": 217,
+        "60-80%": 532,
+        "80-100%": 905
+      },
+      "m1": {
+        "0-20%": 1785,
+        "20-40%": 79,
+        "40-60%": 0,
+        "60-80%": 0,
+        "80-100%": 0
+      },
+      "rf": {
+        "0-20%": 1272,
+        "20-40%": 592,
+        "40-60%": 0,
+        "60-80%": 0,
+        "80-100%": 0
+      }
+    },
+    "32": {
+      "usgs": {
+        "0-20%": 50,
+        "20-40%": 98,
+        "40-60%": 138,
+        "60-80%": 274,
+        "80-100%": 1304
+      },
+      "m1": {
+        "0-20%": 1604,
+        "20-40%": 260,
+        "40-60%": 0,
+        "60-80%": 0,
+        "80-100%": 0
+      },
+      "rf": {
+        "0-20%": 329,
+        "20-40%": 1342,
+        "40-60%": 193,
+        "60-80%": 0,
+        "80-100%": 0
+      }
+    },
+    "36": {
+      "usgs": {
+        "0-20%": 33,
+        "20-40%": 72,
+        "40-60%": 92,
+        "60-80%": 201,
+        "80-100%": 1466
+      },
+      "m1": {
+        "0-20%": 1357,
+        "20-40%": 507,
+        "40-60%": 0,
+        "60-80%": 0,
+        "80-100%": 0
+      },
+      "rf": {
+        "0-20%": 43,
+        "20-40%": 1442,
+        "40-60%": 379,
+        "60-80%": 0,
+        "80-100%": 0
+      }
+    },
+    "40": {
+      "usgs": {
+        "0-20%": 15,
+        "20-40%": 53,
+        "40-60%": 82,
+        "60-80%": 130,
+        "80-100%": 1584
+      },
+      "m1": {
+        "0-20%": 1120,
+        "20-40%": 725,
+        "40-60%": 19,
+        "60-80%": 0,
+        "80-100%": 0
+      },
+      "rf": {
+        "0-20%": 0,
+        "20-40%": 1298,
+        "40-60%": 566,
+        "60-80%": 0,
+        "80-100%": 0
+      }
     }
+  },
+  "mean_likelihood": {
+    "16": {
+      "usgs": 0.3121,
+      "m1": 0.0729,
+      "rf": 0.0959
+    },
+    "20": {
+      "usgs": 0.4641,
+      "m1": 0.0861,
+      "rf": 0.1246
+    },
+    "24": {
+      "usgs": 0.6076,
+      "m1": 0.1016,
+      "rf": 0.1517
+    },
+    "28": {
+      "usgs": 0.7219,
+      "m1": 0.1196,
+      "rf": 0.1858
+    },
+    "32": {
+      "usgs": 0.8039,
+      "m1": 0.1402,
+      "rf": 0.2819
+    },
+    "36": {
+      "usgs": 0.8602,
+      "m1": 0.1638,
+      "rf": 0.3194
+    },
+    "40": {
+      "usgs": 0.8983,
+      "m1": 0.1901,
+      "rf": 0.3605
+    }
+  },
+  "analogue": {
+    "fire": null,
+    "note": "None. The inventory's fires in the Santa Monica Mountains (Canyon (2007): 14 records, 12 usable, 10 km from this fire's AOI center; Topanga (2005): 33 records, 33 usable, 17 km from this fire's AOI center; by the median of their observation points, inside lon -119.10 to -118.35, lat 33.95 to 34.20) have no recorded debris flow, so none can stand in for this fire. The nearest inventory fire with one is Sayre (2008), 30 km away (2 of 14 records). Step 14's held-out analogue, the Station Fire (2009, San Gabriel front), is 45 km away and is not an analogue for this fire."
   },
   "usgs_median_thresholds_mm_h": {
     "I15_50": 20.3951,
     "I15_75": 26.5677
   },
   "notes": [
-    "These are predictions compared with USGS's assessment, not validated. The data used here hold no observed debris-flow outcomes for the 2025 fires (USGS's inventory, 10.5066/P1R9VXC4, ends with 2024 fires), so agreement with USGS says how alike two models are on this fire, not which is closer to what happens.",
-    "m1_check is an implementation check, not a validation: our M1 (Staley et al. 2017, published 15-minute coefficients, R = I15 × 0.25 h) recomputed from USGS's T, F and S matches USGS's likelihoods for all 1,864 segments and 7 design storms to within 4e-16. m1_p_* therefore equals usgs_p_* by construction.",
-    "The scenario is a choice. Only RF and MLP use it (days since fire and antecedent soil moisture); M1 and USGS's columns do not. Rule: the first local day after ignition with at least 25.4 mm (1 inch) of precipitation at the AOI center in ECMWF ERA5 (Open-Meteo archive, models=era5, grid point 34.00, -118.50; hourly accumulations, each for the hour ending at its GMT time stamp, summed into America/Los_Angeles calendar days): 2025-02-13, with 43.8 mm (peak hourly 4.5 mm/h). The wettest earlier day was 2025-02-06 with 13.6 mm, so any threshold above 13.6 mm and up to 43.8 mm picks the same day. 120 days searched, 0 with no value. A 0.25° hourly reanalysis only picks the date; it is not a 15-minute intensity, and the design storms set I15 instead.",
-    "days_since_fire = 37: from the CAL FIRE start (2025-01-07T18:30:00Z, local date 2025-01-07) to 2025-02-13, in calendar days like the inventory's StormStart − FireIgnitionDate. That is early in recovery compared with training: the usable inventory records have a median of 336 days, and 12.4% of them are within 37 days.",
-    "Antecedent soil moisture (0–7 cm) on 2025-02-12, the UTC day before the scenario date: 0.2651 m³/m³ at the AOI center's ERA5-Land cell (training median 0.2455). It is one value for every segment, as is days since fire, so both set the level of the RF and MLP maps, not the ranking of segments; in training they varied between storms.",
-    "Spatial context: mean T, F, S and R15 of the 5 nearest other segments (by downstream end) in this fire and design storm, from their features only, as in training. On this network the mean distance to those neighbours has median 125 m (IQR 81–191 m), against 845 m (IQR 410–1,374 m) in training, and the neighbours include segments upstream and downstream on the same channel, whose watersheds nest. Under a design storm every segment has the same R15, so ctx_R15 = R15.",
-    "Ties in spatial context: where the 5th and 6th nearest downstream ends are equally far (usually segments that end at the same point, such as two tributaries at a confluence), scipy's cKDTree keeps one of them by its internal order, in training as here; either is an equally valid choice, and rf_p_* and mlp_p_* use cKDTree's. 322 of 1,864 segments have such a tie. Taking the other tied segment instead changes the likelihood at 24 mm/h by up to 0.080 for rf (7 segments by more than 0.05) and 0.183 for mlp (37 segments by more than 0.05); Spearman vs USGS would be rf 0.6555 (as written 0.6593), mlp 0.7627 (as written 0.7604) and class agreement rf 0.0746 (0.0751), mlp 0.2108 (0.2076). So a single segment's RF or MLP value can depend on this choice by that much.",
+    "These likelihoods are compared with USGS's assessment; nothing here scores them against outcomes. The data used here hold no observed debris-flow outcomes for the 2025 fires (USGS's inventory, 10.5066/P1R9VXC4, ends with 2024 fires), so agreement with USGS says how alike two models are on this fire, not which is closer to what happens.",
+    "Map columns: usgs_p_* is USGS's own M1 (Staley et al. 2017, published 15-minute coefficients), copied; m1_p_* is M1 recalibrated; rf_p_* is step 14's rf_extended, a random forest constrained to rise with rainfall, under this file's scenario. The MLPs are scored in step 14 but not mapped: nothing constrains them to rise with rainfall, and here mlp_extended's likelihood (at 4 decimals, as rf_p_* is written) would fall between consecutive design storms on 601 of 1,864 segments (largest fall 0.016).",
+    "M1 recalibrated (m1_p_*, coefficients in m1_recalibrated): M1's three-interaction logistic form refitted on all 7,639 usable inventory records (step 14's m1_refit), B = -3.25, Ct = 0.26, Cf = -0.018, Cs = 0.34, against the published B = -3.63, Ct = 0.41, Cf = 0.67, Cs = 0.70. Its likelihood rises with I15 wherever Ct·T + Cf·F + Cs·S > 0, which holds for 1,864 of 1,864 segments here (smallest 0.0592). Under one design storm every segment has the same R, so both M1 columns rank segments by Ct·T + Cf·F + Cs·S alone: m1's Spearman against USGS is the same under every storm (0.942), while its levels and classes move with I15.",
+    "m1_check is an implementation check of our M1 code, not a validation and not a result: M1 with the published coefficients (R = I15 × 0.25 h), recomputed from USGS's T, F and S, matches USGS's likelihoods for all 1,864 segments and 7 design storms to within 4e-16. It is not a map column.",
+    "Absolute likelihood levels depend on how each sub-inventory sampled non-events, not only on the watersheds: the observed debris-flow rate is 0.253 in the 1,320 Staley et al. (2016) records (the inventory M1's published coefficients were fitted on) and 0.098 in the other 6,319. M1 recalibrated averages 0.125 over all 7,639 usable records (0.151 on the Staley et al. (2016) records, 0.120 on the rest), and rf_extended was fitted on the same records. So the gap in level between usgs_p_* and the other two columns (mean at 24 mm/h: usgs 0.608, m1 0.102, rf 0.152) partly reflects which records each was fitted on. None of these levels is an observed rate for this fire.",
+    "Agreement with USGS over the seven design storms (agreement_by_i15): Spearman m1 0.942, rf 0.627–0.824; same likelihood class m1 0.008–0.214, rf 0.028–0.214. The usgs entries compare USGS with itself (1 by definition) and are there so every storm lists every map column.",
+    "The scenario is a choice. Only rf_p_* uses it: rf_extended takes days since fire and one antecedent soil-moisture value, the same for every segment, so the RF map depends on the scenario date and that one soil-moisture value; usgs_p_* and m1_p_* do not. Rule: the first local day after ignition with at least 25.4 mm (1 inch) of precipitation at the AOI center in ECMWF ERA5 (Open-Meteo archive, models=era5, grid point 34.00, -118.50; hourly accumulations, each for the hour ending at its GMT time stamp, summed into America/Los_Angeles calendar days): 2025-02-13, with 43.8 mm (peak hourly 4.5 mm/h). The wettest earlier day was 2025-02-06 with 13.6 mm, so any threshold above 13.6 mm and up to 43.8 mm picks the same day. 120 days searched, 0 with no value. A 0.25° hourly reanalysis only picks the date; it is not a 15-minute intensity, and the design storms set I15 instead.",
+    "days_since_fire = 37: from the CAL FIRE start (2025-01-07T18:30:00Z, local date 2025-01-07) to 2025-02-13, in calendar days like the inventory's StormStart − FireIgnitionDate. That is early in recovery compared with training: the usable inventory records have a median of 336 days, and only 950 of them (9 fires, 12 fire-storms, 198 debris flows) are from storms within 37 days of a fire; 857 of those are one storm, Thomas (2017) on 2018-01-09. What rf_extended does this early rests mostly on that one storm, so the level of rf_p_* under this scenario is an extrapolation from little data.",
+    "Antecedent soil moisture (0–7 cm) on 2025-02-12, the UTC day before the scenario date: 0.2651 m³/m³ at the AOI center's ERA5-Land cell (training median 0.2455). It is one value for every segment, as is days since fire, so both set the level of the RF map, not the ranking of segments; in training they varied between storms.",
+    "No map column uses spatial context; step 14 scores it only as the mlp_context variant, which is not mapped. For scale: on this network the mean distance from a segment's downstream end to the 5 nearest others has median 125 m (IQR 81–191 m), against 845 m (IQR 410–1,374 m) between the inventory's context neighbours, and here the neighbours include segments upstream and downstream on the same channel, whose watersheds nest.",
+    "Analogue: None. The inventory's fires in the Santa Monica Mountains (Canyon (2007): 14 records, 12 usable, 10 km from this fire's AOI center; Topanga (2005): 33 records, 33 usable, 17 km from this fire's AOI center; by the median of their observation points, inside lon -119.10 to -118.35, lat 33.95 to 34.20) have no recorded debris flow, so none can stand in for this fire. The nearest inventory fire with one is Sayre (2008), 30 km away (2 of 14 records). Step 14's held-out analogue, the Station Fire (2009, San Gabriel front), is 45 km away and is not an analogue for this fire.",
     "T, F and S are USGS's values from its assessment inputs (its dNBR and burn-severity rasters, terrain and soil KF-factor), not computed from this project's AVIRIS-3 dNBR layer. area_km2 is USGS's Area (km²: the basin polygons' areas match it, median ratio 1.0024). usgs_hazard_24 is USGS's combined hazard class at 24 mm/h (likelihood and volume together; 1 low, 2 moderate, 3 high), copied as it is.",
-    "Likelihood classes are floor(p × 5) (0–20% … 80–100%); on USGS's likelihoods at 24 mm/h they reproduce USGS's own P_24_LG labels for 1,864 of 1,864 segments. Agreement and class counts use the values as written to debris_flow.geojson.",
-    "Mean likelihood at 24 mm/h: usgs 0.608, m1 0.608, rf 0.213, mlp 0.382. For comparison, step 14's m1_refit (M1's form refitted on the inventory) ranks segments with Spearman 0.942 against USGS here; it is not a map column.",
-    "M1's likelihood rises with I15 by its form; RF and MLP are not constrained to. Segments whose likelihood falls somewhere between consecutive design storms, on the values as written: rf 1,494 of 1,864, mlp 563 of 1,864.",
+    "Likelihood classes are floor(p × 5) (0–20% … 80–100%); on USGS's likelihoods at 24 mm/h they reproduce USGS's own P_24_LG labels for 1,864 of 1,864 segments. Agreement, class counts and means use the values as written to debris_flow.geojson.",
+    "On the values as written, no segment's m1_p_* or rf_p_* falls between consecutive design storms (rf_extended by its constraint, M1 recalibrated by its form and positive slopes here); this step stops if one does. Nor does USGS's usgs_p_*.",
     "USGS's median thresholds: median-thresholds.csv, 'Segments (mm)' row (equal to the median over the segments of I15_50 and I15_75 exactly).",
-    "Geometry: USGS's segments in lon/lat (urn:ogc:def:crs:OGC:1.3:CRS84), simplified at 2e-05° (~2 m) and rounded to 5 decimals. T, F, S, usgs_p_* and m1_p_* keep 8 decimals so the M1 check can be repeated from this file; other values 4. The downstream end is a segment's last vertex: in all 1,657 pairs where one segment starts at another's end, the downstream one drains more area (1,657 of 1,657)."
+    "Geometry: USGS's segments in lon/lat (urn:ogc:def:crs:OGC:1.3:CRS84), simplified at 2e-05° (~2 m) and rounded to 5 decimals. T, F, S, usgs_p_* and m1_p_* keep 8 decimals, and m1_recalibrated full precision, so both M1 columns can be recomputed from these files; rf_p_* and other values 4. The downstream end is a segment's last vertex: in all 1,657 pairs where one segment starts at another's end, the downstream one drains more area (1,657 of 1,657)."
   ]
 }

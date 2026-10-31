@@ -30,11 +30,11 @@
     },
     {
       "layer": "Debris-flow models (this project)",
-      "source": "Sentinel Ember: M1 reimplementation, random forest and MLP trained on USGS's postfire debris-flow inventory",
+      "source": "Sentinel Ember: M1 recalibrated and a random forest (monotone in rainfall), fitted on USGS's postfire debris-flow inventory",
       "url": "https://www.sciencebase.gov/catalog/item/69612c8ed4be02298529c522",
       "status": "MODELED",
       "attribution": "USGS runoff-generated postfire debris-flow inventory (Graber et al. 2026), doi:10.5066/P1R9VXC4 (CC0); ERA5 and ERA5-Land via Open-Meteo.com (CC BY 4.0)",
-      "notes": "Applied to USGS's 1,864 segments. M1 reproduces USGS to 4e-16 (implementation check). RF and MLP use a scenario of 2025-02-13 (37 days after ignition); Spearman vs USGS at 24 mm/h: rf 0.659, mlp 0.760. Compared with USGS's assessment, not validated: no observed 2025 outcomes.",
+      "notes": "Applied to USGS's 1,864 segments: m1_p_* is M1's form refitted on 7,639 inventory records; rf_p_* is a random forest constrained to rise with rainfall, under a scenario of 2025-02-13 (37 days after ignition). Spearman vs USGS at 24 mm/h: m1 0.942, rf 0.775. Compared with USGS's assessment; there are no observed 2025 outcomes to score them against.",
       "retrieved": "2026-10-31"
     },
     {
@@ -42,7 +42,7 @@
       "source": "USGS Palisades 2025-01-07 v1.0 postfire debris-flow hazard assessment (PWFDF collection)",
       "url": "https://www.sciencebase.gov/catalog/item/6838d17ed4be02592574719a",
       "status": "MODELED",
-      "attribution": "King, J.M., Kostelnik, J., Kean, J.W., Barnhart, K.R., Graber, A.P., Rengers, F.K., and Thomas, M.A., 2025, Post-Wildfire Debris-Flow Hazard Assessment (PWFDF) Collection: U.S. Geological Survey data release, https://doi.org/10.5066/P14EWYME. CC0 1.0 Universal (public domain).",
+      "attribution": "King, J.M., Kostelnik, J., Kean, J.W., Barnhart, K.R., Graber, A.P., Rengers, F.K., and Thomas, M.A., 2026, Post-Wildfire Debris-Flow Hazard Assessment (PWFDF) Collection: U.S. Geological Survey data release, https://doi.org/10.5066/P14EWYME. CC0 1.0 Universal (public domain).",
       "notes": "1,864 stream segments with M1's inputs (T, F, S) and USGS's M1 likelihoods and combined hazard classes at design storms I15 = 16\u201340 mm/h, made with wildcat v1.1.0. A model output, not observations. T and F come from the dNBR and burn severity in USGS's assessment inputs, not this project's AVIRIS-3 dNBR layer.",
       "retrieved": "2026-10-31"
     },
