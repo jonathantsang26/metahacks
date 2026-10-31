@@ -138,7 +138,8 @@ How to read it:
 What it shows:
 - **Start time is where the back-trace beats the baseline.** On synthetic fires its start time is closer than √area back-extrapolation in 93% (Eaton) and 83% (Palisades) of cases.
 - **Location is mixed.** For Eaton the first footprint's centroid is closer on the median (449 m vs 588 m; the back-trace wins 57% of cases). With the shape cap at 1 the model fire is round, and a round fire's first footprint is centred near its start, so the centroid is a strong guess. The back-trace wins when the early perimeters are held out (924 m vs 1,406 m), and for Palisades, whose first map comes 26 h in.
-- **No start time is shown yet.** Under the 6 h rule, no unseen synthetic case on the full fit and neither real fire gets one. The one real fit the rule let through, Eaton's hold-out (90% interval 5.94 h wide), missed: its interval, 03:12Z–09:09Z, excludes CAL FIRE's 02:18Z. On the synthetic hold-out the rule let 2 of 15 through, and 1 of the 2 intervals held the truth. Narrow intervals are over-confident, so the rule can be trusted to withhold a time, not yet to show one.
+- **No start time is shown yet.** Under the 6 h rule, no unseen synthetic case (in either scenario) and neither real fit gets one: the honest intervals are 10–13 h wide for Eaton and 43–64 h for Palisades. Eaton's real hold-out interval (23:15Z on Jan 7 to 09:52Z on Jan 8, 10.6 h) does hold CAL FIRE's 02:18Z, and its estimate is 2.3 h late. An earlier posterior that also counted the dense second-stage candidates gave Eaton's hold-out a 5.9 h interval that let the time through and missed CAL FIRE's start; that is why the posterior now comes from the regular grid alone.
+- **Coverage is close to, not always at, 90%.** On unseen synthetic cases the 90% radius held the true origin in 87% of Eaton's full-fit cases (13 of 15) and 93% of its hold-out cases; the start interval held the true start in 87–100%.
 - **HRRR helps Eaton, not Palisades.** For Eaton at the same shape cap, the HRRR field lowers the fit loss (2.16 → 2.02 h) and raises the mean footprint IoU (0.41 → 0.45) over the ERA5 point. Most of the gain over the old pipeline (IoU 0.30) comes from the shape cap, though, and one uniform HRRR wind matches the field (IoU 0.46). For Palisades every wind variant leaves k at the ceiling: the model can't grow that fire fast enough under any of them.
 
 ## Limitations
@@ -150,8 +151,9 @@ What it shows:
 - **Weather is a model.** HRRR is a model analysis and short-range forecast, not observations. Its station agreement is in `weather_station.json`.
 - **Reference point.** CAL FIRE's start is a reported incident location, not an investigated origin. Distance to it is a sanity check, not ground truth. The project never states or guesses a cause.
 - **Palisades is beyond the model.** Under every wind tried, k sits at the ceiling: without spotting, the model can't spread that fire as fast as it burned. That alone withholds its start time.
-- **Calibration scope.** Coverage is measured under the benchmark's perturbations. Real model errors are probably larger: Eaton's real hold-out interval missed CAL FIRE's start.
-- **Thin calibration samples.** Calibration rests on 15 unseen cases per scenario, and the "would show a start time" result on 2.
+- **Calibration scope.** Coverage is measured under the benchmark's perturbations, which are probably smaller than real model errors.
+- **What the benchmark does not test.** Synthetic origins lay inside the first footprint the search covers in 100% of Eaton cases and 97–100% of Palisades cases (a fire grown from its origin almost always contains it). For Eaton, CAL FIRE's reported point lies 1.7 km outside the first mapped perimeter, a case the benchmark never exercises.
+- **Thin calibration samples.** Calibration rests on 15 unseen cases per scenario.
 - **House-level results are associations.** They are not effects of the features.
   - Destroyed homes have far more "unknown" answers, so features that burn away are recorded unevenly.
   - Some contrasts run opposite to building-code expectations, and some don't replicate across the two fires (see `RESULTS.md`). We report them as they are.
