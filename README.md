@@ -38,7 +38,7 @@ This project joins them into one timeline, estimates where and when each fire st
 - NASA JPL's AVIRIS-3 flew burn-severity imagery over these fires.
 - NOAA's HRRR 3 km weather model is in Open-Meteo's historical archive.
 
-The analyst is built for Meta's Muse Spark (`muse-spark-1.3`), whose tool calling lets every paragraph cite a tool result (see the Analyst row below).
+The analyst runs on Meta's Muse Spark (`muse-spark-1.3`), whose tool calling lets every paragraph cite a tool result. It has been run live on both fires (see the Analyst row below).
 
 ## What works today
 
@@ -50,9 +50,9 @@ The analyst is built for Meta's Muse Spark (`muse-spark-1.3`), whose tool callin
 | Ignition back-trace: where and when it started, with calibrated uncertainty and an identifiability rule | **Working and benchmarked** (see Evidence) | [`ember/spread.py`](pipeline/ember/spread.py), [`s11_ignition.py`](pipeline/steps/s11_ignition.py) |
 | House-level exposure: destruction odds by construction feature, at matched exposure | **Working** | [`s09b_exposure.py`](pipeline/steps/s09b_exposure.py) |
 | Post-fire debris flows (Risk tab): USGS M1 against M1 recalibrated, a random forest and an MLP, scored leaving one fire out on USGS's observed inventory, and mapped on USGS's stream segments | **Working**; compared with USGS's assessment, not validated (no 2025 outcomes) | [`s14_debris_models.py`](pipeline/steps/s14_debris_models.py), [`s15_debris_fire.py`](pipeline/steps/s15_debris_fire.py), [`rail/risk.tsx`](web/src/rail/risk.tsx) |
-| Analyst (`muse-spark-1.3`): tool calls over the fire data, with citation, number and guardrail checks on the server, and a chat in the app whose citation chips move the map and the clock | **Built and tested offline. Not yet run against the live API**, which needs `MODEL_API_KEY`; without it the chat shows the server's message, never an answer | [`web/api/`](web/api), [`rail/analyst.tsx`](web/src/rail/analyst.tsx) |
+| Analyst (`muse-spark-1.3`): tool calls over the fire data, with citation, number and guardrail checks on the server, and a chat in the app whose citation chips move the map and the clock | **Working; run live** on both fires (2026-10-31): 13 of 14 Eaton and 12 of 13 Palisades answers match the data-derived truth, and all 37 cited ids came from a tool result. Both misses were the street tool's sampling, since fixed (see Analyst below). Without `MODEL_API_KEY` the chat shows the server's message, never an answer | [`web/api/`](web/api), [`rail/analyst.tsx`](web/src/rail/analyst.tsx) |
 | Web app: replays each fire on 3D terrain from the pipeline's files. The map shows the interpolated progression from `arrival.png`, the burn scar (AVIRIS-3 dNBR, the differenced Normalized Burn Ratio, a standard burn-severity index), the mapped perimeter at the current time, the ignition estimate and its 90% region beside CAL FIRE's reported point, structures, roads and HRRR wind arrows (a layer toggle, off by default). Charts, key events, weather at the current time, the back-trace and house-level analysis, and the source manifest all follow one timeline | **Working** on Eaton and Palisades (switch fires from the header). The Drones tab is disabled (no drone data in this build); the Risk tab replaces the reference design's Resources tab | [`web/src/`](web/src) |
-| Drone footage: Sentinel YOLOv8 + SAM 3.1 segmentation | **Not started** (a teammate's part of the build). Only the API smoke test exists | [`tools/smoke_meta.py`](pipeline/tools/smoke_meta.py) |
+| Drone footage: Sentinel YOLOv8 + SAM 3.1 segmentation | **Not in this branch** (a teammate's part of the build). The live API smoke test passes: SAM 3.1 masks smoke in a public-domain photo ([log](pipeline/logs/smoke-meta.log)) | [`tools/smoke_meta.py`](pipeline/tools/smoke_meta.py) |
 | NASA FIRMS hotspots | **Code done**, gated on `FIRMS_MAP_KEY`; not used in the committed outputs | [`s04_firms.py`](pipeline/steps/s04_firms.py) |
 
 The build is split into three parts that teammates work on in parallel ([`WORKSTREAMS.md`](docs/spec/WORKSTREAMS.md)): data and forensics, the web app, and drone footage. This branch carries the data, the forensics, the analyst backend, and the web app's wiring to those outputs.
@@ -118,6 +118,11 @@ The analysis on top:
   - It must not match the cause, attribution or address patterns.
 - **What happens to failures:** dropped paragraphs are counted by reason.
 - **Eval** ([`scripts/eval-analyst.ts`](web/scripts/eval-analyst.ts)): 15 questions per fire, with ground truth computed from the data files by code independent of the tools. Arrival-time truths come from the interpolated arrival raster, so they are MODELED, not observed. Questions with no truth in the data are skipped and listed, so 14 are scored for Eaton and 13 for Palisades. Where the back-trace withholds a start time, the ignition question becomes a must-decline question.
+- **Live run** (2026-10-31, one run per fire; [`eaton`](web/public/data/eaton/eval/analyst.json), [`palisades`](web/public/data/palisades/eval/analyst.json)):
+  - 13 of 14 answers right for Eaton and 12 of 13 for Palisades. Numbers 16 of 16, the must-decline start time 2 of 2, times 7 of 9. All 37 cited ids came from a tool result, and the verifier dropped no paragraph.
+  - **Both misses were the tool, not the model.** Each was a street's first burn time: Kinneloa Canyon Road (Eaton) and Pacific Coast Highway (Palisades). The model reported exactly what `street_fire_timeline` returned. That tool sampled streets every 40 m over arrival cells of about 16 m, so it read Kinneloa Canyon Road, which clips the burn, as unburned, and put the highway 37 min late.
+  - The tool now walks every cell a street crosses. A test checks every eval street against an independent 1 m walk of the raster, and it fails on the old code for exactly these two. The committed scores are from the live run before the fix; a rerun is pending.
+  - One question was reworded before the run: Meta's content filter rejected the vents odds-ratio question, so it now asks for the odds ratio `exposure_stats` lists for the vents contrast.
 
 ## Evidence
 
@@ -139,6 +144,7 @@ The table is generated by `make report` from the committed eval files. The full 
 | Hourly wind vs the nearest airport station: HRRR vs ERA5 | r 0.90 vs 0.71 | r 0.85 vs 0.75 |
 | Odds ratio of destruction, fine-mesh vents vs coarse (95% CI) | 0.35 (0.31–0.40) | 0.50 (0.45–0.56) |
 | Odds ratio, tile/metal/concrete roof vs asphalt/wood | 0.59 (0.53–0.66) | 0.58 (0.53–0.64) |
+| Analyst live on `muse-spark-1.3`: answers matching the data-derived truth; cited ids a tool returned | 13/14; 20/20 | 12/13; 17/17 |
 <!-- headline:end -->
 
 How to read it:
@@ -199,8 +205,8 @@ What it shows:
   - Some contrasts run opposite to building-code expectations, and some don't replicate across the two fires (see `RESULTS.md`). We report them as they are.
 - **Burn severity coverage.** AVIRIS-3 dNBR covers about half of Eaton's perimeter and only a sliver of Palisades (`severity_stats.json`).
 - **Not yet verified:**
-  - The analyst has not been run live against the Meta API.
-  - The drone footage stream has not started.
+  - The live analyst eval is one run per fire, 27 scored questions in all, and it predates the street-tool fix.
+  - The drone footage stream is not in this branch.
   - The web app has been checked in desktop Chromium only; it needs WebGL2.
 
 ## Reproduce
@@ -234,8 +240,8 @@ With a Meta key in `.env` (`cp .env.example .env`):
 
 | Model | Role | Status |
 |---|---|---|
-| `muse-spark-1.3` (Meta Model API, OpenAI-compatible) | The analyst: a tool-calling loop over the reconstructed fire. Citations and numbers are verified server-side, and an independent per-fire eval includes must-decline questions | Built and tested offline; live run pending a key |
-| `sam-3.1` (Meta Model API, Responses API) | Fire and smoke masks in drone video; destroyed-building masks in post-fire imagery | Smoke test only ([`tools/smoke_meta.py`](pipeline/tools/smoke_meta.py)); the drone part of the build |
+| `muse-spark-1.3` (Meta Model API, OpenAI-compatible) | The analyst: a tool-calling loop over the reconstructed fire. Citations and numbers are verified server-side, and an independent per-fire eval includes must-decline questions | Run live on both fires: 25 of 27 eval answers right, all 37 cited ids valid ([`RESULTS.md`](docs/RESULTS.md#analyst-eval)) |
+| `sam-3.1` (Meta Model API, Responses API) | Fire and smoke masks in drone video; destroyed-building masks in post-fire imagery | Live smoke test passes ([`tools/smoke_meta.py`](pipeline/tools/smoke_meta.py), [log](pipeline/logs/smoke-meta.log)); the drone part of the build is not in this branch |
 
 ## Prior work and credits
 

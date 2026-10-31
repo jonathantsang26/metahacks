@@ -280,8 +280,23 @@ def analyst_section(fires) -> list[str]:
                         f"needs `MODEL_API_KEY`; its ground truth is computed from the data files "
                         f"(`npm run eval:analyst -- --truth --fire {fire.id}`).")
             continue
-        keys = ("accuracy", "time_accuracy", "number_accuracy", "decline_accuracy", "citation_validity", "n", "model", "date")
-        rows.append(f"- **{fire.name}**: " + ", ".join(f"{k} {a.get(k)}" for k in keys if k in a))
+        qs = a["questions"]
+        by_kind = {}
+        for q in qs:
+            ok, n = by_kind.get(q["kind"], (0, 0))
+            by_kind[q["kind"]] = (ok + bool(q["pass"]), n + 1)
+        kinds = ", ".join(f"{k} {ok}/{n}" for k, (ok, n) in by_kind.items())
+        dropped = {k: sum((q.get("dropped") or {}).get(k, 0) for q in qs) for k in ("uncited", "guardrail", "ungrounded")}
+        rows.append(f"- **{fire.name}** (`{a['model']}`, live, {a['date']}): {sum(bool(q['pass']) for q in qs)} of {len(qs)} "
+                    f"answers match the data-derived truth ({kinds}). {a['cite_ids_proposed'] - a['cite_ids_invalid']} of "
+                    f"{a['cite_ids_proposed']} cited ids came from a tool result. Paragraphs dropped by the verifier: "
+                    + ", ".join(f"{k} {v}" for k, v in dropped.items()) + ". Skipped (no truth in the data): "
+                    + (", ".join(s["id"] for s in a.get("skipped", [])) or "none") + ".")
+        for q in qs:
+            if not q["pass"]:
+                got = ", ".join(sorted(set(q.get("extracted") or []))) or "no time or number"
+                rows.append(f"  - Miss, `{q['id']}`: {q['question'].split('?')[0]}? Truth {q['truth']} ({q['truth_source']}); "
+                            f"the answer gave {got}.")
     return rows + [""]
 
 
@@ -360,6 +375,12 @@ def headline(fires) -> list[str]:
         c = ex(f)[feature]
         return f"{c['or']:.2f} ({c['ci95'][0]:.2f}–{c['ci95'][1]:.2f})"
 
+    def analyst(f):
+        a = read(f, "eval/analyst.json")
+        qs = a["questions"]
+        valid = a["cite_ids_proposed"] - a["cite_ids_invalid"]
+        return f"{sum(bool(q['pass']) for q in qs)}/{len(qs)}; {valid}/{a['cite_ids_proposed']}"
+
     names = " | ".join(f.name for f in fires)
     return [
         HEADLINE_START,
@@ -378,6 +399,7 @@ def headline(fires) -> list[str]:
         f"| Hourly wind vs the nearest airport station: HRRR vs ERA5 | {cells(station)} |",
         f"| Odds ratio of destruction, fine-mesh vents vs coarse (95% CI) | {cells(lambda f: odds(f, 'vents'))} |",
         f"| Odds ratio, tile/metal/concrete roof vs asphalt/wood | {cells(lambda f: odds(f, 'roof'))} |",
+        f"| Analyst live on `muse-spark-1.3`: answers matching the data-derived truth; cited ids a tool returned | {cells(analyst)} |",
         HEADLINE_END,
     ]
 
