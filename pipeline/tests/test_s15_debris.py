@@ -5,6 +5,7 @@ per-storm agreement, class counts and means in it repeat from the file; and the 
 (the recalibrated coefficients saved with m1_refit, the scenario's days since fire, the models marked on_map)."""
 
 import json
+import os
 
 import numpy as np
 import pytest
@@ -134,7 +135,23 @@ def test_analogue(fire):
         assert a["fire"] is None or a["fire"]
 
 
-needs_models = pytest.mark.skipif(not db.MODELS_PATH.exists(), reason="work/debris_flow/models.joblib is built by step 14 (gitignored)")
+# DEBRIS_TESTS_OFFLINE=1 runs as if pipeline/work/ were absent.
+needs_models = pytest.mark.skipif(bool(os.environ.get("DEBRIS_TESTS_OFFLINE")) or not db.MODELS_PATH.exists(),
+                                  reason="work/debris_flow/models.joblib is built by step 14 (gitignored)")
+
+
+def test_recalibrated_coefficients_are_the_ones_model_eval_reports(fire):
+    # Offline twin of the next test: model_eval.json carries m1_refit's final coefficients, so a step-14 rerun that
+    # moves them, without a step-15 rerun, fails here too.
+    s = _load(fire, "debris_flow_stats.json")
+    if not MODEL_EVAL.exists():
+        pytest.skip("no model_eval.json")
+    ev = json.loads(MODEL_EVAL.read_text())
+    m = next(m for m in ev["models"] if m["id"] == M1_MODEL)
+    rc = s["m1_recalibrated"]
+    for k in ("B", "Ct", "Cf", "Cs"):
+        assert rc[k] == pytest.approx(m["coefficients"][k], abs=1e-12), k
+    assert rc["records"] == m["n"] == ev["inventory"]["used_records"]
 
 
 @needs_models

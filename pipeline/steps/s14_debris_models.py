@@ -27,8 +27,13 @@ Random forests are constrained to be non-decreasing in rainfall (R15), as M1 is 
 Per model: pooled out-of-fold ROC AUC, PR AUC (average precision), Brier and base rate; the median
 and IQR of per-fire ROC AUC over fires with both outcomes; ROC AUC within each fire and storm with
 both outcomes (within_storm, the ranking a design-storm map shows: pooled and per-fire AUC also
-credit ranking storms against each other); the held-out Station Fire (2009, San Gabriel front) as
-the analogue for Eaton; permutation importance of the extended models and the context variant.
+credit ranking storms against each other), its median and record-weighted mean each with a 95%
+interval from a cluster bootstrap that resamples whole fire-storm groups; the same on m1_published's
+records (within_storm_on_m1_records, like for like), and each trained model minus M1 on the same
+groups and resamples (vs_m1: minus m1_published on its records, minus m1_refit on all, with a
+larger check draw so that whether an interval excludes zero does not rest on one draw's noise); the
+held-out Station Fire (2009, San Gabriel front) as the analogue for Eaton; permutation importance
+of the extended models and the context variant.
 on_map marks the models behind the map's m1_p_* and rf_p_* columns. Then m1_refit (M1
 recalibrated, with its coefficients), rf_extended and mlp_extended are refitted on all usable
 records for step 15.
@@ -80,6 +85,9 @@ OUT_PATH = REPO_DIR / "web" / "public" / "data" / "debris_flow" / "model_eval.js
 
 N_JOBS = 4
 SEED = 0
+N_BOOT = 1000  # cluster-bootstrap resamples of the fire-storm groups behind within_storm
+N_BOOT_CHECK = 20_000  # a larger draw that checks which paired intervals exclude zero (vs_m1's *_check)
+BOOT_SEED = 0
 SOIL_GAP_DAYS = 14   # storm dates closer than this share one soil-moisture request
 PERM_REPEATS = 3
 IMPORTANCE_OF = ("rf_extended", "mlp_extended", "mlp_context")
@@ -170,6 +178,12 @@ def columns(rows: list[dict]) -> dict[str, np.ndarray]:
     }
 
 
+def storm_label(key: str) -> str:
+    """A storm_keys key as the notes name it: "the Thomas Fire's storm of 2018-01-09"."""
+    fire, storm = key.split("\x1f")
+    return f"the {fire} Fire's storm of {ymd(storm):%Y-%m-%d}"
+
+
 def ymd(s: str) -> date:
     return date(int(s[:4]), int(s[4:6]), int(s[6:8]))
 
@@ -236,6 +250,26 @@ def m1_coefficients(estimator) -> dict:
     return dict(zip(("B", "Ct", "Cf", "Cs"), [float(lr.intercept_[0]), *map(float, lr.coef_[0])]))
 
 
+def fit_final(models: dict, X: dict, y: np.ndarray, ctx_q, n_jobs: int = N_JOBS) -> dict:
+    """The FINAL models refitted on every record given, as db.save_models takes them: m1_refit with
+    its coefficients, the random forests with their monotonic_cst. ctx_q: the quartiles of the
+    records' mean distance to their spatial-context neighbours."""
+    final = {}
+    for mid in FINAL:
+        features, est = models[mid]
+        e = clone(est)
+        if mid.startswith("rf_"):
+            e.set_params(randomforestclassifier__n_jobs=n_jobs)
+        e.fit(X[mid], y)
+        final[mid] = {"estimator": e, "features": features, "spatial_k": db.SPATIAL_K, "n_train": len(y), "flows_train": int(y.sum()),
+                      "train_medians": {f: r4(np.nanmedian(X[mid][:, j])) for j, f in enumerate(features)},
+                      "context_distance_m": dict(zip(("q25", "median", "q75"), map(float, ctx_q)))}
+        if mid.startswith("rf_"):
+            final[mid]["monotonic_cst"] = db.monotonic_cst(features)
+    final["m1_refit"]["coefficients"] = m1_coefficients(final["m1_refit"]["estimator"])
+    return final
+
+
 def perm_sets(features: list[str]) -> tuple[list[str], list[list[int]]]:
     """Columns permuted together, with their names: each feature alone, then each PERM_GROUPS group
     whose members are all among the features."""
@@ -296,13 +330,117 @@ def storm_groups(y: np.ndarray, keys: np.ndarray) -> list[np.ndarray]:
     return [m for m in (keys == k for k in np.unique(keys)) if 0 < y[m].sum() < m.sum()]
 
 
+def group_aucs(y: np.ndarray, p: np.ndarray, keys: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """ROC AUC and record count of each (fire, storm) group with both outcomes, in storm_groups' order."""
+    groups = storm_groups(y, keys)
+    return np.array([roc_auc_score(y[m], p[m]) for m in groups]), np.array([int(m.sum()) for m in groups])
+
+
+def boot_groups(n_groups: int, n_boot: int = N_BOOT) -> np.ndarray:
+    """(n_boot, n_groups) group indices, one cluster-bootstrap resample per row: whole fire-storm
+    groups drawn with replacement. Fixed by BOOT_SEED, the group count and n_boot, so every model
+    scored on the same groups gets the same resamples, which is what pairs their differences."""
+    return np.random.default_rng(BOOT_SEED).integers(0, n_groups, size=(n_boot, n_groups))
+
+
+def boot_stats(aucs: np.ndarray, ns: np.ndarray, idx: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Median and record-weighted mean of the per-group ROC AUCs in each resample (each row of idx)."""
+    a, w = aucs[idx], ns[idx]
+    return np.median(a, axis=1), (a * w).sum(axis=1) / w.sum(axis=1)
+
+
+def ci95(v: np.ndarray) -> list[float]:
+    """95% percentile interval of bootstrap replicates."""
+    return [r4(q) for q in np.percentile(v, [2.5, 97.5])]
+
+
 def within_storm(y: np.ndarray, p: np.ndarray, keys: np.ndarray) -> dict:
     """ROC AUC within each (fire, storm) that has both outcomes: the ranking of watersheds under
-    one storm, which is what a design-storm map shows. Median, and mean weighted by records."""
+    one storm, which is what a design-storm map shows. Median, and mean weighted by records, each
+    with a 95% cluster-bootstrap interval (boot_groups). The bootstrap resamples groups, not fits:
+    each group's ROC AUC comes once from the predictions given."""
+    aucs, ns = group_aucs(y, p, keys)
+    med, wtd = boot_stats(aucs, ns, boot_groups(len(aucs)))
+    return {"groups": len(aucs), "records": int(ns.sum()), "median_roc_auc": r4(np.median(aucs)),
+            "weighted_roc_auc": r4(np.average(aucs, weights=ns)), "ci95_median": ci95(med), "ci95_weighted": ci95(wtd)}
+
+
+def paired_within_storm(y: np.ndarray, p: np.ndarray, p_ref: np.ndarray, keys: np.ndarray) -> dict:
+    """within_storm of p minus that of p_ref on the same records and groups: the difference of the
+    two medians and of the two record-weighted means, each with a 95% interval from resamples that
+    draw the same groups for both. ci95_check and ci95_weighted_check are the same intervals from
+    N_BOOT_CHECK resamples, so a verdict on zero does not hang on the Monte Carlo error of N_BOOT."""
+    a, ns = group_aucs(y, p, keys)
+    b, _ = group_aucs(y, p_ref, keys)
+    ci = {}
+    for n_boot in (N_BOOT, N_BOOT_CHECK):
+        idx = boot_groups(len(a), n_boot)
+        (ma, wa), (mb, wb) = boot_stats(a, ns, idx), boot_stats(b, ns, idx)
+        ci[n_boot] = ci95(ma - mb), ci95(wa - wb)
+    return {"groups": len(a), "median_diff": r4(np.median(a) - np.median(b)), "ci95": ci[N_BOOT][0],
+            "weighted_diff": r4(np.average(a, weights=ns) - np.average(b, weights=ns)), "ci95_weighted": ci[N_BOOT][1],
+            "ci95_check": ci[N_BOOT_CHECK][0], "ci95_weighted_check": ci[N_BOOT_CHECK][1]}
+
+
+def within_fields(y: np.ndarray, keys: np.ndarray, outside: np.ndarray, p_m1: np.ndarray, oof: dict) -> dict:
+    """{model_id: its within-storm fields in model_eval.json}. within_storm is on the model's own
+    records (m1_published: those outside the Staley et al. (2016) inventory; a trained model: every
+    usable record); within_storm_on_m1_records puts every model on m1_published's records, like for
+    like; vs_m1 pairs each trained model with M1 on the same groups: with m1_published on its records
+    and with m1_refit on every record (None for m1_published, and for m1_refit against itself).
+    oof: {trained model id: out-of-fold likelihoods}, m1_refit among them."""
+    o = outside
+    pub = within_storm(y[o], p_m1[o], keys[o])
+    out = {"m1_published": {"within_storm": pub, "within_storm_on_m1_records": pub, "vs_m1": None}}
+    for mid, p in oof.items():
+        out[mid] = {"within_storm": within_storm(y, p, keys), "within_storm_on_m1_records": within_storm(y[o], p[o], keys[o]),
+                    "vs_m1": {"published": paired_within_storm(y[o], p[o], p_m1[o], keys[o]),
+                              "refit": None if mid == "m1_refit" else paired_within_storm(y, p, oof["m1_refit"], keys)}}
+    return out
+
+
+def excludes_zero(ci: list[float]) -> bool:
+    return ci[0] > 0 or ci[1] < 0
+
+
+def paired_verdict(vs_m1: dict) -> str:
+    """What the paired intervals say ({model_id: vs_m1}), for the notes. An interval counts as
+    excluding zero when it does at N_BOOT resamples and again at N_BOOT_CHECK; one that does at only
+    one of them is borderline, an end within the resampling noise of zero, and is named with both ends."""
+    paired = [(mid, f"m1_{ref}", kind, d[key], d[f"{key}_check"]) for mid, v in vs_m1.items() for ref, d in v.items() if d
+              for kind, key in (("median", "ci95"), ("record-weighted", "ci95_weighted"))]
+    apart = [q for q in paired if excludes_zero(q[3]) and excludes_zero(q[4])]
+    edge = [q for q in paired if excludes_zero(q[3]) != excludes_zero(q[4])]
+    caveat = f" The {len(paired)} intervals are 95% each, not adjusted for multiple comparisons."
+    if not apart and not edge:
+        return (f"None of the {len(paired)} paired intervals excludes zero: on these groups no trained model ranks watersheds "
+                "within a storm measurably better or worse than M1." + caveat)
+    end = lambda ci, chk: 1 if min(ci[1], chk[1]) < 0 else 0  # the end nearer zero
+    out = []
+    if apart:
+        out.append(f"Paired intervals that exclude zero at both {N_BOOT:,} and {N_BOOT_CHECK:,} resamples: "
+                   + "; ".join(f"{mid} − {ref} ({kind}, {'above' if ci[0] > 0 else 'below'} zero)" for mid, ref, kind, ci, _ in apart) + ".")
+    if edge:
+        out.append("Borderline: " + "; ".join(
+            f"{mid} − {ref} ({kind}): its {'upper' if end(ci, chk) else 'lower'} end is {ci[end(ci, chk)]:+.4f} at {N_BOOT:,} "
+            f"resamples and {chk[end(ci, chk)]:+.4f} at {N_BOOT_CHECK:,}, so it {'excludes' if excludes_zero(chk) else 'includes'} "
+            "zero with more resamples" for mid, ref, kind, ci, chk in edge) + ".")
+    out.append(f"The other {len(paired) - len(apart) - len(edge)} of the {len(paired)} include zero.")
+    if not any(ci[0] > 0 or chk[0] > 0 for *_, ci, chk in apart + edge):
+        out.append("None lies above zero: on these groups no trained model ranks watersheds within a storm measurably better than M1.")
+    return " ".join(out) + caveat
+
+
+def largest_group(y: np.ndarray, keys: np.ndarray) -> dict:
+    """The (fire, storm) group with both outcomes that holds the most records: its index in
+    storm_groups' order, key and records, every group's records together, the next largest group's,
+    and the share of the N_BOOT resamples (boot_groups) that leave it out."""
     groups = storm_groups(y, keys)
-    aucs, ns = [roc_auc_score(y[m], p[m]) for m in groups], [int(m.sum()) for m in groups]
-    return {"groups": len(aucs), "records": sum(ns), "median_roc_auc": r4(np.median(aucs)),
-            "weighted_roc_auc": r4(np.average(aucs, weights=ns))}
+    ns = np.array([int(m.sum()) for m in groups])
+    i = int(np.argmax(ns))
+    left_out = float((~(boot_groups(len(ns)) == i).any(axis=1)).mean())
+    return {"index": i, "key": str(keys[groups[i]][0]), "records": int(ns[i]), "total": int(ns.sum()),
+            "next": int(np.sort(ns)[-2]) if len(ns) > 1 else 0, "left_out": left_out}
 
 
 def pairs(y: np.ndarray, groups: np.ndarray | None = None) -> int:
@@ -390,20 +528,23 @@ def main() -> None:
 
     outside = ~cols["staley2016"]
     p_m1 = db.m1_likelihood(cols["T"], cols["F"], cols["S"], cols["I15"])
-    within = {"m1_published": within_storm(y[outside], p_m1[outside], keys[outside])}
-    within.update({mid: within_storm(y, oof[mid], keys) for mid in models})
+    ws_fields = within_fields(y, keys, outside, p_m1, oof)
+    within = {mid: f["within_storm"] for mid, f in ws_fields.items()}
+    # The trained models on m1_published's records, for a like-for-like comparison.
+    within_outside = {mid: f["within_storm_on_m1_records"] for mid, f in ws_fields.items()}
+    vs_m1 = {mid: f["vs_m1"] for mid, f in ws_fields.items() if f["vs_m1"]}
     entries = [{
         "id": "m1_published", "label": LABELS["m1_published"], "features": db.FEATURES_M1,
         "cv": "none: published coefficients, scored only on records outside the Staley et al. (2016) inventory M1 was fitted on",
         "n": int(outside.sum()), "flows": int(y[outside].sum()),
         "pooled": scores(y[outside], p_m1[outside]), "per_fire": per_fire(y[outside], p_m1[outside], fire[outside]),
-        "within_storm": within["m1_published"], "analogue": analogue(y, p_m1, cols, outside), "on_map": False,
+        **ws_fields["m1_published"], "analogue": analogue(y, p_m1, cols, outside), "on_map": False,
     }]
     for mid, (features, _) in models.items():
         entries.append({
             "id": mid, "label": LABELS[mid], "features": features, "cv": "leave-one-fire-out",
             "n": n, "flows": int(y.sum()), "pooled": scores(y, oof[mid]), "per_fire": per_fire(y, oof[mid], fire),
-            "within_storm": within[mid], "analogue": analogue(y, oof[mid], cols, np.ones(n, bool)), "on_map": mid in ON_MAP,
+            **ws_fields[mid], "analogue": analogue(y, oof[mid], cols, np.ones(n, bool)), "on_map": mid in ON_MAP,
         })
     by_id = {e["id"]: e for e in entries}
 
@@ -419,7 +560,6 @@ def main() -> None:
 
     # How much of each extended feature varies within one fire and storm at all, and how many of
     # the pairs pooled ROC AUC compares lie within one.
-    within_outside = {mid: within_storm(y[outside], oof[mid][outside], keys[outside]) for mid in models}
     share = {f: within_share(cols[f], keys) for f in ("days_since_fire", "soil_moisture_0_7cm", "log_area_km2", "T", "R15")}
     sm_flat = sum(len(np.unique(sm[keys == k])) == 1 for k in np.unique(keys))
     # of the pairs pooled ROC AUC compares, and of those per-fire ROC AUC compares, the share within one storm
@@ -428,20 +568,9 @@ def main() -> None:
     group_n = [int(m.sum()) for m in storm_groups(y, keys)]
     group_flows = [int(y[m].sum()) for m in storm_groups(y, keys)]
 
-    final = {}
-    for mid in FINAL:
-        features, est = models[mid]
-        e = clone(est)
-        if mid.startswith("rf_"):
-            e.set_params(randomforestclassifier__n_jobs=N_JOBS)
-        e.fit(X[mid], y)
-        final[mid] = {"estimator": e, "features": features, "spatial_k": db.SPATIAL_K, "n_train": n, "flows_train": int(y.sum()),
-                      "train_medians": {f: r4(np.nanmedian(X[mid][:, j])) for j, f in enumerate(features)},
-                      "context_distance_m": dict(zip(("q25", "median", "q75"), map(float, ctx_q)))}
-        if mid.startswith("rf_"):
-            final[mid]["monotonic_cst"] = db.monotonic_cst(features)
-    refit = m1_coefficients(final["m1_refit"]["estimator"])
-    final["m1_refit"]["coefficients"] = refit
+    final = fit_final(models, X, y, ctx_q)
+    refit = final["m1_refit"]["coefficients"]
+    by_id["m1_refit"]["coefficients"] = refit  # step 15's m1_recalibrated, so its tests can check those files offline
     p_refit = final["m1_refit"]["estimator"].predict_proba(X["m1_refit"])[:, 1]
     gap = float(np.max(np.abs(p_refit - db.m1_likelihood(cols["T"], cols["F"], cols["S"], cols["I15"], refit))))
     if gap > 1e-9:
@@ -485,6 +614,35 @@ def main() -> None:
                "Within storms the two measures disagree")
     ctx_imp = {r["feature"]: r["drop_in_auc"] for r in importance["mlp_context"]}
 
+    # What the cluster-bootstrap intervals say: each model's figures, then its paired differences from M1.
+    g_pub, g_all = within["m1_published"]["groups"], within["m1_refit"]["groups"]
+    iv = lambda v, ci: f"{v:.3f} [{ci[0]:.3f}, {ci[1]:.3f}]"
+    dv = lambda d, ci: f"{d:+.3f} [{ci[0]:+.3f}, {ci[1]:+.3f}]"
+    one = lambda ws: f"{iv(ws['median_roc_auc'], ws['ci95_median'])} / {iv(ws['weighted_roc_auc'], ws['ci95_weighted'])}"
+    pair = lambda d: f"{dv(d['median_diff'], d['ci95'])} / {dv(d['weighted_diff'], d['ci95_weighted'])}"
+    widths = {k: [ws[k][1] - ws[k][0] for ws in within.values()] for k in ("ci95_median", "ci95_weighted")}
+    interval_verdict = paired_verdict(vs_m1)
+    # The largest fire-storm group carries much of the record weight: the record-weighted figures
+    # and their intervals turn on whether a resample draws it, the medians count it as one group.
+    big_pub, big_all = largest_group(y[outside], keys[outside]), largest_group(y, keys)
+    big_share = lambda b, on: (f"{b['records'] / b['total']:.0%} of the record weight on {on} groups, where the next largest has "
+                               f"{b['next']:,} records and a resample leaves it out {b['left_out']:.0%} of the time")
+    a_refit, ns_pub = group_aucs(y[outside], oof["m1_refit"][outside], keys[outside])
+    a_pub, _ = group_aucs(y[outside], p_m1[outside], keys[outside])
+    rest_pub = np.arange(len(ns_pub)) != big_pub["index"]
+    refit_wo_big = np.average(a_refit[rest_pub] - a_pub[rest_pub], weights=ns_pub[rest_pub])
+    on_pub = f"m1_published's {g_pub}"
+    big_clause = (
+        (f"The largest fire-storm group, {storm_label(big_pub['key'])}, has {big_pub['records']:,} records: "
+         f"{big_share(big_pub, on_pub)}; {big_share(big_all, f'all {g_all}')}. "
+         if big_pub["key"] == big_all["key"] else
+         f"The largest fire-storm group on m1_published's records, {storm_label(big_pub['key'])}, has {big_pub['records']:,} "
+         f"records: {big_share(big_pub, str(g_pub))}. On all records, {storm_label(big_all['key'])} has {big_all['records']:,}: "
+         f"{big_share(big_all, str(g_all))}. ")
+        + "So the record-weighted intervals depend largely on whether that one storm is drawn: m1_refit − m1_published "
+        f"(record-weighted) is {vs_m1['m1_refit']['published']['weighted_diff']:+.3f} with it and {refit_wo_big:+.3f} without it. "
+        "The median counts it as one group like any other, so the median's intervals do not hinge on it.")
+
     notes = [
         f"The inventory covers {len({r['FireName'] for r in raw})} fires from {years[0]}–{years[-1]} in {', '.join(states)}. "
         "It has no 2025 fires, so it holds no observed debris-flow outcomes for Eaton or Palisades, and nothing here scores the "
@@ -506,6 +664,17 @@ def main() -> None:
         + ", ".join(w(mid, within_outside) for mid in models) + f", against {w('m1_published')}. Most groups are small "
         f"(median {np.median(group_n):.0f} records and {np.median(group_flows):.0f} debris flows), so the median lands on fractions "
         "with small denominators; the record-weighted mean is less coarse.",
+        f"Intervals: each within-storm figure has a 95% interval from a cluster bootstrap over fire-storm groups ({N_BOOT:,} "
+        f"resamples of whole groups drawn with replacement, seed {BOOT_SEED}, percentile intervals). It resamples the groups, not "
+        "the fits: each group's ROC AUC comes once from the out-of-fold predictions, so an interval says how much a figure depends "
+        "on which storms the inventory holds, not how much refitting would move it. Median / record-weighted mean, with intervals: "
+        + ", ".join(f"{mid} {one(ws)}" for mid, ws in within.items()) + f" ({g_all} groups; m1_published {g_pub}). For one model "
+        f"the median's interval is {min(widths['ci95_median']):.2f}–{max(widths['ci95_median']):.2f} wide in ROC AUC and the "
+        f"record-weighted mean's {min(widths['ci95_weighted']):.2f}–{max(widths['ci95_weighted']):.2f}. " + big_clause,
+        "Paired with M1 on the same records, groups and resamples (vs_m1: a trained model's figure minus M1's, the difference of "
+        f"the two medians / of the two record-weighted means): minus m1_published on its {g_pub} groups, "
+        + ", ".join(f"{mid} {pair(v['published'])}" for mid, v in vs_m1.items()) + f"; minus m1_refit on all {g_all}, "
+        + ", ".join(f"{mid} {pair(v['refit'])}" for mid, v in vs_m1.items() if v["refit"]) + ". " + interval_verdict,
         f"Days since fire and antecedent soil moisture are storm-level: {share['days_since_fire']:.1%} and "
         f"{share['soil_moisture_0_7cm']:.1%} of their variance lies within a fire and storm (soil moisture has a single value in "
         f"{sm_flat:,} of the {len(np.unique(keys)):,} fire-storm groups), against {share['log_area_km2']:.0%} for log area and "
@@ -613,8 +782,12 @@ def main() -> None:
               f"Brier={e['pooled']['brier']:.3f} per-fire median={e['per_fire']['median_roc_auc']:.3f} "
               f"(IQR {e['per_fire']['iqr'][0]:.3f}–{e['per_fire']['iqr'][1]:.3f}, {e['per_fire']['fires']} fires)"
               + (f"  Station AUC={a['roc_auc']:.3f} Brier={a['brier']:.3f}" if a else "  Station: n/a")
-              + f"  within-storm median={ws['median_roc_auc']:.3f} weighted={ws['weighted_roc_auc']:.3f} ({ws['groups']} groups)"
+              + f"  within-storm median / weighted {one(ws)} ({ws['groups']} groups)"
               + ("  [map]" if e["on_map"] else ""))
+    for mid, v in vs_m1.items():
+        print(f"  {mid:<13} minus m1_published ({v['published']['groups']} groups) {pair(v['published'])}"
+              + (f"; minus m1_refit ({v['refit']['groups']} groups) {pair(v['refit'])}" if v["refit"] else ""))
+    print("  " + interval_verdict)
     print("  M1 recalibrated: " + ", ".join(f"{k} = {v:.4f}" for k, v in refit.items()))
     print("  falls with rising rain: " + ", ".join(f"{k} {v[0]} (max {v[1]:.3f})" for k, v in falls.items()))
     print(f"wrote {OUT_PATH} and {path} in {time.time() - t_start:.0f} s")

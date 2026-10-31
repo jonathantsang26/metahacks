@@ -1,11 +1,22 @@
 """Debris-flow models: M1 and its units, spatial context without responses, soil-moisture parsing,
-random forests that never fall as rain rises, the model_eval.json contract and the saved models."""
+random forests that never fall as rain rises, within-storm ROC AUC and its cluster-bootstrap
+intervals, the model_eval.json contract and the saved models.
 
+The saved-model tests run twice: on step 14's models.joblib (skipped without pipeline/work/) and on
+models trained here on tests/fixtures/debris_inventory_sample.csv, a sample of USGS's inventory, so
+they run offline. DEBRIS_TESTS_OFFLINE=1 runs as if pipeline/work/ were absent."""
+
+import csv
+import importlib.util
+import io
 import json
+import os
 from datetime import date
+from pathlib import Path
 
 import numpy as np
 import pytest
+from sklearn.metrics import roc_auc_score
 
 from ember import debris as db
 from ember.config import REPO_DIR
@@ -15,6 +26,14 @@ MODEL_EVAL = REPO_DIR / "web" / "public" / "data" / "debris_flow" / "model_eval.
 MODEL_IDS = {"m1_published", "m1_refit", "rf_m1vars", "mlp_m1vars", "rf_extended", "mlp_extended", "mlp_context"}
 ON_MAP = {"m1_refit", "rf_extended"}
 SAVED = {"m1_refit", "rf_extended", "mlp_extended"}
+WITHIN_KEYS = {"groups", "records", "median_roc_auc", "weighted_roc_auc", "ci95_median", "ci95_weighted"}
+PAIRED_KEYS = {"groups", "median_diff", "ci95", "weighted_diff", "ci95_weighted", "ci95_check", "ci95_weighted_check"}
+
+FIXTURES = Path(__file__).parent / "fixtures"
+FIXTURE_CSV = FIXTURES / "debris_inventory_sample.csv"
+OFFLINE = bool(os.environ.get("DEBRIS_TESTS_OFFLINE"))
+needs_inventory = pytest.mark.skipif(OFFLINE or not (db.DEBRIS_WORK / s14.INVENTORY_CSV).exists(),
+                                     reason="work/debris_flow/USGS_RG_PFDF_Inventory_v1.csv is downloaded by step 14 (gitignored)")
 
 
 def test_m1_matches_a_hand_computed_value():
@@ -195,7 +214,65 @@ def test_within_storm_ranks_within_each_fire_and_storm():
     keys = s14.storm_keys(cols)
     assert [int(m.sum()) for m in s14.storm_groups(y, keys)] == [4, 6]
     ws = s14.within_storm(y, p, keys)
-    assert ws == {"groups": 2, "records": 10, "median_roc_auc": 0.675, "weighted_roc_auc": 0.66}  # (0.75·4 + 0.6·6) / 10
+    # (0.75·4 + 0.6·6) / 10. A resample of two groups draws (A, s1) twice, (B, s1) twice or each once, so
+    # both figures lie between 0.6 and 0.75, and each end comes up in about a quarter of the 1,000 resamples.
+    assert ws == {"groups": 2, "records": 10, "median_roc_auc": 0.675, "weighted_roc_auc": 0.66,
+                  "ci95_median": [0.6, 0.75], "ci95_weighted": [0.6, 0.75]}
+    # (B, s1) is the larger group: 6 of the 10 records, left out of a resample of two groups a quarter of the time.
+    big = s14.largest_group(y, keys)
+    assert {k: big[k] for k in ("index", "key", "records", "total", "next")} == {
+        "index": 1, "key": "B\x1fs1", "records": 6, "total": 10, "next": 4}
+    assert big["left_out"] == pytest.approx(0.25, abs=0.05)
+    # Paired with itself, or with any order-preserving change of itself, the difference is exactly zero.
+    zero = {"groups": 2, "median_diff": 0.0, "ci95": [0.0, 0.0], "weighted_diff": 0.0, "ci95_weighted": [0.0, 0.0],
+            "ci95_check": [0.0, 0.0], "ci95_weighted_check": [0.0, 0.0]}
+    assert s14.paired_within_storm(y, p, p, keys) == s14.paired_within_storm(y, p ** 3 / 2, p, keys) == zero
+    # Reversed, (A, s1) scores 0.25 and (B, s1) 0.4: medians 0.325 − 0.675, weighted (0.25·4 + 0.4·6) / 10 − 0.66.
+    d = s14.paired_within_storm(y, -p, p, keys)
+    assert d["median_diff"] == pytest.approx(-0.35) and d["weighted_diff"] == pytest.approx(-0.32)
+    assert d["ci95"] == [-0.5, -0.2] and d["ci95_weighted"] == [-0.5, -0.2]
+    assert d["ci95_check"] == [-0.5, -0.2] and d["ci95_weighted_check"] == [-0.5, -0.2]  # the larger draw agrees
+
+
+def test_the_cluster_bootstrap_resamples_whole_groups_and_pairs_the_models():
+    idx = s14.boot_groups(5)
+    assert idx.shape == (s14.N_BOOT, 5) and idx.min() == 0 and idx.max() == 4
+    assert np.array_equal(idx, s14.boot_groups(5))  # fixed by the seed and the group count: every model gets the same draws
+    assert s14.boot_groups(5, s14.N_BOOT_CHECK).shape == (s14.N_BOOT_CHECK, 5) and s14.N_BOOT_CHECK > s14.N_BOOT
+    aucs, ns = np.array([0.5, 0.6, 0.7, 0.8, 0.9]), np.array([2, 4, 6, 8, 10])
+    med, wtd = s14.boot_stats(aucs, ns, idx)
+    for r in (0, 17, s14.N_BOOT - 1):  # each resample's figures are those of the groups it drew
+        assert med[r] == np.median(aucs[idx[r]]) and wtd[r] == pytest.approx(np.average(aucs[idx[r]], weights=ns[idx[r]]))
+    # A model better by 0.05 in every group is better by 0.05 in every resample: paired, the interval is that one value,
+    # while the two models' own intervals overlap.
+    med2, wtd2 = s14.boot_stats(aucs + 0.05, ns, idx)
+    assert s14.ci95(med2 - med) == pytest.approx([0.05, 0.05]) and s14.ci95(wtd2 - wtd) == pytest.approx([0.05, 0.05])
+    assert s14.ci95(med2)[0] < s14.ci95(med)[1] and s14.ci95(wtd2)[0] < s14.ci95(wtd)[1]
+    assert s14.excludes_zero([0.01, 0.2]) and s14.excludes_zero([-0.2, -0.01]) and not s14.excludes_zero([-0.01, 0.2])
+
+
+def test_the_paired_verdict_needs_both_draws_to_exclude_zero():
+    def diff(ci, ci_w, chk=None, chk_w=None):
+        return {"groups": 9, "median_diff": 0.0, "ci95": ci, "weighted_diff": 0.0, "ci95_weighted": ci_w,
+                "ci95_check": chk or ci, "ci95_weighted_check": chk_w or ci_w}
+    # a − m1_published: weighted below zero at both draws; a − m1_refit: weighted below zero at 1,000 resamples only
+    # (borderline), median touching zero (includes it); b − m1_published: both include zero.
+    vs = {"m1_refit": {"published": diff([-0.1, 0.05], [-0.1, 0.05]), "refit": None},
+          "a": {"published": diff([-0.1, 0.05], [-0.1, -0.01], chk_w=[-0.1, -0.012]),
+                "refit": diff([-0.2, 0.0], [-0.117, -0.0015], chk_w=[-0.1162, 0.0016])}}
+    v = s14.paired_verdict(vs)
+    assert v.startswith(f"Paired intervals that exclude zero at both {s14.N_BOOT:,} and {s14.N_BOOT_CHECK:,} resamples: "
+                        "a − m1_published (record-weighted, below zero). Borderline: a − m1_refit (record-weighted): its upper "
+                        f"end is -0.0015 at {s14.N_BOOT:,} resamples and +0.0016 at {s14.N_BOOT_CHECK:,}, so it includes zero "
+                        "with more resamples. The other 4 of the 6 include zero. None lies above zero")
+    assert v.endswith("The 6 intervals are 95% each, not adjusted for multiple comparisons.")
+    # The reverse borderline (excludes zero only with more resamples), and one above zero, are named as such.
+    vs["a"]["refit"] = diff([-0.2, 0.0], [-0.01, 0.2], chk=[-0.2, -0.001], chk_w=[0.004, 0.2])
+    v = s14.paired_verdict(vs)
+    assert "its upper end is +0.0000 at" in v and "its lower end is -0.0100 at" in v and "excludes zero with more resamples" in v
+    assert "None lies above zero" not in v and "The other 3 of the 6" in v
+    vs["a"] = {"published": diff([-0.1, 0.05], [-0.1, 0.05]), "refit": diff([-0.1, 0.05], [-0.1, 0.05])}
+    assert s14.paired_verdict(vs).startswith("None of the 6 paired intervals excludes zero")
 
 
 def _fold_toy(n=180, seed=4):
@@ -241,6 +318,42 @@ def _in01(x):
     return isinstance(x, (int, float)) and 0 <= x <= 1
 
 
+def _interval(ci, lo=0.0, hi=1.0):
+    assert isinstance(ci, list) and len(ci) == 2 and all(isinstance(v, float) for v in ci) and lo <= ci[0] <= ci[1] <= hi, ci
+
+
+def _check_within(by_id: dict):
+    """within_storm, within_storm_on_m1_records and vs_m1 of every model ({model_id: fields}), as
+    model_eval.json carries them: every model also on m1_published's groups, each trained model's
+    differences from M1 on the same groups."""
+    pub = by_id["m1_published"]
+    assert pub["within_storm_on_m1_records"] == pub["within_storm"] and pub["vs_m1"] is None
+    for mid, m in by_id.items():
+        for key in ("within_storm", "within_storm_on_m1_records"):
+            ws = m[key]
+            assert set(ws) == WITHIN_KEYS, (mid, key)
+            assert 0 < ws["groups"] and 2 * ws["groups"] <= ws["records"]
+            assert _in01(ws["median_roc_auc"]) and _in01(ws["weighted_roc_auc"])
+            _interval(ws["ci95_median"])
+            _interval(ws["ci95_weighted"])
+        on_m1 = m["within_storm_on_m1_records"]
+        assert (on_m1["groups"], on_m1["records"]) == (pub["within_storm"]["groups"], pub["within_storm"]["records"]), mid
+        if mid == "m1_published":
+            continue
+        assert set(m["vs_m1"]) == {"published", "refit"} and (m["vs_m1"]["refit"] is None) is (mid == "m1_refit")
+        for ref, d in m["vs_m1"].items():
+            if d is None:
+                continue
+            own, m1 = ((on_m1, pub["within_storm"]) if ref == "published"
+                       else (m["within_storm"], by_id["m1_refit"]["within_storm"]))
+            assert set(d) == PAIRED_KEYS and d["groups"] == own["groups"] == m1["groups"], (mid, ref)
+            # the point estimates are the differences of the figures in the table (each rounded to 4 dp)
+            assert d["median_diff"] == pytest.approx(own["median_roc_auc"] - m1["median_roc_auc"], abs=1.5e-4), (mid, ref)
+            assert d["weighted_diff"] == pytest.approx(own["weighted_roc_auc"] - m1["weighted_roc_auc"], abs=1.5e-4), (mid, ref)
+            for k in ("ci95", "ci95_weighted", "ci95_check", "ci95_weighted_check"):
+                _interval(d[k], -1, 1)
+
+
 def test_model_eval_follows_the_contract():
     ev = json.loads(MODEL_EVAL.read_text())
     assert set(ev) == {"inventory", "cv", "features", "models", "importance", "notes"}
@@ -256,11 +369,9 @@ def test_model_eval_follows_the_contract():
     models = {m["id"]: m for m in ev["models"]}
     assert set(models) == MODEL_IDS and len(ev["models"]) == len(MODEL_IDS)
     for m in ev["models"]:
-        assert set(m) == {"id", "label", "features", "cv", "n", "flows", "pooled", "per_fire", "within_storm", "analogue", "on_map"}
-        ws = m["within_storm"]
-        assert set(ws) == {"groups", "records", "median_roc_auc", "weighted_roc_auc"}
-        assert 0 < ws["groups"] and 2 * ws["groups"] <= ws["records"] <= m["n"]
-        assert _in01(ws["median_roc_auc"]) and _in01(ws["weighted_roc_auc"])
+        assert set(m) == {"id", "label", "features", "cv", "n", "flows", "pooled", "per_fire", "within_storm",
+                          "within_storm_on_m1_records", "vs_m1", "analogue", "on_map"} | ({"coefficients"} if m["id"] == "m1_refit" else set())
+        assert m["within_storm"]["records"] <= m["n"]
         assert m["on_map"] is (m["id"] in ON_MAP)
         assert set(m["features"]) <= set(ev["features"])
         assert 0 < m["flows"] < m["n"] <= inv["used_records"]
@@ -283,6 +394,21 @@ def test_model_eval_follows_the_contract():
     # m1_published is scored on its own (fewer) records, the trained models on every usable one
     assert models["m1_published"]["within_storm"]["records"] < models["m1_refit"]["within_storm"]["records"]
     assert len({(models[i]["within_storm"]["groups"], models[i]["within_storm"]["records"]) for i in MODEL_IDS - {"m1_published"}}) == 1
+    _check_within(models)
+    assert set(models["m1_refit"]["coefficients"]) == set(db.M1_15)
+    assert all(isinstance(v, float) for v in models["m1_refit"]["coefficients"].values())
+    # A note says what the intervals say: which paired intervals exclude zero at both draws, which only at one
+    # (borderline), or that none does; and that they are not adjusted for multiple comparisons.
+    paired = [d for m in models.values() if m["vs_m1"] for d in m["vs_m1"].values() if d]
+    zero = [(s14.excludes_zero(d[k]), s14.excludes_zero(d[f"{k}_check"])) for d in paired for k in ("ci95", "ci95_weighted")]
+    apart, edge = sum(a and b for a, b in zero), sum(a != b for a, b in zero)
+    verdict = [n for n in ev["notes"] if "paired intervals" in n.lower()]
+    assert len(verdict) == 1 and verdict[0].endswith(s14.paired_verdict({m["id"]: m["vs_m1"] for m in ev["models"] if m["vs_m1"]}))
+    assert (f"The other {len(zero) - apart - edge} of the {len(zero)} include zero" in verdict[0] if apart or edge
+            else f"None of the {len(zero)} paired intervals excludes zero" in verdict[0])
+    assert ("Borderline: " in verdict[0]) is bool(edge) and "not adjusted for multiple comparisons" in verdict[0]
+    # The intervals note names the fire-storm group that carries the most record weight.
+    assert any(n.startswith("Intervals:") and "The largest fire-storm group" in n for n in ev["notes"])
 
     assert set(ev["importance"]) == {"rf_extended", "mlp_extended", "mlp_context"}
     for mid, rows in ev["importance"].items():
@@ -293,12 +419,112 @@ def test_model_eval_follows_the_contract():
     assert not any("validat" in n.lower().replace("cross-validation", "") for n in ev["notes"])
 
 
-needs_models = pytest.mark.skipif(not db.MODELS_PATH.exists(), reason="work/debris_flow/models.joblib is built by step 14 (gitignored)")
+# ---------------------------------------------------------------- the inventory sample (tests/fixtures)
 
 
-@needs_models
-def test_saved_models_predict_likelihoods():
-    models = db.load_models()
+def _fixture_rows() -> list[dict]:
+    return list(csv.DictReader(io.StringIO(FIXTURE_CSV.read_text(encoding="utf-8"))))
+
+
+@pytest.fixture(scope="module")
+def fixture_cols() -> dict:
+    """The sample's usable records as step 14's columns, with spatial context and a stand-in soil
+    moisture (step 14 fetches the real one): one value per fire and storm, a tenth of them missing."""
+    cols = s14.columns(s14.usable(_fixture_rows())[0])
+    _, storm = np.unique(s14.storm_keys(cols), return_inverse=True)
+    rng = np.random.default_rng(7)
+    sm = rng.uniform(0.05, 0.4, storm.max() + 1)
+    sm[rng.uniform(size=len(sm)) < 0.1] = np.nan
+    cols["soil_moisture_0_7cm"] = sm[storm]
+    cols.update(db.spatial_context(cols))
+    return cols
+
+
+@pytest.fixture(scope="module")
+def fixture_models(fixture_cols, tmp_path_factory) -> dict:
+    """Step 14's saved models (s14.fit_final), trained on the sample and saved and loaded as step 14 does."""
+    models = s14.make_models()
+    X = {mid: db.feature_matrix(fixture_cols, models[mid][0]) for mid in s14.FINAL}
+    ctx_q = np.nanpercentile(fixture_cols["ctx_dist_m"], [25, 50, 75])
+    final = s14.fit_final(models, X, fixture_cols["y"], ctx_q, n_jobs=1)
+    return db.load_models(db.save_models(final, tmp_path_factory.mktemp("debris_flow") / "models.joblib"))
+
+
+@pytest.fixture(scope="module", params=["fixture", "saved"])
+def saved_models(request) -> dict:
+    """The models step 15 maps: trained on the sample here, and step 14's own (skipped without work/)."""
+    if request.param == "saved":
+        if OFFLINE or not db.MODELS_PATH.exists():
+            pytest.skip("work/debris_flow/models.joblib is built by step 14 (gitignored)")
+        return db.load_models()
+    return request.getfixturevalue("fixture_models")
+
+
+@pytest.fixture(scope="module")
+def fixture_oof(fixture_cols) -> dict:
+    """m1_refit's and rf_extended's out-of-fold likelihoods on the sample, leave-one-fire-out (s14.run_fold)."""
+    y, fire = fixture_cols["y"], fixture_cols["fire"]
+    models = {mid: s14.make_models()[mid] for mid in ("m1_refit", "rf_extended")}
+    X = {mid: db.feature_matrix(fixture_cols, features) for mid, (features, _) in models.items()}
+    perms = np.stack([np.random.default_rng(r).permutation(len(y)) for r in range(s14.PERM_REPEATS)])
+    oof = {mid: np.zeros(len(y)) for mid in models}
+    for f in np.unique(fire):
+        for mid, (p, _) in s14.run_fold(models, X, y, fire == f, perms).items():
+            oof[mid][fire == f] = p
+    return oof
+
+
+def test_the_fixture_is_a_stratified_sample_with_what_step_14_needs():
+    rows = _fixture_rows()
+    assert 200 <= len(rows) <= 400
+    kept, filters = s14.usable(rows)
+    assert len(kept) < len(rows) and len(filters) == 8  # the filters drop some
+    cols = s14.columns(kept)
+    y, keys, outside = cols["y"], s14.storm_keys(cols), ~cols["staley2016"]
+    assert len(set(cols["fire"])) >= 5 and 0 < y.sum() < len(y)
+    assert (s14.ANALOGUE in set(zip(cols["fire"].tolist(), cols["year"].tolist())))
+    # fire-storm groups with both outcomes on M1's records and beyond them, a fire with one outcome, and an early storm
+    assert 0 < len(s14.storm_groups(y[outside], keys[outside])) < len(s14.storm_groups(y, keys))
+    assert any(len(set(y[cols["fire"] == f])) == 1 for f in set(cols["fire"]))
+    assert (cols["days_since_fire"] <= s14.SCENARIO_DAYS).any()
+
+
+@needs_inventory
+def test_the_fixture_is_the_scripts_sample_of_the_inventory():
+    spec = importlib.util.spec_from_file_location("make_debris_fixture", FIXTURES / "make_debris_fixture.py")
+    script = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(script)
+    raw = s14.load_inventory()
+    inventory = {r["UniqueObservationID"]: r for r in raw}
+    rows = _fixture_rows()
+    assert list(rows[0]) == list(raw[0])  # every column, in the inventory's order
+    assert all(inventory[r["UniqueObservationID"]] == r for r in rows)  # verbatim
+    assert script.sample(raw) == rows
+
+
+def test_within_storm_fields_on_the_fixture(fixture_cols, fixture_oof):
+    cols = fixture_cols
+    y, keys, outside = cols["y"], s14.storm_keys(cols), ~cols["staley2016"]
+    p_m1 = db.m1_likelihood(cols["T"], cols["F"], cols["S"], cols["I15"])
+    fields = s14.within_fields(y, keys, outside, p_m1, fixture_oof)
+    assert set(fields) == {"m1_published", "m1_refit", "rf_extended"}
+    _check_within(fields)
+    # rf_extended minus m1_published, by hand: the record-weighted mean of the per-group differences
+    groups = s14.storm_groups(y[outside], keys[outside])
+    rf, m1, yo = fixture_oof["rf_extended"][outside], p_m1[outside], y[outside]
+    d = [roc_auc_score(yo[g], rf[g]) - roc_auc_score(yo[g], m1[g]) for g in groups]
+    got = fields["rf_extended"]["vs_m1"]["published"]
+    assert got["groups"] == len(groups)
+    assert got["weighted_diff"] == pytest.approx(np.average(d, weights=[g.sum() for g in groups]), abs=1e-4)
+    # The differences are paired: drawn from the same resamples, so a model paired with a copy of itself scores 0 [0, 0].
+    same = s14.within_fields(y, keys, outside, fixture_oof["m1_refit"], {"m1_refit": fixture_oof["m1_refit"]})
+    assert same["m1_refit"]["vs_m1"]["published"] == {"groups": len(groups), "median_diff": 0.0, "ci95": [0.0, 0.0],
+                                                      "weighted_diff": 0.0, "ci95_weighted": [0.0, 0.0],
+                                                      "ci95_check": [0.0, 0.0], "ci95_weighted_check": [0.0, 0.0]}
+
+
+def test_saved_models_predict_likelihoods(saved_models):
+    models = saved_models
     assert set(models) == SAVED
     df = {f: np.array([0.4, 0.1]) for f in db.FEATURES_EXTENDED}
     df["R15"] = np.array([6.0, 6.0])
@@ -312,9 +538,8 @@ def test_saved_models_predict_likelihoods():
         assert 0 < entry["flows_train"] < entry["n_train"]
 
 
-@needs_models
-def test_saved_m1_refit_coefficients_give_its_likelihoods():
-    entry = db.load_models()["m1_refit"]
+def test_saved_m1_refit_coefficients_give_its_likelihoods(saved_models):
+    entry = saved_models["m1_refit"]
     c = entry["coefficients"]
     assert set(c) == set(db.M1_15) and all(isinstance(v, float) for v in c.values())
     rng = np.random.default_rng(2)
@@ -324,9 +549,8 @@ def test_saved_m1_refit_coefficients_give_its_likelihoods():
     assert c != db.M1_15
 
 
-@needs_models
-def test_saved_random_forest_never_falls_as_rain_rises():
-    entry = db.load_models()["rf_extended"]
+def test_saved_random_forest_never_falls_as_rain_rises(saved_models):
+    entry = saved_models["rf_extended"]
     assert entry["monotonic_cst"] == db.monotonic_cst(entry["features"]) == list(entry["estimator"][-1].monotonic_cst)
     rng = np.random.default_rng(3)
     n = 300
