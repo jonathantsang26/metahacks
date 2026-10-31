@@ -165,18 +165,18 @@ Burned, steep slopes can shed debris flows in the first winters' storms. The Ris
 - **M1 recalibrated:** the same form refitted on USGS's observed debris-flow inventory ([Graber et al. 2026](https://doi.org/10.5066/P1R9VXC4): 7,639 usable watershed-storm records from 77 fires, 2000–2024, 955 of them debris flows).
 - **Random forest:** fitted on that inventory with M1's inputs plus watershed area, days since the fire and antecedent soil moisture (ERA5-Land via Open-Meteo), and constrained never to fall as rainfall rises.
 
-Each trained model is scored on fires it never saw (leave one fire out, [`debris_flow/model_eval.json`](web/public/data/debris_flow/model_eval.json)):
+Each trained model is scored on fires it never saw (leave one fire out, [`debris_flow/model_eval.json`](web/public/data/debris_flow/model_eval.json)). The within-storm column covers 99 fire-storm groups for the trained models and the 64 outside M1's training data for M1; `model_eval.json` also scores every model on M1's 64 for a like-for-like comparison:
 
-| Model | ROC AUC, all records | ROC AUC within one fire and storm (median) | Station Fire (2009), held out |
+| Model | ROC AUC, all records | ROC AUC within one fire and storm (median, 95% interval) | Station Fire (2009), held out |
 |---|---|---|---|
-| USGS M1, published (scored on the 6,319 records it was not fitted on) | 0.881 | 0.809 | n/a (fitted on it) |
-| M1 recalibrated | 0.828 | 0.750 | 0.825 |
-| Random forest, monotone in rainfall | 0.815 | 0.800 | 0.704 |
-| MLP (evaluated, not mapped) | 0.841 | 0.808 | 0.746 |
-| MLP plus neighbouring watersheds (evaluated, not mapped) | 0.848 | 0.750 | 0.776 |
+| USGS M1, published (scored on the 6,319 records it was not fitted on) | 0.881 | 0.809 [0.700, 0.932] (64 storms) | n/a (fitted on it) |
+| M1 recalibrated | 0.828 | 0.750 [0.667, 0.800] | 0.825 |
+| Random forest, monotone in rainfall | 0.815 | 0.800 [0.688, 0.864] | 0.704 |
+| MLP (evaluated, not mapped) | 0.841 | 0.808 [0.700, 0.850] | 0.746 |
+| MLP plus neighbouring watersheds (evaluated, not mapped) | 0.848 | 0.750 [0.656, 0.864] | 0.776 |
 
 What it shows:
-- **Machine learning did not beat USGS's M1 where it matters.** A design-storm map ranks watersheds within one storm. There, on the records M1 was not fitted on, the random forest and MLP score 0.825 and 0.813 (median) against M1's 0.809, and 0.783 and 0.798 (record-weighted) against 0.797. The groups are small (median 10 records), and we report no intervals, so we don't rank the models.
+- **Machine learning did not clearly beat USGS's M1 where it matters.** A design-storm map ranks watersheds within one storm. On the records M1 was not fitted on, with 95% intervals from a bootstrap over fire-storm groups, the extended random forest's within-storm median ROC AUC minus M1's is +0.015 [−0.063, +0.097] and the extended MLP's is +0.004 [−0.104, +0.101]. Every interval includes zero, and those for the models on M1's four inputs alone lean below it. One Thomas Fire storm holds about half of those records, so the record-weighted figures lean on it. The Risk tab shows each model's interval.
 - **USGS's published likelihoods run high on newer records.** On the 6,319 records M1 was not fitted on they average 0.363, while 9.8% of those storms produced a debris flow. M1 recalibrated keeps USGS's ranking of segments (Spearman 0.88 for Eaton, 0.94 for Palisades) at a much lower level (at 24 mm/h, mean 0.16 against USGS's 0.71 on Eaton). That level follows how each sub-inventory sampled storms without a debris flow (25% of the Staley et al. 2016 records are flows against 10% of the rest), so read absolute levels with caution.
 - **Neighbouring watersheds did not help.** Adding the inputs of the five nearest watersheds raised the MLP's pooled ROC AUC by 0.007 but lowered its within-storm median by 0.058, so no map column uses them.
 - **The random forest's level depends on a scenario:** 2025-02-13, 37 days after ignition and the first day after the fire with at least 25.4 mm (1 inch) of rain at the fire in ERA5, with one soil-moisture value per fire. Only 950 inventory records come from storms that soon after a fire, 857 of them from one Thomas Fire storm, so its level is an extrapolation.
