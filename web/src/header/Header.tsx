@@ -5,10 +5,10 @@ import {useTime} from '../state/time';
 import {useUi, type Tab} from '../state/ui';
 import {Icon, Logo} from '../ui/Icon';
 
-/** Drones has no data in this build (DESIGN.md §5.2), so its tab is disabled. Risk replaces the reference's Resources tab. */
+/** Drones plays recorded footage with Sentinel boxes and SAM 3.1 masks (DESIGN.md §5.2, §9). Risk replaces the reference's Resources tab. */
 const TABS: {id: Tab; label: string; icon: string; unavailable?: string}[] = [
   {id: 'incident', label: 'Incident', icon: 'map'},
-  {id: 'drones', label: 'Drones', icon: 'drone', unavailable: 'Drone footage analysis is not part of this build yet'},
+  {id: 'drones', label: 'Drones', icon: 'drone'},
   {id: 'risk', label: 'Risk', icon: 'chart'}
 ];
 

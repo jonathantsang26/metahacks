@@ -1,12 +1,12 @@
 import {useEffect, useState} from 'react';
 import type {FireData} from '../data/fire';
+import {DronesRail} from '../drones/DronesRail';
 import {LAYERS, useUi, type LayerId} from '../state/ui';
 import {Analysis} from './analysis';
 import {Analyst} from './analyst';
 import {IncidentOverview} from './overview';
 import {RiskRail} from './risk';
 import {POSTERIOR_THUMB, SCAR_THUMB} from './ramps';
-import {Card, Pending} from './ui';
 import {WeatherCard} from './weather';
 
 export {Card} from './ui';
@@ -142,11 +142,7 @@ export function Rail({fire}: {fire: FireData}) {
   return (
     <aside className="w-[308px] shrink-0 overflow-y-auto border-l border-hairline bg-rail pb-3">
       {tab === 'incident' && <IncidentRail fire={fire} />}
-      {tab === 'drones' && (
-        <Card title="Drone footage">
-          <Pending>Drone footage is not available in this build.</Pending>
-        </Card>
-      )}
+      {tab === 'drones' && <DronesRail fire={fire} />}
       {tab === 'risk' && <RiskRail fire={fire} />}
     </aside>
   );

@@ -10,7 +10,9 @@ docs/internal/
 # Data pipeline caches
 pipeline/raw/
 pipeline/work/
-footage/
+/footage/
+# Clip MP4s copied into the app by step 12; only footage we may redistribute is force-added
+web/public/data/*/footage/clips/
 
 # Node / Python
 node_modules/
