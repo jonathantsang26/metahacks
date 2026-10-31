@@ -1,0 +1,601 @@
+{
+  "accuracy": 0.929,
+  "time_accuracy": 0.8,
+  "number_accuracy": 1,
+  "decline_accuracy": 1,
+  "citation_validity": 1,
+  "cite_ids_proposed": 20,
+  "cite_ids_invalid": 0,
+  "n": 14,
+  "fire": "eaton",
+  "method": "14 questions with answers computed directly from public/data/eaton by code independent of the analyst tools; answered by the analyst (runAnalyst, muse-spark-1.3); a time passes within ±30 min, a number within ±5%, matched against any time or number in the returned (verified) paragraphs. Citation validity = model-proposed cite ids that a tool actually returned.",
+  "model": "muse-spark-1.3",
+  "date": "2026-10-31",
+  "skipped": [
+    {
+      "id": "place_2",
+      "reason": "no ground truth in the data"
+    }
+  ],
+  "questions": [
+    {
+      "id": "street_1",
+      "question": "When did the fire first reach North Lake Avenue? Give the time in UTC (ISO 8601).",
+      "kind": "time",
+      "truth": "2025-01-08T12:48:23Z",
+      "truth_source": "roads.geojson × arrival.png",
+      "answer": "The fire first reached North Lake Avenue at 2025-01-08T12:48:00Z, which was 4:48 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate (about half-hour resolution).",
+      "extracted": [
+        "2025-01-08T12:48:00.000Z",
+        "2025-01-08T12:48:00.000Z"
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": true,
+      "cites": [
+        {
+          "id": "c2",
+          "layer": "arrival",
+          "t": "2025-01-08T12:48:00Z",
+          "lon": -118.13074,
+          "lat": 34.20404,
+          "label": "First burn on North Lake Avenue"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "North Lake Avenue"
+          }
+        },
+        {
+          "name": "street_fire_timeline",
+          "args": {
+            "name": "North Lake Avenue"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "street_2",
+      "question": "When did the fire first reach East Altadena Drive? Give the time in UTC (ISO 8601).",
+      "kind": "time",
+      "truth": "2025-01-08T20:23:43Z",
+      "truth_source": "roads.geojson × arrival.png",
+      "answer": "The fire first reached East Altadena Drive at 2025-01-08T20:24:00Z, which was 12:24 PM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate.",
+      "extracted": [
+        "2025-01-08T20:24:00.000Z",
+        "2025-01-08T20:24:00.000Z"
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": true,
+      "cites": [
+        {
+          "id": "c2",
+          "layer": "arrival",
+          "t": "2025-01-08T20:24:00Z",
+          "lon": -118.14371,
+          "lat": 34.19339,
+          "label": "First burn on East Altadena Drive"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "East Altadena Drive"
+          }
+        },
+        {
+          "name": "street_fire_timeline",
+          "args": {
+            "name": "East Altadena Drive"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "street_3",
+      "question": "When did the fire first reach Kinneloa Canyon Road? Give the time in UTC (ISO 8601).",
+      "kind": "time",
+      "truth": "2025-01-09T04:27:31Z",
+      "truth_source": "roads.geojson × arrival.png",
+      "answer": "The data doesn't show the fire reaching Kinneloa Canyon Road during the data window, with none of the sampled points along the street burned.",
+      "extracted": [],
+      "pass": false,
+      "cite_time_within_tolerance": false,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "roads",
+          "lon": -118.08863,
+          "lat": 34.17832,
+          "label": "Kinneloa Canyon Road (street)"
+        },
+        {
+          "id": "c2",
+          "layer": "roads",
+          "label": "Kinneloa Canyon Road: no burned points"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "Kinneloa Canyon Road"
+          }
+        },
+        {
+          "name": "street_fire_timeline",
+          "args": {
+            "name": "Kinneloa Canyon Road"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "street_4",
+      "question": "When did the fire first reach Fair Oaks Avenue? Give the time in UTC (ISO 8601).",
+      "kind": "time",
+      "truth": "2025-01-08T16:36:03Z",
+      "truth_source": "roads.geojson × arrival.png",
+      "answer": "The fire first reached Fair Oaks Avenue at 2025-01-08T16:36:00Z, or 8:36 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate.",
+      "extracted": [
+        "2025-01-08T16:36:00.000Z",
+        "2025-01-08T16:36:00.000Z"
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": true,
+      "cites": [
+        {
+          "id": "c4",
+          "layer": "arrival",
+          "t": "2025-01-08T16:36:00Z",
+          "lon": -118.14155,
+          "lat": 34.20655,
+          "label": "First burn on North Fair Oaks Avenue / Fair Oaks Avenue / South Fair Oaks Avenue"
+        },
+        {
+          "id": "c6",
+          "layer": "arrival",
+          "t": "2025-01-08T16:36:00Z",
+          "lon": -118.14155,
+          "lat": 34.20655,
+          "label": "First burn on Fair Oaks Avenue"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "Fair Oaks Avenue"
+          }
+        },
+        {
+          "name": "street_fire_timeline",
+          "args": {
+            "name": "Fair Oaks Avenue"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "place_1",
+      "question": "When did the fire reach Altadena (the neighborhood label point)? Give the time in UTC (ISO 8601).",
+      "kind": "time",
+      "truth": "2025-01-08T21:49:05Z",
+      "truth_source": "labels.json × arrival.png",
+      "answer": "The fire reached the Altadena neighborhood label point at 2025-01-08T21:49:00Z (1:49 PM PST on Jan 8). Arrival times are interpolated between observed perimeters and are approximate, about half-hour resolution.",
+      "extracted": [
+        "2025-01-08T21:49:00.000Z",
+        "2025-01-08T21:49:00.000Z"
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": true,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "labels",
+          "lon": -118.13166,
+          "lat": 34.18986,
+          "label": "Altadena (place)"
+        },
+        {
+          "id": "c6",
+          "layer": "arrival",
+          "t": "2025-01-08T21:49:00Z",
+          "lon": -118.13166,
+          "lat": 34.18986,
+          "label": "Fire arrival Wed, Jan 8, 2025, 1:49 PM PST"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "Altadena"
+          }
+        },
+        {
+          "name": "arrival_at",
+          "args": {
+            "lat": 34.18986,
+            "lon": -118.13166
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "area_1",
+      "question": "How many acres had burned by 2025-01-08T12:00:00Z? Give the number.",
+      "kind": "number",
+      "truth": 3411.6,
+      "truth_source": "series.json",
+      "answer": "3,411.6 acres had burned by 4:00 AM PST on Jan 8.",
+      "extracted": [
+        3411.6
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "series",
+          "t": "2025-01-08T12:00:00Z",
+          "label": "3,411.6 acres burned"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "fire_state_at",
+          "args": {
+            "t": "2025-01-08T12:00:00Z"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "area_2",
+      "question": "How many acres had burned by 2025-01-09T00:00:00Z? Give the number.",
+      "kind": "number",
+      "truth": 8976.6,
+      "truth_source": "series.json",
+      "answer": "About 8,976.6 acres had burned by 4:00 PM PST on Jan 8.",
+      "extracted": [
+        8976.6
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "series",
+          "t": "2025-01-09T00:00:00Z",
+          "label": "8,976.6 acres burned"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "fire_state_at",
+          "args": {
+            "t": "2025-01-09T00:00:00Z"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "ros_1",
+      "question": "What was the head rate of spread, in chains per hour, at 2025-01-08T08:00:00Z? Give the number.",
+      "kind": "number",
+      "truth": 1130.1,
+      "truth_source": "series.json",
+      "answer": "The head rate of spread at 12:00 AM PST on Jan 8 (2025-01-08T08:00:00Z) was 1130.1 chains per hour.",
+      "extracted": [
+        1130.1
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "series",
+          "t": "2025-01-08T08:00:00Z",
+          "label": "2,471.9 acres burned"
+        },
+        {
+          "id": "c2",
+          "layer": "spine",
+          "t": "2025-01-08T08:00:00Z",
+          "lon": -118.136664,
+          "lat": 34.213562,
+          "label": "Head of the fire (spine waypoint)"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "fire_state_at",
+          "args": {
+            "t": "2025-01-08T08:00:00Z"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "gust_1",
+      "question": "What was the wind gust in mph at 2025-01-08T07:00:00Z? Give the number.",
+      "kind": "number",
+      "truth": 64.4,
+      "truth_source": "weather.json",
+      "answer": "The wind gust was 64.4 mph at 11:00 PM PST on Jan 7.",
+      "extracted": [
+        64.4
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "weather",
+          "t": "2025-01-08T07:00:00Z",
+          "lon": -118.07316,
+          "lat": 34.20108,
+          "label": "Wind 36.8 mph from NNE, gusts 64.4 mph, RH 28%"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "weather_at",
+          "args": {
+            "t": "2025-01-08T07:00:00Z"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "rh_1",
+      "question": "What was the relative humidity in percent at 2025-01-09T22:00:00Z? Give the number.",
+      "kind": "number",
+      "truth": 9,
+      "truth_source": "weather.json",
+      "answer": "The relative humidity was 9% at 2:00 PM PST on Jan 9.",
+      "extracted": [
+        9
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "weather",
+          "t": "2025-01-09T22:00:00Z",
+          "lon": -118.07316,
+          "lat": 34.20108,
+          "label": "Wind 9.8 mph from N, gusts 22.8 mph, RH 9%"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "weather_at",
+          "args": {
+            "t": "2025-01-09T22:00:00Z"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "structures_1",
+      "question": "How many inspected structures within 1000 m of the Altadena place label were destroyed? Give the number.",
+      "kind": "number",
+      "truth": 2561,
+      "truth_source": "structures.geojson",
+      "answer": "2,561 inspected structures within 1000 m of the Altadena place label were destroyed, out of 3,854 inspected structures in that radius.",
+      "extracted": [
+        2561,
+        1000,
+        3854
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "labels",
+          "lon": -118.13166,
+          "lat": 34.18986,
+          "label": "Altadena (place)"
+        },
+        {
+          "id": "c6",
+          "layer": "structures",
+          "lon": -118.13166,
+          "lat": 34.18986,
+          "label": "3854 inspected structures within 1000 m (2561 destroyed)"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "Altadena"
+          }
+        },
+        {
+          "name": "structures_near",
+          "args": {
+            "lat": 34.18986,
+            "lon": -118.13166,
+            "radius_m": 1000
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "structures_2",
+      "question": "How many inspected structures within 1000 m of the Echo Mountain peak were destroyed? Give the number.",
+      "kind": "number",
+      "truth": 12,
+      "truth_source": "structures.geojson",
+      "answer": "12 inspected structures within 1000 m of Echo Mountain peak were destroyed.",
+      "extracted": [
+        12,
+        1000
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c3",
+          "layer": "structures",
+          "lon": -118.12039,
+          "lat": 34.21107,
+          "label": "21 inspected structures within 1000 m (12 destroyed)"
+        },
+        {
+          "id": "c1",
+          "layer": "labels",
+          "lon": -118.12039,
+          "lat": 34.21107,
+          "label": "Echo Mountain (peak)"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "Echo Mountain"
+          }
+        },
+        {
+          "name": "structures_near",
+          "args": {
+            "lat": 34.21107,
+            "lon": -118.12039,
+            "radius_m": 1000
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "ignition_1",
+      "question": "When does the model ignition estimate put the start of the fire? Give the time in UTC (ISO 8601).",
+      "kind": "decline",
+      "truth": "decline (withheld 2025-01-08T01:09:51Z)",
+      "truth_source": "ignition.json",
+      "answer": "The ignition summary is a statistical model estimate, not an investigated origin, and the data doesn't show an identifiable start time in UTC, because the 90% start-time interval is 10.6 h wide.",
+      "extracted": [],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "ignition",
+          "lon": -118.094686,
+          "lat": 34.195745,
+          "label": "Ignition location (est.), start time not identifiable"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "ignition_summary",
+          "args": {}
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "exposure_1",
+      "question": "What odds ratio does exposure_stats list for the vents contrast? Give the number.",
+      "kind": "number",
+      "truth": 0.349,
+      "truth_source": "exposure_stats.json",
+      "answer": "The exposure_stats vents contrast odds ratio is 0.349. This is an association in observational data, not an effect of the feature.",
+      "extracted": [
+        0.349
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": null,
+      "cites": [
+        {
+          "id": "c1",
+          "layer": "exposure_stats",
+          "label": "Vents: fine mesh (≤ 1/8\") or none vs coarse/unscreened: odds ratio 0.349 (95% CI 0.307–0.397)"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "exposure_stats",
+          "args": {}
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    }
+  ]
+}
