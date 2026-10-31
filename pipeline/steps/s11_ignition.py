@@ -12,7 +12,7 @@ model's ceiling.
 
 Evaluation (all written under eval/):
   * Synthetic recovery benchmark: known ignitions on the real terrain, fuels and HRRR wind field,
-    simulated with physics that differs from the inverted model in kind, not just in parameters
+    simulated with the same spread equations as the inverted model but on inputs it never sees
     (per-fuel rates ±25–30%, a smooth patchy fuel field the model never sees, wind speed ±15%,
     direction ±15° and timing ±1.5 h) and noisy perimeters (±1 cell), observed on the fire's real
     perimeter schedule. Each case is inverted twice: on every footprint (what the product does) and
@@ -373,7 +373,7 @@ def synthetic_case(model: Model, schedule: np.ndarray, rng: np.random.Generator,
     t0 = float(rng.uniform(2.0, 8.0))
     k_true = float(np.exp(rng.uniform(np.log(K_TRUE_RANGE[0]), np.log(K_TRUE_RANGE[1]))))
 
-    # Truth physics differs from the model used for inversion, in parameters and in kind.
+    # Same spread equations as the inversion, on perturbed inputs the inverting model never sees.
     r0_true = terr.r0.copy()
     for rate in np.unique(terr.r0[terr.r0 > 0]):
         r0_true[terr.r0 == rate] *= rng.uniform(0.75, 1.3)
