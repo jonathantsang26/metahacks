@@ -1,15 +1,19 @@
 /**
- * Risk tab dock: one segment's likelihood across USGS's design storms, the models' scores on
- * USGS's observed inventory, and this fire's segments by likelihood class under the selected
- * storm. The side list ranks the segments by the selected model at the selected storm.
+ * Risk tab dock: one segment's likelihood across USGS's design storms (every map column rises
+ * with rainfall), the models' scores on USGS's observed inventory, and this fire's segments by
+ * likelihood class under the selected storm (debris_flow_stats.json's counts). The side list
+ * ranks the segments by the selected model at the selected storm.
  */
 import {useMemo, type ReactNode} from 'react';
 import {FIRE_ID, type FireData} from '../data/fire';
-import type {DebrisFlowSegments, DebrisModelEval} from '../data/files';
+import type {DebrisFlowSegments, DebrisFlowStats, DebrisModelEval} from '../data/files';
 import {DESIGN_I15, useUi, type RiskModel} from '../state/ui';
 import {
   accumulationMm,
+  analogueShown,
+  classKey,
   classOf,
+  columnForEval,
   evalShort,
   LIKELIHOOD_CLASSES,
   likelihood,
@@ -100,16 +104,9 @@ function StormPlot({seg, w, h}: {seg: Segment; w: number; h: number}) {
     }
     return {m, pts, d};
   });
-  // Markers: the selected model last, so the current storm's hollow marker keeps its colour. Lines:
-  // the selected model over the others, and a dashed line over everything: our M1 equals USGS's
-  // likelihoods by construction, and under USGS's solid line it would not show at all.
-  const rest = lines.filter(l => l.m.id !== model);
-  const markerOrder = [...rest, ...lines.filter(l => l.m.id === model)];
-  const lineOrder = [
-    ...rest.filter(l => !l.m.dashed),
-    ...lines.filter(l => l.m.id === model),
-    ...rest.filter(l => l.m.dashed)
-  ];
+  // The selected model's line and markers last, over the others, so the current storm's hollow
+  // marker keeps its colour.
+  const order = [...lines.filter(l => l.m.id !== model), ...lines.filter(l => l.m.id === model)];
   const col = (w - M.l - M.r) / (DESIGN_I15.length - 1);
   return (
     <>
@@ -136,18 +133,10 @@ function StormPlot({seg, w, h}: {seg: Segment; w: number; h: number}) {
         </text>
       ))}
       <line x1={x(i15)} x2={x(i15)} y1={M.t} y2={h - M.b} stroke="var(--text)" strokeOpacity={0.6} />
-      {lineOrder.map(({m, d}) => (
-        <path
-          key={m.id}
-          d={d}
-          fill="none"
-          stroke={m.color}
-          strokeWidth={m.id === model ? 2.2 : 1.5}
-          strokeDasharray={m.dashed ? '4 3' : undefined}
-          strokeLinejoin="round"
-        />
+      {order.map(({m, d}) => (
+        <path key={m.id} d={d} fill="none" stroke={m.color} strokeWidth={m.id === model ? 2.2 : 1.5} strokeLinejoin="round" />
       ))}
-      {markerOrder.map(({m, pts}) => (
+      {order.map(({m, pts}) => (
         <g key={m.id}>
           {pts.map(
             ({v, p}) =>
@@ -187,10 +176,22 @@ function StormPlot({seg, w, h}: {seg: Segment; w: number; h: number}) {
   );
 }
 
-function StormChart({segments, base}: {segments: Loaded<DebrisFlowSegments>; base: string}) {
+/**
+ * Segments of this fire on which M1 recalibrated's slope in R, Ct·T + Cf·F + Cs·S, is positive (it rises with
+ * rainfall exactly there). Its form does not guarantee this once a refitted coefficient is negative.
+ */
+function m1Rising(fc: DebrisFlowSegments, stats: DebrisFlowStats | null): {up: number; n: number} | null {
+  const c = stats?.m1_recalibrated;
+  if (!c) return null;
+  const up = fc.features.filter(({properties: p}) => c.Ct * p.T + c.Cf * p.F + c.Cs * p.S > 0).length;
+  return {up, n: fc.features.length};
+}
+
+function StormChart({segments, stats, base}: {segments: Loaded<DebrisFlowSegments>; stats: DebrisFlowStats | null; base: string}) {
   const {model, i15, segment} = useUi(s => s.risk);
   const fc = segments.data;
   const m = riskModel(model);
+  const m1 = useMemo(() => (fc ? m1Rising(fc, stats) : null), [fc, stats]);
   const picked = useMemo(() => {
     if (!fc) return null;
     const own = segment === null ? undefined : fc.features.find(f => f.properties.id === segment);
@@ -198,13 +199,6 @@ function StormChart({segments, base}: {segments: Loaded<DebrisFlowSegments>; bas
   }, [fc, segment, model, i15]);
   const seg = picked?.seg ?? null;
   const which = seg && (picked!.median ? `median segment #${seg.properties.id} by ${m.short} at ${i15} mm/h` : `segment #${seg.properties.id}`);
-  // Our M1 and USGS's assessment coincide (to rounding) when both apply M1's published coefficients.
-  const same =
-    seg !== null &&
-    DESIGN_I15.every(v => {
-      const [a, b] = [likelihood(seg.properties, 'usgs', v), likelihood(seg.properties, 'm1', v)];
-      return a !== null && b !== null && Math.abs(a - b) < 1e-6;
-    });
   return (
     <ChartFrame
       title="Likelihood vs design storm"
@@ -216,16 +210,24 @@ function StormChart({segments, base}: {segments: Loaded<DebrisFlowSegments>; bas
         <>
           {RISK_MODELS.map(r => (
             <span key={r.id} className="mr-2 whitespace-nowrap">
-              <span style={{color: r.color}}>{r.dashed ? '┅' : '━'}</span> {r.short}
+              <span style={{color: r.color}}>━</span> {r.short}
             </span>
           ))}
-          {same && <span className="mr-2 whitespace-nowrap">M1 (ours) = USGS here</span>}
           {which && <span className="text-muted">· {which}</span>}
         </>
       }
       footTitle={
         `${which ? `Showing ${which}. ` : ''}` +
-        (same ? "Our M1 line lies on USGS's at every storm (dashed over solid): both apply M1's published coefficients. " : '') +
+        (m1 && m1.up === m1.n
+          ? `No line falls as rainfall rises on this fire: USGS’s by M1’s form with its published positive coefficients, M1 ` +
+            `recalibrated because its rainfall slope (Ct·T + Cf·F + Cs·S) is positive on all ${m1.n.toLocaleString('en-US')} ` +
+            'segments here (its form alone does not guarantee that; step 15 checks it), and the random forest by its constraint. '
+          : 'USGS’s line never falls as rainfall rises, by M1’s form with its published positive coefficients, nor the random ' +
+            'forest’s, by its constraint; M1 recalibrated rises only where its rainfall slope (Ct·T + Cf·F + Cs·S) is positive' +
+            (m1 ? `: ${m1.up.toLocaleString('en-US')} of ${m1.n.toLocaleString('en-US')} segments here. ` : '. ')) +
+        'M1 recalibrated and the random forest are calibrated to USGS’s observed inventory, so their levels sit apart from ' +
+        'USGS’s partly because of the records each was fitted on; the random forest also depends on the scenario date and ' +
+        'one soil-moisture value. The MLPs are not plotted: nothing constrains them to rise with rainfall. ' +
         "No segment selected shows the segment at the median of the selected model's " +
         'likelihoods under the selected storm. Click a storm column to select that storm; click a segment on the map to plot it.'
       }
@@ -241,13 +243,18 @@ function StormChart({segments, base}: {segments: Loaded<DebrisFlowSegments>; bas
   );
 }
 
-/** Fits the longest short row name ("MLP · M1 inputs", 15 characters at CHAR_PX). */
-const SKILL_LABEL_PX = 96;
+/** Fits the longest short row name ("M1 recalibrated", 15 characters at CHAR_PX) after a 6 px swatch. */
+const SKILL_LABEL_PX = 104;
 /** A debris-flow base rate with one decimal (9.8% against 12.5%). */
 const rate = (v: number) => (finite(v) ? `${(v * 100).toFixed(1)}%` : '—');
 
-/** Pooled ROC AUC per model as bars, the per-fire IQR as a whisker, the Station Fire as a diamond. */
-function SkillPlot({ev, w, h}: {ev: DebrisModelEval; w: number; h: number}) {
+/**
+ * Pooled ROC AUC per model as bars, the per-fire IQR as a whisker, the within-storm median as a
+ * ring and its record-weighted mean as a dot, and (on a fire whose analogue it is) the held-out
+ * Station Fire as a diamond. A swatch in the storm chart's colour marks the rows behind the map's
+ * columns.
+ */
+function SkillPlot({ev, station, w, h}: {ev: DebrisModelEval; station: boolean; w: number; h: number}) {
   const shown = riskModel(useUi(s => s.risk.model)).evalId;
   const x = (v: number) => SKILL_LABEL_PX + v * (w - SKILL_LABEL_PX - M.r);
   const rowH = (h - M.t - M.b) / ev.models.length;
@@ -274,19 +281,35 @@ function SkillPlot({ev, w, h}: {ev: DebrisModelEval; w: number; h: number}) {
         const cy = M.t + rowH * (i + 0.5);
         const on = m.id === shown;
         const [q1, q3] = m.per_fire.iqr;
-        const a = m.analogue;
+        const a = station ? m.analogue : null;
+        const ws = m.within_storm;
+        const col = columnForEval(m.id);
+        const role = m.on_map
+          ? `\nOn the map as ${col?.label ?? 'one of our columns'}`
+          : col?.id === 'usgs'
+            ? "\nThe published coefficients behind USGS's own column (the reference); not cross-validated"
+            : m.features.some(f => f.startsWith('ctx_'))
+              ? '\nSpatial-context variant: scored, not mapped'
+              : '\nScored, not mapped';
         return (
           <g key={m.id}>
             <title>
-              {`${m.label} (${m.id})\nPooled ROC AUC ${fixed(m.pooled.roc_auc, 2)} (${m.n.toLocaleString('en-US')} records, ` +
+              {`${m.label} (${m.id})${role}\nPooled ROC AUC ${fixed(m.pooled.roc_auc, 2)} (${m.n.toLocaleString('en-US')} records, ` +
                 `${m.flows.toLocaleString('en-US')} flows, base rate ${rate(m.pooled.base_rate)})\nPer-fire ROC AUC over ` +
                 `${m.per_fire.fires} fires: median ${fixed(m.per_fire.median_roc_auc, 2)}, IQR ${fixed(q1, 2)}–${fixed(q3, 2)}` +
-                (a
-                  ? `\n${a.fire} (${a.year}, held out): ROC AUC ${fixed(a.roc_auc, 2)}, ${a.n} records, ${a.flows} flows`
-                  : m.id === 'm1_published'
-                    ? "\nNo Station Fire score: its records are in the Staley et al. (2016) inventory M1 was fitted on"
-                    : '\nNo Station Fire score in model_eval.json')}
+                (ws
+                  ? `\nWithin one fire and storm (${ws.groups} groups, ${ws.records.toLocaleString('en-US')} records): median ` +
+                    `${fixed(ws.median_roc_auc, 2)}, record-weighted ${fixed(ws.weighted_roc_auc, 2)}`
+                  : '') +
+                (!station
+                  ? ''
+                  : a
+                    ? `\n${a.fire} (${a.year}, held out): ROC AUC ${fixed(a.roc_auc, 2)}, ${a.n} records, ${a.flows} flows`
+                    : m.id === 'm1_published'
+                      ? '\nNo Station Fire score: its records are in the Staley et al. (2016) inventory M1 was fitted on'
+                      : '\nNo Station Fire score in model_eval.json')}
             </title>
+            {col && <rect x={2} y={cy - 3} width={6} height={6} rx={1} fill={col.color} />}
             <text
               x={SKILL_LABEL_PX - 6}
               y={cy}
@@ -294,9 +317,9 @@ function SkillPlot({ev, w, h}: {ev: DebrisModelEval; w: number; h: number}) {
               dominantBaseline="middle"
               fontSize={10}
               fontWeight={on ? 600 : 400}
-              fill={on ? 'var(--text)' : 'var(--text-muted)'}
+              fill={on || m.on_map ? 'var(--text)' : 'var(--text-muted)'}
             >
-              {fit(evalShort(m.id), SKILL_LABEL_PX - 8)}
+              {fit(evalShort(m.id), SKILL_LABEL_PX - 18)}
             </text>
             {finite(m.pooled.roc_auc) && (
               <rect
@@ -316,6 +339,13 @@ function SkillPlot({ev, w, h}: {ev: DebrisModelEval; w: number; h: number}) {
                 <line x1={x(q3)} x2={x(q3)} y1={cy - 3} y2={cy + 3} />
               </g>
             )}
+            {ws && finite(ws.median_roc_auc) && (
+              <circle cx={x(ws.median_roc_auc)} cy={cy} r={3} fill="var(--bg-chrome)" stroke="var(--text)" strokeWidth={1.4} />
+            )}
+            {/* Over the ring, so both show where they coincide; haloed like the diamond, so it stands off the whisker. */}
+            {ws && finite(ws.weighted_roc_auc) && (
+              <circle cx={x(ws.weighted_roc_auc)} cy={cy} r={2} fill="var(--text)" stroke="var(--bg-chrome)" strokeWidth={1} />
+            )}
             {a && finite(a.roc_auc) && (
               <path
                 d={`M${x(a.roc_auc)},${cy - 4.5}l4,4.5l-4,4.5l-4,-4.5Z`}
@@ -331,10 +361,11 @@ function SkillPlot({ev, w, h}: {ev: DebrisModelEval; w: number; h: number}) {
   );
 }
 
-function SkillChart({ev}: {ev: Loaded<DebrisModelEval>}) {
+function SkillChart({ev, stats}: {ev: Loaded<DebrisModelEval>; stats: DebrisFlowStats | null}) {
   const shown = riskModel(useUi(s => s.risk.model));
   const row = ev.data?.models.find(m => m.id === shown.evalId);
-  const station = ev.data?.models.find(m => m.analogue)?.analogue;
+  const station = analogueShown(stats, ev.data);
+  const analogue = station ? ev.data?.models.find(m => m.analogue)?.analogue : undefined;
   // Each row's records and base rate, for the foot: M1 published is scored on fewer records.
   const sets = ev.data
     ? [...new Set(ev.data.models.map(m => `${m.n.toLocaleString('en-US')} records at ${rate(m.pooled.base_rate)}`))]
@@ -345,6 +376,7 @@ function SkillChart({ev}: {ev: Loaded<DebrisModelEval>}) {
         ev.data.models.map(m => `${evalShort(m.id)} ${m.n.toLocaleString('en-US')} records, base rate ${rate(m.pooled.base_rate)}`).join('; ') +
         '.'
       : '';
+  const analogueNote = stats?.analogue && !stats.analogue.fire ? ` No Station Fire marker for this fire: ${stats.analogue.note}` : '';
   return (
     <ChartFrame
       title="Skill on past fires"
@@ -355,31 +387,49 @@ function SkillChart({ev}: {ev: Loaded<DebrisModelEval>}) {
             `${ev.data.inventory.used_records.toLocaleString('en-US')} records from ${ev.data.inventory.used_fires} fires`
           : 'Cross-validation on USGS’s observed postfire debris-flow inventory'
       }
-      value={row && `${shown.short} ${fixed(row.pooled.roc_auc, 2)}`}
-      valueTitle={row ? `${row.label}: pooled ROC AUC (the eval row behind the map's ${shown.label} colours)` : undefined}
+      value={
+        row &&
+        `${shown.short} ${fixed(row.pooled.roc_auc, 2)} · storm ${fixed(row.within_storm?.median_roc_auc, 2)} / ${fixed(row.within_storm?.weighted_roc_auc, 2)}`
+      }
+      valueTitle={
+        row
+          ? `${row.label}: pooled ROC AUC, then ROC AUC within one fire and storm, median / record-weighted mean over the groups ` +
+            `(the eval row behind the map's ${shown.label} colours)`
+          : undefined
+      }
       foot={
         <>
-          bar pooled · ⊢⊣ per-fire IQR
-          {station && (
+          bar pooled · ⊢⊣ per-fire IQR · ○ within-storm median · ● record-weighted
+          {analogue ? (
             <>
               {' '}
-              · <span className="text-accent">◆</span> {station.fire} ({station.year}, held out)
+              · <span className="text-accent">◆</span> {analogue.fire} ({analogue.year}, held out)
             </>
+          ) : (
+            stats?.analogue && !stats.analogue.fire && ' · no inventory analogue for this fire'
           )}
         </>
       }
       footTitle={
-        'Bar: ROC AUC of all held-out predictions pooled. Whisker: interquartile range of the per-fire ROC AUCs. Diamond: the ' +
-        'held-out Station Fire on the San Gabriel front. Each fire is scored by a model fitted without it; M1 published is ' +
-        'scored only on records outside its 2016 training inventory, so its bar is not like-for-like with the others.' +
+        'Bar: ROC AUC of all held-out predictions pooled, which mostly ranks records of different storms against each other. ' +
+        'Whisker: interquartile range of the per-fire ROC AUCs. Ring: median ROC AUC within one fire and storm, the ranking a ' +
+        'design-storm map shows; dot: the record-weighted mean of the same. Most groups are small, so a median lands on ' +
+        'fractions with small denominators; the record-weighted mean is less coarse but leans on the largest storms. Read ' +
+        'the two together (model_eval.json’s notes give the group sizes).' +
+        (analogue ? ` Diamond: the held-out ${analogue.fire} Fire (${analogue.year}), this fire's inventory analogue.` : '') +
+        ' Swatch: the rows behind the map’s columns, in the storm chart’s colours (M1 published: the coefficients behind ' +
+        'USGS’s own column). Each fire is scored by a model fitted without it; M1 published is not cross-validated and is ' +
+        'scored only on records outside the Staley et al. (2016) inventory it was fitted on, so its bar is not like-for-like ' +
+        'with the others.' +
         perRow +
+        analogueNote +
         ' These are past fires, not this one.'
       }
       files={[{name: 'model_eval.json', href: MODEL_EVAL_URL}]}
     >
       {empty('model_eval.json', ev) ??
         (ev.data!.models.length ? (
-          <Plot>{(w, h) => <SkillPlot ev={ev.data!} w={w} h={h} />}</Plot>
+          <Plot>{(w, h) => <SkillPlot ev={ev.data!} station={station} w={w} h={h} />}</Plot>
         ) : (
           <ChartEmpty>model_eval.json lists no models</ChartEmpty>
         ))}
@@ -387,24 +437,24 @@ function SkillChart({ev}: {ev: Loaded<DebrisModelEval>}) {
   );
 }
 
-const CLASS_LABEL_PX = 62;
+/** Fits the longest short column name ("M1 recalibrated", 15 characters at CHAR_PX). */
+const CLASS_LABEL_PX = 92;
 
-/** Each map model's segments split into the five likelihood classes (and no value) at the selected storm. */
-function ClassPlot({fc, w, h}: {fc: DebrisFlowSegments; w: number; h: number}) {
+/** Each map column's segments by likelihood class at the selected storm (debris_flow_stats.json's counts). */
+function ClassPlot({stats, w, h}: {stats: DebrisFlowStats; w: number; h: number}) {
   const {model, i15} = useUi(s => s.risk);
-  const rows = useMemo(
-    () =>
-      RISK_MODELS.map(m => {
-        const counts = [0, 0, 0, 0, 0, 0];
-        for (const f of fc.features) {
-          const p = likelihood(f.properties, m.id, i15);
-          counts[p === null ? 5 : classOf(p)]++;
-        }
-        return {m, counts};
-      }),
-    [fc, i15]
-  );
-  const n = fc.features.length;
+  const rows = useMemo(() => {
+    const at = stats.likelihood_class_counts?.[String(i15)] ?? {};
+    return RISK_MODELS.map(m => {
+      const c = at[m.id];
+      const counts = c ? LIKELIHOOD_CLASSES.map((_, k) => c[classKey(k)] ?? 0) : null;
+      // Segments the file's counts leave out (none when every segment has a value): grey.
+      if (counts) counts.push(Math.max(0, stats.segments - counts.reduce((a, b) => a + b, 0)));
+      return {m, counts};
+    });
+  }, [stats, i15]);
+  const means = stats.mean_likelihood?.[String(i15)] ?? {};
+  const n = stats.segments;
   const x = (k: number) => CLASS_LABEL_PX + (k / n) * (w - CLASS_LABEL_PX - M.r);
   const rowH = (h - M.t - M.b) / rows.length;
   const barH = Math.max(4, Math.min(12, rowH - 4));
@@ -418,6 +468,7 @@ function ClassPlot({fc, w, h}: {fc: DebrisFlowSegments; w: number; h: number}) {
       ))}
       {rows.map(({m, counts}, i) => {
         const cy = M.t + rowH * (i + 0.5);
+        const mean = means[m.id];
         let at = 0;
         return (
           <g key={m.id}>
@@ -430,35 +481,42 @@ function ClassPlot({fc, w, h}: {fc: DebrisFlowSegments; w: number; h: number}) {
               fontWeight={m.id === model ? 600 : 400}
               fill={m.id === model ? 'var(--text)' : 'var(--text-muted)'}
             >
-              {m.short}
+              {fit(m.short, CLASS_LABEL_PX - 8)}
+              <title>{`${m.label}${finite(mean) ? ` · mean likelihood ${likelihoodText(mean)}` : ''}`}</title>
             </text>
-            {counts.map((c, k) => {
-              const x0 = x(at);
-              at += c;
-              if (!c) return null;
-              // A 2px surface gap after every piece but the last.
-              const wPx = Math.max(1, x(at) - x0 - (at < n ? 2 : 0));
-              return (
-                <g key={k}>
-                  <rect x={x0} y={cy - barH / 2} width={wPx} height={barH} rx={1.5} fill={pieces[k].css}>
-                    <title>{`${m.label} at I15 ${i15} mm/h · ${pieces[k].label}: ${c.toLocaleString('en-US')} of ${n.toLocaleString('en-US')} segments`}</title>
-                  </rect>
-                  {wPx >= 26 && barH >= 10 && (
-                    <text
-                      x={x0 + wPx / 2}
-                      y={cy}
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      fontSize={9}
-                      fill={k === 0 || k === 5 ? 'var(--text)' : '#ffffff'}
-                      pointerEvents="none"
-                    >
-                      {c}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
+            {!counts ? (
+              <text x={x(0)} y={cy} dominantBaseline="middle" {...AXIS_TEXT}>
+                no counts in debris_flow_stats.json
+              </text>
+            ) : (
+              counts.map((c, k) => {
+                const x0 = x(at);
+                at += c;
+                if (!c) return null;
+                // A 2px surface gap after every piece but the last.
+                const wPx = Math.max(1, x(at) - x0 - (at < n ? 2 : 0));
+                return (
+                  <g key={k}>
+                    <rect x={x0} y={cy - barH / 2} width={wPx} height={barH} rx={1.5} fill={pieces[k].css}>
+                      <title>{`${m.label} at I15 ${i15} mm/h · ${pieces[k].label}: ${c.toLocaleString('en-US')} of ${n.toLocaleString('en-US')} segments`}</title>
+                    </rect>
+                    {wPx >= 26 && barH >= 10 && (
+                      <text
+                        x={x0 + wPx / 2}
+                        y={cy}
+                        textAnchor="middle"
+                        dominantBaseline="central"
+                        fontSize={9}
+                        fill={k === 0 || k === 5 ? 'var(--text)' : '#ffffff'}
+                        pointerEvents="none"
+                      >
+                        {c}
+                      </text>
+                    )}
+                  </g>
+                );
+              })
+            )}
           </g>
         );
       })}
@@ -466,14 +524,15 @@ function ClassPlot({fc, w, h}: {fc: DebrisFlowSegments; w: number; h: number}) {
   );
 }
 
-function ClassChart({segments, base}: {segments: Loaded<DebrisFlowSegments>; base: string}) {
+function ClassChart({stats, base}: {stats: Loaded<DebrisFlowStats>; base: string}) {
   const i15 = useUi(s => s.risk.i15);
+  const counted = !!stats.data?.likelihood_class_counts?.[String(i15)];
   return (
     <ChartFrame
       title="Segments by likelihood class"
       unit={`I15 ${i15} mm/h`}
-      modeled="Counts of this fire's USGS stream segments in each modeled likelihood class, per model"
-      value={segments.data && `${segments.data.features.length.toLocaleString('en-US')} segments`}
+      modeled="Counts of this fire's USGS stream segments in each modeled likelihood class, per map column"
+      value={stats.data && `${stats.data.segments.toLocaleString('en-US')} segments`}
       foot={
         <>
           {LIKELIHOOD_CLASSES.map(c => (
@@ -484,27 +543,32 @@ function ClassChart({segments, base}: {segments: Loaded<DebrisFlowSegments>; bas
           ))}
         </>
       }
-      footTitle={`Likelihood classes at I15 ${i15} mm/h (${accumulationMm(i15)} mm in 15 min); grey: no value in the file. Hover a bar for its count.`}
-      files={[{name: 'debris_flow.geojson', href: `${base}/debris_flow.geojson`}]}
+      footTitle={
+        `Likelihood classes at I15 ${i15} mm/h (${accumulationMm(i15)} mm in 15 min), from debris_flow_stats.json's ` +
+        'likelihood_class_counts for this storm. M1 recalibrated and the random forest are calibrated to USGS’s observed ' +
+        'inventory, so their classes differ from USGS’s partly because of the records each was fitted on. ' +
+        'Hover a bar for its count, a row name for its mean likelihood.'
+      }
+      files={[{name: 'debris_flow_stats.json', href: `${base}/debris_flow_stats.json`}]}
     >
-      {empty('debris_flow.geojson', segments) ??
-        (segments.data!.features.length ? (
-          <Plot>{(w, h) => <ClassPlot fc={segments.data!} w={w} h={h} />}</Plot>
+      {empty('debris_flow_stats.json', stats) ??
+        (counted && stats.data!.segments > 0 ? (
+          <Plot>{(w, h) => <ClassPlot stats={stats.data!} w={w} h={h} />}</Plot>
         ) : (
-          <ChartEmpty>debris_flow.geojson has no segments</ChartEmpty>
+          <ChartEmpty>debris_flow_stats.json has no class counts at I15 {i15} mm/h</ChartEmpty>
         ))}
     </ChartFrame>
   );
 }
 
 export function RiskCharts({fire}: {fire: FireData}) {
-  const {segments} = useRiskFiles(fire.base);
+  const {segments, stats} = useRiskFiles(fire.base);
   const ev = useDebrisJson<DebrisModelEval>(MODEL_EVAL_URL);
   return (
     <>
-      <StormChart segments={segments} base={fire.base} />
-      <SkillChart ev={ev} />
-      <ClassChart segments={segments} base={fire.base} />
+      <StormChart segments={segments} stats={stats.data} base={fire.base} />
+      <SkillChart ev={ev} stats={stats.data} />
+      <ClassChart stats={stats} base={fire.base} />
     </>
   );
 }

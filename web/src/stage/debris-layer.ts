@@ -9,7 +9,7 @@ import {useEffect, useMemo, useState} from 'react';
 import type {Layer} from '@deck.gl/core';
 import {PathLayer} from '@deck.gl/layers';
 import type {FireData} from '../data/fire';
-import type {DebrisFlowSegments, DebrisFlowStats} from '../data/files';
+import type {DebrisFlowSegments, DebrisFlowStats, DebrisModelEval} from '../data/files';
 import type {DESIGN_I15, LayerDef, RiskModel} from '../state/ui';
 import type {Dem} from './dem';
 import {distanceM, drapeDense, insideRuns} from './drape';
@@ -26,23 +26,46 @@ export type RiskModelDef = {
   id: RiskModel;
   label: string;
   short: string;
-  /** The model_eval.json row that scores this map column on USGS's observed inventory. */
+  /** What the column is, for the selector's tooltip and the map note. */
+  about: string;
+  /** The model_eval.json row that scores this column's model on USGS's observed inventory. */
   evalId: string;
   /** Line colour in the dock charts (validated as an adjacent-pair categorical set on --bg-chrome). */
   color: string;
-  dashed?: boolean;
 };
 
 /**
- * The four likelihood columns of debris_flow.geojson. USGS's assessment and our implementation
- * both apply M1's published coefficients, so the same eval row scores both; RF and MLP are the
- * `*_extended` models (WORKSTREAMS.md §1).
+ * The three likelihood columns of debris_flow.geojson (WORKSTREAMS.md §1, contract v2). USGS's
+ * column is the reference, scored by the published-coefficient row; the other two are the
+ * on_map rows of model_eval.json. All three rise with rainfall. The MLPs are scored in
+ * model_eval.json but not mapped: nothing constrains them to rise with rainfall.
  */
 export const RISK_MODELS: RiskModelDef[] = [
-  {id: 'usgs', label: 'USGS M1 assessment', short: 'USGS', evalId: 'm1_published', color: '#2a78d6'},
-  {id: 'm1', label: 'Our M1 implementation', short: 'M1 (ours)', evalId: 'm1_published', color: '#eb6834', dashed: true},
-  {id: 'rf', label: 'Random forest', short: 'RF', evalId: 'rf_extended', color: '#1baf7a'},
-  {id: 'mlp', label: 'MLP', short: 'MLP', evalId: 'mlp_extended', color: '#6250d6'}
+  {
+    id: 'usgs',
+    label: 'USGS M1 (published)',
+    short: 'USGS',
+    about: "USGS's own likelihoods: M1 with its published coefficients (Staley et al. 2017), the reference",
+    evalId: 'm1_published',
+    color: '#2a78d6'
+  },
+  {
+    id: 'm1',
+    label: 'M1 recalibrated',
+    short: 'M1 recalibrated',
+    about: "M1's form refitted on every usable record of USGS's observed inventory",
+    evalId: 'm1_refit',
+    color: '#eb6834'
+  },
+  {
+    id: 'rf',
+    label: 'Random forest (monotone in rainfall)',
+    short: 'RF',
+    about:
+      "A random forest fitted on USGS's observed inventory, constrained so its likelihood never falls as rainfall rises, under the stats file's scenario",
+    evalId: 'rf_extended',
+    color: '#1baf7a'
+  }
 ];
 
 export const riskModel = (id: RiskModel): RiskModelDef => RISK_MODELS.find(m => m.id === id) ?? RISK_MODELS[0];
@@ -54,20 +77,31 @@ export const riskModel = (id: RiskModel): RiskModelDef => RISK_MODELS.find(m => 
  */
 const EVAL_SHORT: Record<string, string> = {
   m1_published: 'M1 published',
-  m1_refit: 'M1 refit',
+  m1_refit: 'M1 recalibrated',
   rf_m1vars: 'RF · M1 inputs',
   rf_extended: 'RF · extended',
   mlp_m1vars: 'MLP · M1 inputs',
-  mlp_extended: 'MLP · extended'
+  mlp_extended: 'MLP · extended',
+  mlp_context: 'MLP · context'
 };
 export const evalShort = (id: string) => EVAL_SHORT[id] ?? id;
 
+/** The map column a model_eval.json row is behind, if any (USGS's for the published coefficients). */
+export const columnForEval = (evalId: string): RiskModelDef | undefined => RISK_MODELS.find(m => m.evalId === evalId);
+
 /**
- * The map model a stats-file key names: a column prefix ("rf") or an eval id ("rf_extended").
- * USGS is the reference, so an eval id resolves to our columns first.
+ * debris_flow_stats.json's likelihood_class_counts key for class k ("0-20%" … "80-100%", ASCII
+ * hyphen; LIKELIHOOD_CLASSES labels use an en dash).
  */
-export function modelForKey(key: string): RiskModelDef | undefined {
-  return RISK_MODELS.find(m => m.id === key) ?? RISK_MODELS.find(m => m.id !== 'usgs' && m.evalId === key);
+export const classKey = (k: number) => `${k * 20}-${(k + 1) * 20}%`;
+
+/**
+ * The Station Fire column and marker belong to a fire whose stats file names that fire as its
+ * inventory analogue (Eaton); elsewhere (Palisades) the stats file's note says why there is none.
+ */
+export function analogueShown(stats: DebrisFlowStats | null, ev: DebrisModelEval | null): boolean {
+  const fire = stats?.analogue?.fire;
+  return !!fire && !!ev?.models.some(m => m.analogue?.fire === fire);
 }
 
 /** debris_flow.geojson's column for a model under a design storm. */
@@ -298,12 +332,20 @@ export function useDebrisPart(
           title: `Debris-flow likelihood · ${m.short} · I15 ${i15} mm/h${none ? ' · no values' : ''}`,
           detail: [
             `${m.label}: the modeled chance that a debris flow starts from each stream segment's upstream area in a storm whose peak 15-minute rainfall is ${i15} mm/h (${accumulationMm(i15)} mm in 15 minutes)`,
+            m.about,
             none
               ? `debris_flow.geojson has no ${pKey(model, i15)} values`
               : missing
                 ? `${missing.toLocaleString('en-US')} of ${n.toLocaleString('en-US')} segments have no ${pKey(model, i15)} value (grey)`
                 : '',
-            (model === 'rf' || model === 'mlp') && sc ? `Under the stats file's scenario: ${sc.date}, ${sc.days_since_fire} days after the fire` : '',
+            model !== 'usgs'
+              ? "Calibrated to USGS's observed inventory under a design storm: its level depends on how each sub-inventory sampled storms without a debris flow, and it is not an observed rate for this fire"
+              : '',
+            model === 'rf' && sc
+              ? `The RF map also depends on the scenario: ${sc.date}, ${sc.days_since_fire} days after the fire, and one soil-moisture value for every segment (${
+                  sc.soil_moisture_0_7cm === null ? 'not available' : `${sc.soil_moisture_0_7cm.toFixed(3)} m³/m³, 0–7 cm`
+                })`
+              : '',
             `Line width grows with upstream area. Click a segment for its inputs`,
             src ? `Segments and USGS's likelihoods: ${src.title} (${src.doi}), ${src.license}` : 'Segments and USGS likelihoods: USGS postfire debris-flow hazard assessment',
             "No observed debris-flow records for this fire are in the data used here: the models are compared with USGS's assessment, not checked against outcomes"

@@ -1,7 +1,8 @@
 /**
  * Risk tab rail: post-fire debris-flow likelihood. The model and design-storm controls drive the
- * map, the dock and the side list; below them, how each model compares with USGS's assessment on
- * this fire, the selected segment's inputs, and the models' scores on USGS's observed inventory.
+ * map, the dock and the side list; below them, how our two map columns compare with USGS's
+ * assessment on this fire under the selected storm, the selected segment's inputs, and the
+ * models' scores on USGS's observed inventory.
  */
 import {useMemo} from 'react';
 import type {FireData} from '../data/fire';
@@ -9,13 +10,14 @@ import type {DebrisFlowStats, DebrisModelEval} from '../data/files';
 import {DESIGN_I15, useUi} from '../state/ui';
 import {
   accumulationMm,
+  analogueShown,
   classOf,
+  columnForEval,
   evalShort,
   LIKELIHOOD_CLASSES,
   likelihood,
   likelihoodText,
   MODEL_EVAL_URL,
-  modelForKey,
   NO_VALUE,
   riskModel,
   RISK_MODELS,
@@ -27,12 +29,17 @@ import {
 import {pct} from './fmt';
 import {Button, Card, Chip, Missing, Stat, SubHead} from './ui';
 
+type EvalRow = DebrisModelEval['models'][number];
+
 const HAZARD = {1: 'Low', 2: 'Moderate', 3: 'High'} as const;
 const fixed = (v: number | null | undefined, d: number) => (v == null || !Number.isFinite(v) ? '—' : v.toFixed(d));
+const count = (v: number) => v.toLocaleString('en-US');
 /** A share that the file may write as 0–1 or as a percentage. */
 const share = (v: number) => (v <= 1 ? pct(v) : `${Math.round(v)}%`);
 /** A debris-flow base rate with one decimal: 9.8% and 12.5% read as different, 10% and 13% overstate it. */
 const rate = (v: number) => (Number.isFinite(v) ? `${(v * 100).toFixed(1)}%` : '—');
+/** Distinct values of one field across rows, joined (the trained models share theirs). */
+const distinct = (rows: EvalRow[], f: (m: EvalRow) => string) => [...new Set(rows.map(f))].join(' / ');
 /** Why a model_eval.json row has no Station Fire score (model_eval.json's notes give M1's reason). */
 const noStation = (id: string) =>
   id === 'm1_published'
@@ -55,17 +62,22 @@ function Controls() {
     <div className="space-y-2.5 px-3 py-2">
       <div>
         <div className="mb-1 text-xs text-muted">Model</div>
-        <div className="grid grid-cols-2 gap-1">
+        <div className="grid grid-cols-1 gap-1">
           {RISK_MODELS.map(m => (
             <button
               key={m.id}
               onClick={() => setRisk({model: m.id})}
+              title={m.about}
               className={`rounded-md px-2 py-1 text-left text-sm ${model === m.id ? on : off}`}
             >
               {m.label}
             </button>
           ))}
         </div>
+        <p className="mt-1 text-2xs text-muted">
+          The neural networks (MLP) are scored in the table below but not mapped: nothing constrains them to rise with
+          rainfall, so a heavier design storm could lower a segment’s likelihood.
+        </p>
       </div>
       <div>
         <div className="mb-1 flex justify-between text-xs text-muted">
@@ -105,8 +117,12 @@ function Controls() {
   );
 }
 
-/** This fire: each model's agreement with USGS at 24 mm/h, the M1 implementation check and the ML scenario. */
+/**
+ * This fire under the selected design storm: M1 recalibrated and the RF against USGS (rank and
+ * class), each column's mean, the scenario the RF needs, and the M1 implementation check.
+ */
 function Agreement({stats, error}: {stats: DebrisFlowStats | null; error: string | null}) {
+  const i15 = useUi(s => s.risk.i15);
   const head = <SubHead>Compared with USGS on this fire</SubHead>;
   if (!stats)
     return (
@@ -115,52 +131,73 @@ function Agreement({stats, error}: {stats: DebrisFlowStats | null; error: string
         <Missing file="debris_flow_stats.json" error={error} />
       </>
     );
-  const rows = Object.entries(stats.agreement);
+  const at = stats.agreement_by_i15?.[String(i15)] ?? {};
+  // USGS against itself is 1 by definition: the file lists it so every storm names every column.
+  const rows = RISK_MODELS.filter(m => m.id !== 'usgs').map(m => ({m, a: at[m.id]}));
+  const means = stats.mean_likelihood?.[String(i15)] ?? {};
+  const meanCols = RISK_MODELS.filter(m => Number.isFinite(means[m.id]));
   const sc = stats.scenario;
   const th = stats.usgs_median_thresholds_mm_h;
   return (
     <>
       {head}
       <div className="px-3 py-2 text-xs">
-        {rows.length ? (
+        {rows.some(r => r.a) ? (
           <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 tabular-nums">
-            <span className="text-muted">Model vs USGS, I15 24 mm/h</span>
+            <span className="text-muted">Vs USGS at I15 {i15} mm/h</span>
             <span className="text-right text-muted" title="Spearman rank correlation of segment likelihoods with USGS's">
               Spearman
             </span>
             <span className="text-right text-muted" title="Share of segments in the same likelihood class as USGS's">
               Same class
             </span>
-            {rows.map(([key, a]) => [
-              <span key={`${key}-n`}>{modelForKey(key)?.label ?? key}</span>,
-              <span key={`${key}-r`} className="text-right">
-                {fixed(a.spearman_vs_usgs_24, 2)}
+            {rows.map(({m, a}) => [
+              <span key={`${m.id}-n`} title={m.label}>
+                {m.label.split(' (')[0]}
               </span>,
-              <span key={`${key}-c`} className="text-right">
-                {Number.isFinite(a.class_agreement_24) ? share(a.class_agreement_24) : '—'}
+              <span key={`${m.id}-r`} className="text-right">
+                {fixed(a?.spearman_vs_usgs, 2)}
+              </span>,
+              <span key={`${m.id}-c`} className="text-right">
+                {a && Number.isFinite(a.class_agreement) ? share(a.class_agreement) : '—'}
               </span>
             ])}
           </div>
         ) : (
-          <div className="text-muted">debris_flow_stats.json lists no agreement figures.</div>
+          <div className="text-muted">debris_flow_stats.json lists no agreement figures at I15 {i15} mm/h.</div>
+        )}
+        {meanCols.length > 0 && (
+          <div className="mt-1.5 text-muted">
+            Mean likelihood over the {count(stats.segments)} segments:{' '}
+            {meanCols.map((m, i) => (
+              <span key={m.id}>
+                {i > 0 && ', '}
+                {m.short} <span className="text-ink">{likelihoodText(means[m.id])}</span>
+              </span>
+            ))}
+            . USGS’s M1 was fitted on the Staley et al. (2016) records and our two columns on every usable inventory record,
+            whose sub-inventories sampled storms without a debris flow differently, so the levels differ partly for that
+            reason (Caveats).
+          </div>
         )}
         <div className="mt-1.5 text-muted">
-          Implementation check, not a validation: our M1 reproduces USGS's likelihoods to within{' '}
-          <span className="text-ink">{tiny(stats.m1_check.max_abs_diff_vs_usgs)}</span> (largest absolute difference,
-          likelihood 0–1) over {stats.segments.toLocaleString('en-US')} segments.
-        </div>
-        <div className="mt-1.5 text-muted">
-          RF and MLP also need the storm's timing and soil wetness, so their columns use one scenario:{' '}
+          Only the RF uses a scenario, so its map depends on the date and on one soil-moisture value for every segment:{' '}
           <span className="text-ink">
             {sc.date}, {sc.days_since_fire} days after the fire, soil moisture (0–7 cm){' '}
             {sc.soil_moisture_0_7cm === null ? 'not available' : `${sc.soil_moisture_0_7cm.toFixed(3)} m³/m³`}
           </span>{' '}
-          ({sc.soil_moisture_source}).
+          ({sc.soil_moisture_source}). Few inventory storms came this soon after a fire, so the RF’s level under this
+          scenario is an extrapolation from little data (Caveats).
         </div>
         <div className="mt-1.5 text-muted">
           USGS's median rainfall thresholds across segments: 50% likelihood at I15{' '}
           <span className="text-ink">{fixed(th.I15_50, 1)} mm/h</span>, 75% at{' '}
           <span className="text-ink">{fixed(th.I15_75, 1)} mm/h</span>.
+        </div>
+        <div className="mt-1.5 text-2xs text-muted">
+          Implementation check of our M1 code, not a result: with the published coefficients it reproduces USGS's
+          likelihoods to within {tiny(stats.m1_check.max_abs_diff_vs_usgs)} on {count(stats.segments)} segments. No map
+          column uses it.
         </div>
       </div>
     </>
@@ -226,8 +263,17 @@ function SegmentDetail({seg, missingId}: {seg: Segment | null; missingId: number
   );
 }
 
-/** model_eval.json: every model scored leave-one-fire-out on USGS's observed inventory. */
-function ModelComparison({ev, error}: {ev: DebrisModelEval | null; error: string | null}) {
+/** Under a row's name: what it is to the map (on_map, USGS's reference, or the context variant). */
+function rowRole(m: EvalRow): string | null {
+  const col = columnForEval(m.id);
+  if (m.on_map) return 'on the map';
+  if (col?.id === 'usgs') return 'reference: USGS';
+  if (m.features.some(f => f.startsWith('ctx_'))) return 'spatial-context variant';
+  return null;
+}
+
+/** model_eval.json: the models scored on USGS's observed inventory. */
+function ModelComparison({ev, error, stats}: {ev: DebrisModelEval | null; error: string | null; stats: DebrisFlowStats | null}) {
   const model = useUi(s => s.risk.model);
   const head = <SubHead aside={<Chip tone="modeled">MODELED</Chip>}>Scored on observed debris flows</SubHead>;
   if (!ev)
@@ -239,106 +285,153 @@ function ModelComparison({ev, error}: {ev: DebrisModelEval | null; error: string
     );
   const inv = ev.inventory;
   const shown = riskModel(model).evalId;
-  const mapped = (id: string) => RISK_MODELS.filter(m => m.evalId === id).map(m => m.short);
   const m1 = ev.models.find(m => m.id === 'm1_published');
-  // The trained models' records and base rate, to say how M1 published's row differs from theirs.
+  // The cross-validated rows, to say how M1 published's records, fires and groups differ from theirs.
   const rest = ev.models.filter(m => m.id !== 'm1_published');
-  const restN = [...new Set(rest.map(m => m.n.toLocaleString('en-US')))].join(' / ');
-  const restRate = [...new Set(rest.map(m => rate(m.pooled.base_rate)))].join(' / ');
-  const unlike = m1 && rest.some(m => m.n !== m1.n || m.pooled.base_rate !== m1.pooled.base_rate);
   // A note that scores the trained models on M1's own records (it names their count).
-  const sameRecords = m1 && ev.notes.some(n => n.includes(m1.n.toLocaleString('en-US')) && rest.some(m => n.includes(m.id)));
-  const analogue = ev.models.find(m => m.analogue)?.analogue ?? null;
+  const sameRecords = m1 && ev.notes.some(n => n.includes(count(m1.n)) && rest.some(m => n.includes(m.id)));
+  const context = ev.models.find(m => m.features.some(f => f.startsWith('ctx_')));
+  // The row the context variant extends: the same kind of model (id prefix) with the same features less ctx_*.
+  const plain = context
+    ? ev.models.find(m => {
+        const base = context.features.filter(f => !f.startsWith('ctx_'));
+        return (
+          m !== context &&
+          m.id.split('_')[0] === context.id.split('_')[0] &&
+          m.features.length === base.length &&
+          base.every(f => m.features.includes(f))
+        );
+      })
+    : undefined;
+  const station = analogueShown(stats, ev);
   const cell = 'text-right';
+  const cols = station ? 'grid-cols-[minmax(0,1fr)_repeat(5,auto)]' : 'grid-cols-[minmax(0,1fr)_repeat(4,auto)]';
   return (
     <>
       {head}
       <div className="px-3 py-2 text-xs">
-        <div className="grid grid-cols-[minmax(0,1fr)_repeat(5,auto)] gap-x-1.5 tabular-nums">
+        <div className={`grid ${cols} gap-x-1.5 tabular-nums`}>
           <span className="text-muted">Model</span>
-          <span className={`${cell} text-muted`} title="Pooled ROC AUC: all held-out predictions together (higher is better; 0.5 is chance)">
+          <span className={`${cell} text-muted`} title="Pooled ROC AUC: all held-out predictions together (0.5 is chance). It mostly ranks records of different storms against each other">
             AUC
           </span>
-          <span className={`${cell} text-muted`} title="Pooled precision-recall AUC (higher is better; a no-skill model scores the base rate)">
-            PR
-          </span>
-          <span className={`${cell} text-muted`} title="Pooled Brier score (lower is better)">
-            Brier
-          </span>
-          <span className={`${cell} text-muted`} title="Median of the per-fire ROC AUCs">
+          <span className={`${cell} text-muted`} title="Median of the per-fire ROC AUCs (a fire's storms are still ranked against each other)">
             Fire
           </span>
-          <span className={`${cell} text-muted`} title="ROC AUC on the held-out Station Fire">
-            Station
+          <span
+            className={`${cell} text-muted`}
+            title="ROC AUC within one fire and storm, over the groups with both outcomes (the ranking a design-storm map shows): the median above, the record-weighted mean below. Most groups are small, so the median is coarse; the record-weighted mean leans on the largest storms"
+          >
+            Storm
           </span>
+          <span className={`${cell} text-muted`} title="Pooled Brier score (lower is better; depends on the base rate)">
+            Brier
+          </span>
+          {station && (
+            <span className={`${cell} text-muted`} title="ROC AUC on the held-out Station Fire">
+              Station
+            </span>
+          )}
           {ev.models.map(m => {
             const bold = m.id === shown ? 'font-semibold' : '';
-            const on = mapped(m.id);
+            const role = rowRole(m);
+            const ws = m.within_storm;
             const title =
-              `${m.label} (${m.id})\nFeatures: ${m.features.join(', ')}\n${m.n.toLocaleString('en-US')} records, ` +
-              `${m.flows.toLocaleString('en-US')} debris flows, base rate ${rate(m.pooled.base_rate)}\n` +
+              `${m.label} (${m.id})\nFeatures: ${m.features.join(', ')}\nCross-validation: ${m.cv}\n${count(m.n)} records, ` +
+              `${count(m.flows)} debris flows, base rate ${rate(m.pooled.base_rate)}; pooled PR AUC ${fixed(m.pooled.pr_auc, 2)}\n` +
               `Per-fire ROC AUC over ${m.per_fire.fires} fires: median ${fixed(m.per_fire.median_roc_auc, 2)}, IQR ` +
-              `${fixed(m.per_fire.iqr[0], 2)}–${fixed(m.per_fire.iqr[1], 2)}` +
-              (m.analogue
-                ? `\nStation Fire: ${m.analogue.n} records, ${m.analogue.flows} flows, Brier ${fixed(m.analogue.brier, 3)}`
-                : `\n${noStation(m.id)}`);
-            return [
+              `${fixed(m.per_fire.iqr[0], 2)}–${fixed(m.per_fire.iqr[1], 2)}\n` +
+              (ws
+                ? `Within one fire and storm: ${ws.groups} groups, ${count(ws.records)} records; median ROC AUC ` +
+                  `${fixed(ws.median_roc_auc, 2)}, record-weighted ${fixed(ws.weighted_roc_auc, 2)}`
+                : 'No within-storm score in model_eval.json') +
+              (station ? (m.analogue ? `\nStation Fire: ${m.analogue.n} records, ${m.analogue.flows} flows, Brier ${fixed(m.analogue.brier, 3)}` : `\n${noStation(m.id)}`) : '');
+            const row = [
               <span key={`${m.id}-n`} className={`min-w-0 ${bold}`} title={title}>
                 <span className="block truncate">{evalShort(m.id)}</span>
-                {on.length > 0 && <span className="block truncate text-2xs font-normal text-muted">on the map: {on.join(', ')}</span>}
+                {role && <span className="block text-2xs font-normal text-muted">{role}</span>}
               </span>,
               <span key={`${m.id}-a`} className={`${cell} ${bold}`}>
                 {fixed(m.pooled.roc_auc, 2)}
               </span>,
-              <span key={`${m.id}-p`} className={`${cell} ${bold}`}>
-                {fixed(m.pooled.pr_auc, 2)}
-              </span>,
-              <span key={`${m.id}-b`} className={`${cell} ${bold}`}>
-                {fixed(m.pooled.brier, 3)}
-              </span>,
               <span key={`${m.id}-f`} className={`${cell} ${bold}`}>
                 {fixed(m.per_fire.median_roc_auc, 2)}
               </span>,
-              <span key={`${m.id}-s`} className={`${cell} ${bold}`} title={m.analogue ? undefined : noStation(m.id)}>
-                {m.analogue ? fixed(m.analogue.roc_auc, 2) : '—'}
+              <span
+                key={`${m.id}-w`}
+                className={`${cell} ${bold}`}
+                title={ws ? `Median ${fixed(ws.median_roc_auc, 3)}, record-weighted ${fixed(ws.weighted_roc_auc, 3)}, over ${ws.groups} groups` : undefined}
+              >
+                {/* Stacked, so the name column keeps its width in the rail. */}
+                <span className="block">{fixed(ws?.median_roc_auc, 2)}</span>
+                <span className="block">{fixed(ws?.weighted_roc_auc, 2)}</span>
+              </span>,
+              <span key={`${m.id}-b`} className={`${cell} ${bold}`}>
+                {fixed(m.pooled.brier, 3)}
               </span>
             ];
+            if (station)
+              row.push(
+                <span key={`${m.id}-s`} className={`${cell} ${bold}`} title={m.analogue ? undefined : noStation(m.id)}>
+                  {m.analogue ? fixed(m.analogue.roc_auc, 2) : '—'}
+                </span>
+              );
+            // M1 published is not cross-validated and sits on other records: said beside its score.
+            if (m.id === 'm1_published' && rest.length)
+              row.push(
+                <span key={`${m.id}-why`} className="col-span-full mb-0.5 text-2xs text-muted">
+                  Not cross-validated: published coefficients scored on {count(m.n)} other records (base rate{' '}
+                  {rate(m.pooled.base_rate)}, against {distinct(rest, r => count(r.n))} at{' '}
+                  {distinct(rest, r => rate(r.pooled.base_rate))}); Fire over {m.per_fire.fires} fires (others{' '}
+                  {distinct(rest, r => String(r.per_fire.fires))}), Storm over {m.within_storm.groups} groups (others{' '}
+                  {distinct(rest, r => String(r.within_storm.groups))}). Not like-for-like with the rows below.
+                </span>
+              );
+            return row;
           })}
         </div>
         <div className="mt-1.5 space-y-1 text-2xs text-muted">
           <p>
-            AUC: pooled ROC AUC (0.5 is chance) · PR: pooled precision-recall AUC · Brier: pooled, lower is better · Fire:
-            median of the per-fire ROC AUCs · Station: ROC AUC on the held-out Station Fire. Bold: the row behind the map's
-            colours.
+            AUC: pooled ROC AUC (0.5 is chance), which mostly ranks records of different storms against each other · Fire:
+            median of the per-fire ROC AUCs · Storm: ROC AUC within one fire and storm, the ranking a design-storm map shows,
+            in two figures, the median over the groups (upper) and their record-weighted mean (lower) · Brier: pooled, lower
+            is better
+            {station ? ' · Station: ROC AUC on the held-out Station Fire' : ''}. Most within-storm groups are small, so the
+            median lands on fractions with small denominators; the record-weighted mean is less coarse but leans on the
+            largest storms, so read the two together. PR AUC is in each row’s tooltip. Bold: the row behind the selected
+            column.
           </p>
           <p>
             {ev.cv.scheme === 'leave-one-fire-out' ? 'Leave-one-fire-out' : ev.cv.scheme} ({ev.cv.folds} folds): each fire's
-            records are scored by a model fitted without that fire. {inv.used_records.toLocaleString('en-US')} records from{' '}
-            {inv.used_fires} fires ({inv.used_flows.toLocaleString('en-US')} debris flows) of the inventory's{' '}
-            {inv.records.toLocaleString('en-US')} records from {inv.fires} fires.
+            records are scored by a model fitted without that fire. {count(inv.used_records)} records from {inv.used_fires}{' '}
+            fires ({count(inv.used_flows)} debris flows) of the inventory's {count(inv.records)} records from {inv.fires} fires.
           </p>
           {m1 && (
             <p>
-              {m1.label} uses USGS's published coefficients and is scored only on the {m1.n.toLocaleString('en-US')} records (
-              {m1.flows.toLocaleString('en-US')} flows) outside the 2016 inventory it was fitted on. USGS's assessment and our
-              implementation both apply it.
-              {unlike && (
-                <>
-                  {' '}
-                  Its row is therefore on other records and another base rate ({rate(m1.pooled.base_rate)} debris flows, against{' '}
-                  {restRate} on the others' {restN} records), so it is not like-for-like with the other rows: PR AUC and Brier
-                  depend on the base rate.{sameRecords ? ' The caveats give the trained models’ ROC AUCs on its records.' : ''}
-                </>
-              )}
-              {!m1.analogue && ' It has no Station score: that fire’s records are in the inventory it was fitted on.'}
+              {evalShort(m1.id)} is {m1.label}: USGS’s map column applies these coefficients, while our M1 column is M1
+              recalibrated, refitted on every usable record.
+              {sameRecords ? ' The caveats give the trained models’ ROC AUCs on its records.' : ''}
             </p>
           )}
-          {analogue && (
+          {context && (
             <p>
-              Station: the {/fire$/i.test(analogue.fire) ? analogue.fire : `${analogue.fire} Fire`} ({analogue.year}, San Gabriel
-              front), held out as its own fold:{' '}
-              {analogue.n.toLocaleString('en-US')} records, {analogue.flows.toLocaleString('en-US')} flows.
+              {evalShort(context.id)}: {context.label}, an evaluated variant that adds the neighbouring watersheds’ inputs
+              (spatial context). It is not mapped.
+              {plain && context.within_storm && plain.within_storm && (
+                <>
+                  {' '}
+                  Within one storm it scores a median ROC AUC of {fixed(context.within_storm.median_roc_auc, 3)} against{' '}
+                  {fixed(plain.within_storm.median_roc_auc, 3)} for {evalShort(plain.id)} without the context (record-weighted{' '}
+                  {fixed(context.within_storm.weighted_roc_auc, 3)} against {fixed(plain.within_storm.weighted_roc_auc, 3)}).
+                </>
+              )}
             </p>
+          )}
+          {station && stats ? (
+            <p>Station: {stats.analogue.note}</p>
+          ) : (
+            stats?.analogue &&
+            !stats.analogue.fire && <p>No Station column for this fire. Inventory analogue: {stats.analogue.note}</p>
           )}
           <p>
             These scores are on past fires. No observed debris-flow records for this fire are in the data used here, so its map
@@ -414,6 +507,7 @@ export function RiskRail({fire}: {fire: FireData}) {
     () => (selected === null ? null : segments.data?.features.find(f => f.properties.id === selected) ?? null),
     [segments.data, selected]
   );
+  const sc = stats.data?.scenario;
   return (
     <Card title="Post-fire debris flows" aside={<Chip tone="modeled">MODELED</Chip>}>
       <div className="space-y-1 px-3 pt-2 text-xs">
@@ -422,15 +516,18 @@ export function RiskRail({fire}: {fire: FireData}) {
           segment's upstream area if a storm with the chosen peak 15-minute rainfall falls on the burn scar.
         </p>
         <p className="text-muted">
-          USGS's assessment (M1 model, Staley et al. 2017) is the reference; our M1 implementation, random forest and MLP
-          are compared with it.
+          USGS's assessment (M1, Staley et al. 2017, published coefficients) is the reference. M1 recalibrated and the random
+          forest are fitted on USGS's observed debris-flow inventory and give likelihoods under a design storm, so their levels
+          depend on how its sub-inventories sampled storms without a debris flow. The random forest also depends on the
+          scenario date and one soil-moisture value for the whole fire
+          {sc ? ` (${sc.date}, ${sc.days_since_fire} days after the fire)` : ''}.
         </p>
       </div>
       <Controls />
       {segments.error && <Missing file="debris_flow.geojson" error={segments.error} />}
       <Agreement stats={stats.data} error={stats.error} />
       <SegmentDetail seg={seg} missingId={selected !== null && segments.data && !seg ? selected : null} />
-      <ModelComparison ev={ev.data} error={ev.error} />
+      <ModelComparison ev={ev.data} error={ev.error} stats={stats.data} />
       <Caveats stats={stats.data} ev={ev.data} />
     </Card>
   );
