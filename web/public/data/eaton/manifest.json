@@ -29,6 +29,24 @@
       "retrieved": "2026-10-30"
     },
     {
+      "layer": "Debris-flow models (this project)",
+      "source": "Sentinel Ember: M1 reimplementation, random forest and MLP trained on USGS's postfire debris-flow inventory",
+      "url": "https://www.sciencebase.gov/catalog/item/69612c8ed4be02298529c522",
+      "status": "MODELED",
+      "attribution": "USGS runoff-generated postfire debris-flow inventory (Graber et al. 2026), doi:10.5066/P1R9VXC4 (CC0); ERA5 and ERA5-Land via Open-Meteo.com (CC BY 4.0)",
+      "notes": "Applied to USGS's 956 segments. M1 reproduces USGS to 3e-16 (implementation check). RF and MLP use a scenario of 2025-02-13 (37 days after ignition); Spearman vs USGS at 24 mm/h: rf 0.460, mlp 0.557. Compared with USGS's assessment, not validated: no observed 2025 outcomes.",
+      "retrieved": "2026-10-31"
+    },
+    {
+      "layer": "Debris-flow segments (USGS)",
+      "source": "USGS Eaton 2025-01-08 v1.0 postfire debris-flow hazard assessment (PWFDF collection)",
+      "url": "https://www.sciencebase.gov/catalog/item/6838d149d4be025925747189",
+      "status": "MODELED",
+      "attribution": "King, J.M., Kostelnik, J., Kean, J.W., Barnhart, K.R., Graber, A.P., Rengers, F.K., and Thomas, M.A., 2025, Post-Wildfire Debris-Flow Hazard Assessment (PWFDF) Collection: U.S. Geological Survey data release, https://doi.org/10.5066/P14EWYME. CC0 1.0 Universal (public domain).",
+      "notes": "956 stream segments with M1's inputs (T, F, S) and USGS's M1 likelihoods and combined hazard classes at design storms I15 = 16\u201340 mm/h, made with wildcat v1.1.0. A model output, not observations. T and F come from the dNBR and burn severity in USGS's assessment inputs, not this project's AVIRIS-3 dNBR layer.",
+      "retrieved": "2026-10-31"
+    },
+    {
       "layer": "Final perimeter",
       "source": "CAL FIRE 2025 California Fire Perimeters",
       "url": "https://services1.arcgis.com/jUJYIo9tSA7EHvfZ/arcgis/rest/services/2025_California_Fire_Perimeters_View/FeatureServer/0",

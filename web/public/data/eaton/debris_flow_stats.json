@@ -1,0 +1,90 @@
+{
+  "source": {
+    "title": "USGS Eaton 2025-01-08 v1.0 postfire debris-flow hazard assessment",
+    "doi": "10.5066/P14EWYME",
+    "url": "https://www.sciencebase.gov/catalog/item/6838d149d4be025925747189",
+    "license": "CC0 1.0 Universal (public domain)"
+  },
+  "design_i15_mm_h": [
+    16,
+    20,
+    24,
+    28,
+    32,
+    36,
+    40
+  ],
+  "scenario": {
+    "date": "2025-02-13",
+    "days_since_fire": 37,
+    "soil_moisture_0_7cm": 0.2891,
+    "soil_moisture_source": "Open-Meteo archive API, models=era5_land, hourly soil_moisture_0_to_7cm (ECMWF ERA5-Land reanalysis, 0.1° grid), mean of the 24 UTC hours of the day before the storm, at the AOI center (34.1999, -118.0876)"
+  },
+  "segments": 956,
+  "m1_check": {
+    "max_abs_diff_vs_usgs": 3.3306690738754696e-16
+  },
+  "agreement": {
+    "m1": {
+      "spearman_vs_usgs_24": 1.0,
+      "class_agreement_24": 1.0
+    },
+    "rf": {
+      "spearman_vs_usgs_24": 0.4601,
+      "class_agreement_24": 0.1736
+    },
+    "mlp": {
+      "spearman_vs_usgs_24": 0.5573,
+      "class_agreement_24": 0.4937
+    }
+  },
+  "likelihood_class_counts_24": {
+    "usgs": {
+      "0-20%": 53,
+      "20-40%": 64,
+      "40-60%": 92,
+      "60-80%": 293,
+      "80-100%": 454
+    },
+    "m1": {
+      "0-20%": 53,
+      "20-40%": 64,
+      "40-60%": 92,
+      "60-80%": 293,
+      "80-100%": 454
+    },
+    "rf": {
+      "0-20%": 45,
+      "20-40%": 151,
+      "40-60%": 599,
+      "60-80%": 161,
+      "80-100%": 0
+    },
+    "mlp": {
+      "0-20%": 102,
+      "20-40%": 107,
+      "40-60%": 110,
+      "60-80%": 291,
+      "80-100%": 346
+    }
+  },
+  "usgs_median_thresholds_mm_h": {
+    "I15_50": 17.5324,
+    "I15_75": 22.8385
+  },
+  "notes": [
+    "These are predictions compared with USGS's assessment, not validated. The data used here hold no observed debris-flow outcomes for the 2025 fires (USGS's inventory, 10.5066/P1R9VXC4, ends with 2024 fires), so agreement with USGS says how alike two models are on this fire, not which is closer to what happens.",
+    "m1_check is an implementation check, not a validation: our M1 (Staley et al. 2017, published 15-minute coefficients, R = I15 × 0.25 h) recomputed from USGS's T, F and S matches USGS's likelihoods for all 956 segments and 7 design storms to within 3e-16. m1_p_* therefore equals usgs_p_* by construction.",
+    "The scenario is a choice. Only RF and MLP use it (days since fire and antecedent soil moisture); M1 and USGS's columns do not. Rule: the first local day after ignition with at least 25.4 mm (1 inch) of precipitation at the AOI center in ECMWF ERA5 (Open-Meteo archive, models=era5, grid point 34.25, -118.00; hourly accumulations, each for the hour ending at its GMT time stamp, summed into America/Los_Angeles calendar days): 2025-02-13, with 63.8 mm (peak hourly 6.0 mm/h). The wettest earlier day was 2025-02-06 with 14.4 mm, so any threshold above 14.4 mm and up to 63.8 mm picks the same day. 120 days searched, 0 with no value. A 0.25° hourly reanalysis only picks the date; it is not a 15-minute intensity, and the design storms set I15 instead.",
+    "days_since_fire = 37: from the CAL FIRE start (2025-01-08T02:18:00Z, local date 2025-01-07) to 2025-02-13, in calendar days like the inventory's StormStart − FireIgnitionDate. That is early in recovery compared with training: the usable inventory records have a median of 336 days, and 12.4% of them are within 37 days.",
+    "Antecedent soil moisture (0–7 cm) on 2025-02-12, the UTC day before the scenario date: 0.2891 m³/m³ at the AOI center's ERA5-Land cell (training median 0.2455). It is one value for every segment, as is days since fire, so both set the level of the RF and MLP maps, not the ranking of segments; in training they varied between storms.",
+    "Spatial context: mean T, F, S and R15 of the 5 nearest other segments (by downstream end) in this fire and design storm, from their features only, as in training. On this network the mean distance to those neighbours has median 138 m (IQR 96–202 m), against 845 m (IQR 410–1,374 m) in training, and the neighbours include segments upstream and downstream on the same channel, whose watersheds nest. Under a design storm every segment has the same R15, so ctx_R15 = R15.",
+    "Ties in spatial context: where the 5th and 6th nearest downstream ends are equally far (usually segments that end at the same point, such as two tributaries at a confluence), scipy's cKDTree keeps one of them by its internal order, in training as here; either is an equally valid choice, and rf_p_* and mlp_p_* use cKDTree's. 193 of 956 segments have such a tie. Taking the other tied segment instead changes the likelihood at 24 mm/h by up to 0.105 for rf (12 segments by more than 0.05) and 0.238 for mlp (28 segments by more than 0.05); Spearman vs USGS would be rf 0.4631 (as written 0.4601), mlp 0.5590 (as written 0.5573) and class agreement rf 0.1789 (0.1736), mlp 0.4979 (0.4937). So a single segment's RF or MLP value can depend on this choice by that much.",
+    "T, F and S are USGS's values from its assessment inputs (its dNBR and burn-severity rasters, terrain and soil KF-factor), not computed from this project's AVIRIS-3 dNBR layer. area_km2 is USGS's Area (km²: the basin polygons' areas match it, median ratio 1.0023). usgs_hazard_24 is USGS's combined hazard class at 24 mm/h (likelihood and volume together; 1 low, 2 moderate, 3 high), copied as it is.",
+    "Likelihood classes are floor(p × 5) (0–20% … 80–100%); on USGS's likelihoods at 24 mm/h they reproduce USGS's own P_24_LG labels for 956 of 956 segments. Agreement and class counts use the values as written to debris_flow.geojson.",
+    "Mean likelihood at 24 mm/h: usgs 0.712, m1 0.712, rf 0.489, mlp 0.638. For comparison, step 14's m1_refit (M1's form refitted on the inventory) ranks segments with Spearman 0.881 against USGS here; it is not a map column.",
+    "M1's likelihood rises with I15 by its form; RF and MLP are not constrained to. Segments whose likelihood falls somewhere between consecutive design storms, on the values as written: rf 865 of 956, mlp 385 of 956.",
+    "USGS's median thresholds: median-thresholds.csv, 'Segments (mm)' row (equal to the median over the segments of I15_50 and I15_75 exactly).",
+    "Geometry: USGS's segments in lon/lat (urn:ogc:def:crs:OGC:1.3:CRS84), simplified at 2e-05° (~2 m) and rounded to 5 decimals. T, F, S, usgs_p_* and m1_p_* keep 8 decimals so the M1 check can be repeated from this file; other values 4. The downstream end is a segment's last vertex: in all 861 pairs where one segment starts at another's end, the downstream one drains more area (861 of 861)."
+  ]
+}
