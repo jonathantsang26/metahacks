@@ -8,7 +8,7 @@
       "status": "MODELED",
       "attribution": "",
       "notes": "The spread model run forward from the estimate (modeled_arrival.png); IoU vs observed footprints [0.431, 0.585, 0.287, 0.292, 0.304].",
-      "retrieved": "2026-10-30"
+      "retrieved": "2026-10-31"
     },
     {
       "layer": "Base texture",
@@ -70,8 +70,8 @@
       "url": "",
       "status": "MODELED",
       "attribution": "",
-      "notes": "Back-trace over 50,293 candidates; 90% radius 8847 m.",
-      "retrieved": "2026-10-30"
+      "notes": "Back-trace over 50,293 candidates; 90% radius 8624 m.",
+      "retrieved": "2026-10-31"
     },
     {
       "layer": "Key events",
@@ -80,7 +80,7 @@
       "status": "MODELED",
       "attribution": "",
       "notes": "reported_start, peak_gust, spot_fire, rapid_growth, containment",
-      "retrieved": "2026-10-30"
+      "retrieved": "2026-10-31"
     },
     {
       "layer": "Land cover / fuels",

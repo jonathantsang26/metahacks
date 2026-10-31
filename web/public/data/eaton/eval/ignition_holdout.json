@@ -27,17 +27,20 @@
     "t": "2025-01-08T04:37:36Z",
     "k": 0.5,
     "lb_max": 1.0,
-    "r90_m": 1199.5,
+    "r90_m": 1799.5,
     "t90": [
-      "2025-01-08T03:12:44Z",
-      "2025-01-08T09:09:07Z"
+      "2025-01-07T23:15:09Z",
+      "2025-01-08T09:51:33Z"
     ],
     "timing": {
-      "identifiable": true,
-      "reasons": [],
-      "interval90_width_h": 5.94
+      "identifiable": false,
+      "reasons": [
+        "90% start-time interval is 10.6 h wide (limit 6 h)"
+      ],
+      "interval90_width_h": 10.61
     },
-    "tau_h": 1.2
+    "tau_h": 0.3,
+    "uncertainty_calibrated": true
   },
   "lb_selection": [
     {
@@ -71,6 +74,7 @@
       "k": 16.0
     }
   ],
+  "uncertainty_calibrated": true,
   "baselines": {
     "first_fit_footprint_centroid_lonlat": [
       -118.093907,
@@ -95,6 +99,6 @@
     "baseline_time_error_min": -1854.2,
     "reference_within_r90": false,
     "reference_outside_first_fit_footprint_m": 1141.8,
-    "reference_within_t90": false
+    "reference_within_t90": true
   }
 }
