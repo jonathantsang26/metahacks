@@ -88,21 +88,39 @@ export function upstashStore(url: string, token: string, fetchImpl: typeof fetch
   };
 }
 
-type BudgetEnv = {
-  KV_REST_API_URL?: string;
-  KV_REST_API_TOKEN?: string;
-  UPSTASH_REDIS_REST_URL?: string;
-  UPSTASH_REDIS_REST_TOKEN?: string;
+type BudgetEnv = Record<string, string | undefined> & {
   ANALYST_BUDGET_USD?: string;
   /** "1" allows an untracked in-process budget when no shared store is configured (local runs only). */
   ANALYST_BUDGET_LOCAL?: string;
 };
 
-/** The shared store when the Upstash variables (as the Vercel Marketplace names them) are set. */
+/** URL and write-token variable names, as the Vercel Marketplace and Upstash name them. */
+const STORE_VARS = [
+  ['KV_REST_API_URL', 'KV_REST_API_TOKEN'],
+  ['UPSTASH_REDIS_REST_URL', 'UPSTASH_REDIS_REST_TOKEN']
+] as const;
+
+/**
+ * The store's REST URL and write token. Vercel can connect a store with a custom prefix
+ * (`track_KV_REST_API_URL`), so any prefix is accepted, with the token under the same prefix; the
+ * read-only token has a different name and is never used. Two different stores is ambiguous: null.
+ */
+export function storeConfig(env: BudgetEnv): {url: string; token: string} | null {
+  const found = new Map<string, {url: string; token: string}>();
+  for (const [name, value] of Object.entries(env)) {
+    for (const [urlVar, tokenVar] of STORE_VARS) {
+      if (!value || !name.endsWith(urlVar)) continue;
+      const token = env[name.slice(0, -urlVar.length) + tokenVar];
+      if (token) found.set(value, {url: value, token});
+    }
+  }
+  return found.size === 1 ? [...found.values()][0] : null;
+}
+
+/** The shared store when its variables are set. */
 export function storeFromEnv(env: BudgetEnv): BudgetStore | null {
-  const url = env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL;
-  const token = env.KV_REST_API_TOKEN || env.UPSTASH_REDIS_REST_TOKEN;
-  return url && token ? upstashStore(url, token) : null;
+  const c = storeConfig(env);
+  return c ? upstashStore(c.url, c.token) : null;
 }
 
 export function capUsd(env: BudgetEnv): number {

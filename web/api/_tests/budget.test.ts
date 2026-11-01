@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 import {handleAnalyst} from '../analyst.js';
 import type {ChatClient, ChatReply, ChatRequest} from '../_lib/analyst.js';
-import {actualCost, BudgetError, budgetedChat, capUsd, chooseStore, MAX_CAP_USD, MAX_COMPLETION_TOKENS, memoryStore, PRICE, upstashStore, worstCase} from '../_lib/budget.js';
+import {actualCost, BudgetError, budgetedChat, capUsd, chooseStore, MAX_CAP_USD, storeConfig, MAX_COMPLETION_TOKENS, memoryStore, PRICE, upstashStore, worstCase} from '../_lib/budget.js';
 import {DATA_TOOLS, FINAL_ANSWER_TOOL} from '../_lib/tools.js';
 
 const req = (text = 'When did the fire reach Lake Ave?'): ChatRequest => ({
@@ -124,6 +124,14 @@ describe('choosing the store', () => {
     const out = await handleAnalyst({question: 'When did the fire reach Lake Ave?'}, {MODEL_API_KEY: 'unused'});
     expect(out.status).toBe(503);
     expect((out.body as {error: string}).error).toMatch(/Spend tracking is not configured/);
+  });
+
+  it('finds the store under the prefix Vercel connected it with, never the read-only token, and refuses two stores', () => {
+    const prefixed = {track_KV_REST_API_URL: 'https://a.upstash.io', track_KV_REST_API_TOKEN: 'rw', track_KV_REST_API_READ_ONLY_TOKEN: 'ro'};
+    expect(storeConfig(prefixed)).toEqual({url: 'https://a.upstash.io', token: 'rw'});
+    expect(storeConfig({track_KV_REST_API_URL: 'https://a.upstash.io', track_KV_REST_API_READ_ONLY_TOKEN: 'ro'})).toBeNull();
+    expect(storeConfig({...prefixed, other_KV_REST_API_URL: 'https://b.upstash.io', other_KV_REST_API_TOKEN: 'rw2'})).toBeNull();
+    expect(storeConfig({...prefixed, KV_REST_API_URL: 'https://a.upstash.io', KV_REST_API_TOKEN: 'rw'})).toEqual({url: 'https://a.upstash.io', token: 'rw'});
   });
 
   it('uses the shared store when its variables are set, under either naming', () => {
