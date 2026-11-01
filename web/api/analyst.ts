@@ -1,5 +1,6 @@
 import type {IncomingMessage, ServerResponse} from 'node:http';
 import {DEFAULT_MODEL, runAnalyst} from './_lib/analyst.js';
+import {BudgetError, budgetedChat, capUsd, chooseStore, memoryStore, NO_STORE_MESSAGE} from './_lib/budget.js';
 import {FIRE_ID, FireStore} from './_lib/data.js';
 import {createChatClient} from './_lib/model.js';
 import {clientId, createLimiter, limitMessage, REPORT_COST, type Limiter} from './_lib/ratelimit.js';
@@ -24,6 +25,10 @@ type Result = {status: number; body: unknown; headers?: Record<string, string>};
 type Guard = {client: string; limiter: Limiter};
 
 const limiter = createLimiter();
+/** Only with ANALYST_BUDGET_LOCAL=1 and no shared store: counts this process only. */
+const localBudget = memoryStore();
+
+type Env = {MODEL_API_KEY?: string} & Parameters<typeof chooseStore>[0];
 
 export function parseRequest(body: unknown): AnalystRequest | string {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return 'Body must be a JSON object.';
@@ -49,7 +54,7 @@ export function parseRequest(body: unknown): AnalystRequest | string {
   return {question: b.question.trim(), fire, mode, history: kept};
 }
 
-export async function handleAnalyst(body: unknown, env: {MODEL_API_KEY?: string} = process.env, root?: string, guard?: Guard): Promise<Result> {
+export async function handleAnalyst(body: unknown, env: Env = process.env, root?: string, guard?: Guard): Promise<Result> {
   const key = env.MODEL_API_KEY?.trim();
   if (!key) {
     return {
@@ -66,10 +71,15 @@ export async function handleAnalyst(body: unknown, env: {MODEL_API_KEY?: string}
     const v = guard.limiter.take(guard.client, req.mode === 'report' ? REPORT_COST : 1);
     if (!v.ok) return {status: 429, body: {error: limitMessage(v)}, headers: {'Retry-After': String(v.retryAfterS)}};
   }
+  // Never spends untracked: without the shared store (or an explicit local opt-in) it refuses.
+  const budget = chooseStore(env, () => localBudget);
+  if (!budget) return {status: 503, body: {error: NO_STORE_MESSAGE}};
   try {
-    const run = await runAnalyst(req, {chat: createChatClient(key), store, model: DEFAULT_MODEL, deadline: Date.now() + LOOP_BUDGET_MS});
+    const chat = budgetedChat(createChatClient(key), budget, capUsd(env));
+    const run = await runAnalyst(req, {chat, store, model: DEFAULT_MODEL, deadline: Date.now() + LOOP_BUDGET_MS});
     return {status: 200, body: run.response};
   } catch (e) {
+    if (e instanceof BudgetError) return {status: e.status, body: {error: e.message}};
     const status = (e as {status?: unknown}).status;
     if (typeof status === 'number') {
       console.error(`[analyst] model API error ${status}: ${(e as Error).message}`);

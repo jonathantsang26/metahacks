@@ -33,9 +33,16 @@ async function post(body: unknown, ip: string): Promise<Sent> {
   return {status, headers, body: JSON.parse(text)};
 }
 
-const saved = process.env.MODEL_API_KEY;
-beforeAll(() => void (process.env.MODEL_API_KEY = 'test-key: the model is mocked'));
-afterAll(() => void (saved === undefined ? delete process.env.MODEL_API_KEY : (process.env.MODEL_API_KEY = saved)));
+const saved = {key: process.env.MODEL_API_KEY, local: process.env.ANALYST_BUDGET_LOCAL};
+const restore = (k: 'MODEL_API_KEY' | 'ANALYST_BUDGET_LOCAL', v: string | undefined) => (v === undefined ? delete process.env[k] : (process.env[k] = v));
+beforeAll(() => {
+  process.env.MODEL_API_KEY = 'test-key: the model is mocked';
+  process.env.ANALYST_BUDGET_LOCAL = '1'; // no shared store in tests: opt in to the in-process budget
+});
+afterAll(() => {
+  restore('MODEL_API_KEY', saved.key);
+  restore('ANALYST_BUDGET_LOCAL', saved.local);
+});
 
 describe('POST /api/analyst rate limit', () => {
   it('charges a report REPORT_COST, refuses past the visitor limit with Retry-After, and still fits a question', async () => {

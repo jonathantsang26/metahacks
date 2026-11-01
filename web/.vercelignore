@@ -1,0 +1,3 @@
+# Never upload local env files (vercel env pull writes web/.env.local).
+.env
+.env.*

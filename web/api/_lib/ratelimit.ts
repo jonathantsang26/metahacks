@@ -6,8 +6,8 @@ import type {IncomingMessage} from 'node:http';
  * one per visitor (client IP) and one for everyone.
  *
  * Memory is per serverless instance, so a cold start, a redeploy or a second instance starts
- * fresh, and a burst that makes Vercel start more instances multiplies GLOBAL. Nothing here bounds
- * spend across instances: that needs a spending cap on the key or a Vercel Firewall rate-limit rule.
+ * fresh, and a burst that makes Vercel start more instances multiplies GLOBAL. These limits keep one
+ * visitor from taking the budget; the hard cap on total spend across instances is budget.ts.
  */
 
 export type Limit = {max: number; windowMs: number};
