@@ -180,6 +180,18 @@ describe('runAnalyst tool loop', () => {
   });
 });
 
+describe('output cap', () => {
+  it('sends max_completion_tokens on every call and stops when a reply is cut off at the cap', async () => {
+    const chat = fakeChat([() => ({choices: [{message: {content: null}, finish_reason: 'length'}]})]);
+    const {response, audit} = await runAnalyst(ask('When did the fire reach Lake Ave?'), {chat, store});
+    expect(chat.requests).toHaveLength(1);
+    expect(chat.requests[0].max_completion_tokens).toBeGreaterThan(0);
+    expect(response.paragraphs).toEqual([]);
+    expect(response.note).toMatch(/output limit/);
+    expect(audit.final_answer).toBe(false);
+  });
+});
+
 describe('handleAnalyst', () => {
   it('returns 503 with a clear error when MODEL_API_KEY is not set', async () => {
     const out = await handleAnalyst({question: 'When did the fire reach Lake Ave?'}, {});

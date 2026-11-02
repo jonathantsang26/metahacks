@@ -1,0 +1,1530 @@
+{
+  "ref": "21b3109871fef7d6b7573c352d5ea538cbeb39ab",
+  "round": 4,
+  "weights": {
+    "ambition": 0.25,
+    "depth": 0.25,
+    "works": 0.2,
+    "evidence": 0.15,
+    "clarity": 0.1,
+    "execution": 0.05
+  },
+  "scores": {
+    "ambition": {
+      "key": "ambition",
+      "score": 7,
+      "rationale": "The core problem is an inverse problem, not a familiar app with a model attached. The repo back-traces a fire's ignition location, start time and spread-rate scale from sparse timed perimeters (s11_ignition.py:192), calibrates the 90% uncertainty per fire on synthetic cases (s11:9, s11:439), and withholds the start time when the data do not pin it down (s11:299). Both real fires come back not identifiable (README.md:134), which shows the problem is hard and left open, not solved. The LLM analyst is peripheral and not run live (README.md:53, web/api/analyst.ts:47), so it earns no credit here.\n\nThe methods are not new. The forward model is classical Rothermel/Anderson-style spread with Dijkstra travel times (spread.py:3, spread.py:12, spread.py:194), so the hardness sits in the inversion and calibration discipline, not in invented physics.\n\nRecency is split by half, as the rubric asks. The debris-flow half (Risk tab) meets the \"not possible a year ago\" test in part. It trains and scores on a 2026-titled USGS inventory: 7,639 records from 77 fires in leave-one-fire-out CV (model_eval.json; s14_debris_models.py:77). The ScienceBase ID prefix decodes to 2026-01-09, which corroborates the 2026 date but is an inference from the ID format. Those models are ordinary (RF, MLP, refitted M1), and the repo itself says ML did not clearly beat M1 (README.md:179), so the recency credit is real but modest. The ignition half does not meet the test. Its inputs (NIFC 2025 perimeters at s05_perimeters.py:72, DINS, AVIRIS-3) were public in 2025, so they earn hardness credit only. The README's \"only recently became public\" (README.md:34) overreaches for those inputs.\n\nScore 7 (weighted 17.5 before the harness arithmetic). It is clearly above an ordinary entry, but not 8: the recency-qualifying work is a tab rather than the headline, the forward physics is classical, and the one model-native piece (the Muse Spark analyst) is unrun.",
+      "evidence": [
+        {
+          "ref": "pipeline/steps/s11_ignition.py:9",
+          "quote": "temperature is calibrated per fire on its own synthetic cases (simulation-based calibration), and",
+          "point": "The uncertainty is calibrated per fire by simulation-based calibration, not hand-set. This is the hard-part discipline.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s11_ignition.py:192",
+          "quote": "Two-stage search over (cell, t0, k); returns the MAP and the stage-1 grid with its losses.",
+          "point": "The inverse is a search over ignition cell, start time and spread-rate scale, the core inverse problem.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s11_ignition.py:299",
+          "quote": "Whether the data pin down the start time (decided from the fit alone, never the reference).",
+          "point": "An identifiability rule withholds the start time when the data do not support it. This is the discipline that makes the problem hard.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s11_ignition.py:439",
+          "quote": "Pick the smallest temperature whose 90% radius and interval cover the truth in at least 90%",
+          "point": "Calibration is split into calibration and unseen halves, so coverage is reported on cases it never saw.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:134",
+          "quote": "| Real fire: estimated start time | withheld (not identifiable) | withheld (not identifiable) |",
+          "point": "Both real fires return not identifiable, which shows the problem is hard and left open. This is credited as difficulty, not success.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:28",
+          "quote": "Eaton's first mapped perimeter is 4.8 h after the reported start; Palisades' is 26 h after.",
+          "point": "Sparse, late perimeters make the back-trace ill-posed, which is the hard constraint the method addresses.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s14_debris_models.py:77",
+          "quote": "\"doi\": \"10.5066/P1R9VXC4\"",
+          "point": "The debris-flow inventory is a named USGS source with a DOI, the data input behind the debris-half recency claim.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: python3 -I -c (read-only json print of web/public/data/debris_flow/model_eval.json inventory block)",
+          "quote": "\"title\": \"USGS runoff-generated postfire debris-flow inventory (Graber et al. 2026)\"",
+          "point": "The debris-half inventory is titled as a 2026 release, which meets the recency test for that half only.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: python3 -I -c (read-only json print of web/public/data/debris_flow/model_eval.json inventory block)",
+          "quote": "\"used_records\": 7639, \"used_fires\": 77, \"used_flows\": 955",
+          "point": "The 2026 inventory is used in committed leave-one-fire-out evaluation, not just cited.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: python3 -I -c (decode first 8 hex chars of ScienceBase item id 69612c8ed4be02298529c522 as unix time)",
+          "quote": "2026-01-09T16:27:58+00:00",
+          "point": "The ID prefix decodes to Jan 2026, which corroborates the 2026 title. This is an inference from the ID format, so it is corroboration only.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s05_perimeters.py:72",
+          "quote": "SOURCE = \"NIFC Operational Data Archive 2025\"",
+          "point": "The headline inverse uses 2025 public perimeters, which were available before the year-ago window, so no recency credit.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "pipeline/ember/spread.py:3",
+          "quote": "Physics (deliberately simple, documented in the model card in step 11):",
+          "point": "The forward physics is described as deliberately simple, so it adds little novelty to the core.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "pipeline/ember/spread.py:194",
+          "quote": "lb = 0.936 * np.exp(0.2566 * u) + 0.461 * np.exp(-0.1548 * u) - 0.397",
+          "point": "The length-to-breadth term is Anderson's 1983 fit, a classical formula.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:179",
+          "quote": "Machine learning did not clearly beat USGS's M1 where it matters.",
+          "point": "The ML models do not clearly improve on an existing published model, so the debris contribution is modest in novelty.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:53",
+          "quote": "Built and tested offline. Not yet run against the live API",
+          "point": "The Muse Spark analyst, the one model-native piece, is not run live, so it earns no ambition credit.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "web/api/analyst.ts:47",
+          "quote": "MODEL_API_KEY is not set on the server, so the analyst is unavailable. It does not answer without the model.",
+          "point": "Without a key the analyst returns an error, so no live LLM behavior is demonstrated.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:188",
+          "quote": "No spotting, crown fire or suppression.",
+          "point": "Spotting is absent, the mechanism most likely to explain the Palisades gap.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:193",
+          "quote": "Under every wind tried, k sits at the ceiling: without spotting, the model can't spread that fire as fast as it burned.",
+          "point": "Palisades sits outside the model's reach, so the hardest case is not solved.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:243",
+          "quote": "the layout and interaction model are inspired by Dilum Sanjaya's",
+          "point": "The app's layout and interaction are borrowed from an existing concept, so the UI earns no ambition credit.",
+          "effect": "withheld"
+        }
+      ],
+      "top_fixes": [
+        "Run the Muse Spark analyst live once with a real MODEL_API_KEY and commit the transcript and verifier audit, so the one model-native piece is shown working rather than only tested offline (README.md:53).",
+        "Add a spotting or ember-transport term to pipeline/ember/spread.py and show that Palisades' k leaves the ceiling (README.md:188, README.md:193). A mechanism the model lacks is a harder step than another statistic.",
+        "Record the Graber et al. 2026 inventory's publication date and version in the source metadata of web/public/data/debris_flow/model_eval.json, so the recency claim at README.md:35 is checkable from the repo, not only from the README text."
+      ]
+    },
+    "depth": {
+      "key": "depth",
+      "score": 7.5,
+      "rationale": "The hard part is real, original and mostly correct: a numba time-dependent Dijkstra over an elliptical rate-of-spread model, a hinge-loss inversion over ignition cell, start time, spread scale and shape cap, split-half simulation-based calibration of the posterior temperature, an identifiability gate, a perturbed synthetic benchmark, and hand-coded Robins-Breslow-Greenland and cluster-bootstrap statistics. The formulas I checked are right: the Anderson length-to-breadth curve, the rear-focus ellipse, the RBG variance and the Wilson interval. It stops short of 8 because the physics constants are unsourced (spread.py:57-77); the deployed Eaton fit has lb_max 1.0, which collapses the ellipse to a circle; the Palisades hold-out predicts zero burned cells at both held-out perimeters; the synthetic truth uses the same spread function; the debris models are stock scikit-learn; and the analyst is a standard tool loop with a heuristic verifier. Share estimate: whole-file upper bound of about 3,700 original-logic lines (spread.py, s11, s14, s05, debris.py, s09b, s06, s10, verify.ts) out of about 16,700 code lines (pipeline 6,739, api 1,392, web/src about 8,600), so about 22% of all code and about half the Python pipeline. Discounting report prose inside s11 and s14, the core is nearer 2,500 to 3,000 lines (about 15-18%). The rest is fetch, parsing, rendering and plumbing. Stub steps s09c, s12, s12c and s13 are not credited.",
+      "evidence": [
+        {
+          "ref": "pipeline/ember/spread.py:198",
+          "quote": "return rh * (1.0 - e) / (1.0 - e * cos_a)",
+          "point": "Elliptical rate of spread with the ignition at the rear focus, the correct Anderson-style form, implemented in the numba kernel",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/ember/spread.py:194",
+          "quote": "lb = 0.936 * np.exp(0.2566 * u) + 0.461 * np.exp(-0.1548 * u) - 0.397",
+          "point": "Anderson 1983 length-to-breadth curve, clamped to a cap, feeding the eccentricity",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/ember/spread.py:290",
+          "quote": "if (r0[ur + passed[j, 0, 0], uc + passed[j, 0, 1]] <= 0.0",
+          "point": "Hand-rolled time-dependent Dijkstra over a 16-neighbour stencil; diagonal and knight moves may not cut between a burnable and a non-burnable corner, so fire cannot hop a one-cell river or road",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/ember/spread.py:325",
+          "quote": "late = a - t if np.isfinite(a) else cap",
+          "point": "Hinge loss: inside cells that arrive late are penalised, unreached cells are charged the cap, and the band term (line 330) penalises early arrival outside each footprint",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s11_ignition.py:215",
+          "quote": "# Stage 2: refine the 8 best distinct (cell, k) combinations.",
+          "point": "Two-stage search over cell, start time, spread scale and cap; the posterior comes from the stage-1 grid only, so candidate density cannot bias it (docstring lines 196-200)",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s11_ignition.py:441",
+          "quote": "cal, test = cases[0::2], cases[1::2]",
+          "point": "Split-half simulation-based calibration: the smallest temperature covering the truth at 90% on one half is chosen and its coverage is reported on the unseen half (calibrate, lines 438-464)",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s11_ignition.py:305",
+          "quote": "if width > TIMING_MAX_WIDTH_H:",
+          "point": "Identifiability gate: a start time is shown only if the 90% interval is at most 6 h and k is below the ceiling. Decided from the fit alone, never from the reference. Unit-tested in test_s11_ignition.py",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s11_ignition.py:379",
+          "quote": "r0_true[terr.r0 == rate] *= rng.uniform(0.75, 1.3)",
+          "point": "Synthetic truth is perturbed away from the inverted model: per-fuel rate factors, a patchy fuel field (lines 380-381) and wind speed, direction and timing shifts (lines 383-388)",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s09b_exposure.py:87",
+          "quote": "se = np.sqrt(PR / (2 * R * R) + PS_QR / (2 * R * S) + QS / (2 * S * S))",
+          "point": "Hand-coded Robins-Breslow-Greenland variance for the Mantel-Haenszel odds ratio; the form matches the published one",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s14_debris_models.py:343",
+          "quote": "return np.random.default_rng(BOOT_SEED).integers(0, n_groups, size=(n_boot, n_groups))",
+          "point": "Cluster bootstrap over whole fire-storm groups, with the same resamples reused for paired differences between models (paired_within_storm, lines 368-382)",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s14_debris_models.py:287",
+          "quote": "e = clone(est).fit(X[mid][~test], y[~test])",
+          "point": "Leave-one-fire-out fold: the held-out fire is excluded from every fit, including the imputer",
+          "effect": "awarded"
+        },
+        {
+          "ref": "web/api/_lib/verify.ts:86",
+          "quote": "export function ungroundedNumbers(text: string, cites: Cite[], g: Grounding): string[] {",
+          "point": "Original server-side check that each number or clock time in a paragraph appears in its cited tool output. It is a string-containment heuristic, so it cannot test attribution",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s05_perimeters.py:18",
+          "quote": "an isosceles triangle with a horizontal base, sized to the reported acreage, before",
+          "point": "Domain-specific placeholder detection (InFORM triangles, 3 distinct vertices), re-save dedup and cumulative clipping: original data-cleaning logic, not fetch glue",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/ember/spread.py:57",
+          "quote": "C_WIND = 0.32      # head-rate wind coefficient (U in mph)",
+          "point": "The wind and slope coefficients are hand-set with no source. The FUEL_TABLE base rates (line 66, '10: (18.0, 0.20), # tree cover') are also unsourced. The global k then absorbs their scale. BUILD.md:101 only says simplified Rothermel factors",
+          "effect": "withheld"
+        },
+        {
+          "ref": "pipeline/ember/spread.py:196",
+          "quote": "e = np.sqrt(1.0 - 1.0 / (lb * lb))",
+          "point": "The deployed Eaton fit has lb_max 1.0, so lb is clamped to 1, e is 0 and the ellipse is a circle: wind direction no longer shapes the head rate, leaving only the magnitude of the wind-plus-slope vector",
+          "effect": "withheld"
+        },
+        {
+          "ref": "cmd: python3 -I read web/public/data/eaton/ignition.json (map block)",
+          "quote": "FULL map {'lon': -118.094686, 'lat': 34.195745, 't': '2025-01-08T01:09:51Z', 'k': 0.424, 'lb_max': 1.0}",
+          "point": "Confirms that the deployed Eaton fit uses the circular shape (lb_max 1.0), the same setting the README describes as 'a round fire'",
+          "effect": "withheld"
+        },
+        {
+          "ref": "cmd: python3 -I read web/public/data/palisades/eval/ignition_holdout.json (held_out)",
+          "quote": "{'t': '2025-01-08T20:34:03Z', 'observed_cells': 5185, 'predicted_cells': 0, 'iou': 0.0}",
+          "point": "The Palisades hold-out predicts zero burned cells at both held-out perimeters (IoU 0.00), so the fit does not reproduce the fire it is scored on",
+          "effect": "withheld"
+        },
+        {
+          "ref": "docs/RESULTS.md:85",
+          "quote": "The hold-out estimate starts at 2025-01-09T10:27:04Z, after the held-out perimeters, which it therefore predicts as unburned",
+          "point": "Disclosed, but only the start time is withheld. The 315 m location from the same fit is still a headline win (README.md:135) with a 9.7 km 90% radius (cmd: ignition_holdout r90_m 9675.6)",
+          "effect": "withheld"
+        },
+        {
+          "ref": "cmd: python3 -I read web/public/data/eaton/eval/ignition_holdout.json (errors, held_out)",
+          "quote": "'backtrace_distance_m': 2503.5, 'baseline_distance_m': 2460.5",
+          "point": "On the real Eaton hold-out the back-trace is slightly worse than the centroid baseline, and held-out IoU is 0.23 and 0.15 ('predicted_cells': 168 and 191 against 571 and 1077 observed)",
+          "effect": "withheld"
+        },
+        {
+          "ref": "pipeline/steps/s11_ignition.py:390",
+          "quote": "truth = sp.arrival(true_terr, true_wind, truth_rc, t0, k=k_true, t_stop_h=t0 + schedule[-1] + 1, lb_max=lb_true)",
+          "point": "The synthetic truth uses the same spread function as the inverted model. The perturbations test parameter robustness, not structural error, and the README's 'physics that differs in kind' overstates this",
+          "effect": "withheld"
+        },
+        {
+          "ref": "pipeline/steps/s14_debris_models.py:230",
+          "quote": "monotonic_cst=db.monotonic_cst(features), n_jobs=1, random_state=SEED)",
+          "point": "The random forests and MLPs are stock scikit-learn with fixed hyperparameters. The originality is the evaluation design, not the models. The M1 likelihood is a four-term logistic, and its check (cmd: debris_flow_stats m1_check max_abs_diff_vs_usgs 3.33e-16) is cheap",
+          "effect": "withheld"
+        },
+        {
+          "ref": "web/api/_lib/analyst.ts:91",
+          "quote": "while (rounds < maxRounds) {",
+          "point": "The analyst loop is a standard tool-calling loop with a nudge and a forced final call. It has never run against the live API (README.md:53), so only the verifier is original",
+          "effect": "withheld"
+        },
+        {
+          "ref": "cmd: python3 -I read web/public/data/palisades/ignition.json (lb_selection)",
+          "quote": "{'lb_max': 1.25, 'loss_h': 5.056, 'k': 76.8}, {'lb_max': 1.5, 'loss_h': 5.0545, 'k': 76.8}",
+          "point": "On Palisades the shape-cap choice spans about 0.03 h of loss across 1.0 to 3.0, so the chosen cap is weakly identified and k sits at the ceiling for most caps",
+          "effect": "withheld"
+        }
+      ],
+      "top_fixes": [
+        "Fix the circular-fire collapse: Eaton's fit sets lb_max 1.0, so e is 0 (pipeline/ember/spread.py:195-198) and wind direction stops shaping the head rate. Model spotting or directional gusts as an explicit mechanism, such as a long-range ember kernel, rather than a shape cap.",
+        "Source or fit the hand-set constants (C_WIND, B_WIND, C_SLOPE and FUEL_TABLE, spread.py:57-77) against published Rothermel or Anderson fuel-model values, and record the provenance in code, so k is not carrying unexplained scale.",
+        "Make the Palisades hold-out fail closed: when predicted_cells is 0 at the held-out times, withhold the location as well as the start, and remove the 315 m figure from the headline table (README.md:135).",
+        "Lift the first-footprint restriction on the search domain. s11_ignition.py:642 searches only fit.masks[0], so CAL FIRE's Eaton point, 1.1 to 1.7 km outside it, is unreachable. Add a back-extension prior or a domain that grows with the lag.",
+        "Make the synthetic truth structurally different, for example a different rate law or a spotting kernel, so the 90% coverage tests structural error. At present the truth calls the same sp.arrival (s11_ignition.py:390).",
+        "Replace the number-containment check in verify.ts (lines 86-108) with per-field attribution, so a number must come from the specific cited field and not merely anywhere in the cited output."
+      ]
+    },
+    "works": {
+      "key": "works",
+      "score": 7.5,
+      "rationale": "All five documented offline commands exited 0 in the runner log. The Eaton ignition hold-out is genuinely recomputed on eval (s11_ignition.py:641-642) and matched the committed file exactly. Two of 30 synthetic cases were re-simulated and matched. The Chrome smoke test passed 3 of 3 with none skipped, asserting zero SIM layers. Nothing on the demo path is hardcoded or mocked: the app is a viewer over pipeline-written files, the synthetic fallback is labelled SIM and fires only on load failure, and start-time display is gated by the pipeline's identifiability flag. Withheld: the 3D fire render is not asserted or verified in the sandbox (smoke test asserts DOM text only); Palisades eval was not run, so no Palisades number was reproduced this round; the 30 synthetic cases are summarised from stored records rather than re-simulated; the analyst was never run live and its eval only printed ground truth. Per the rubric the analyst is neither credited nor counted broken. Score 7.5 rather than 8 because the headline render and the second fire's reruns are unexercised.",
+      "evidence": [
+        {
+          "ref": "cmd: make test",
+          "quote": "176 passed, 12 skipped, 10 warnings in 56.30s",
+          "point": "Offline pipeline test suite exits 0; the 12 skips are gated on gitignored intermediates, not hidden failures",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s11_ignition.py:641",
+          "quote": "fit, held = holdout_split(masks, times)",
+          "point": "Eaton hold-out is recomputed from committed observations in eval mode, so the inversion actually executes offline",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: make eval EVAL_DIR=/tmp/ember-judge-r4-run",
+          "quote": "(recursive exact-equality check, python3 -I): identical. No differing values.",
+          "point": "Committed ignition_holdout.json reproduces exactly on rerun",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: make eval QUICK=1 EVAL_DIR=/tmp/ember-judge-r4-quick",
+          "quote": "check: 2 cases, identical to the committed ones: True",
+          "point": "Two synthetic cases re-simulated with max_abs_diff 0.0; a partial, not full, reproduction",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: cd web && npm ci && npm test && npm run build",
+          "quote": "Tests 81 passed (81)",
+          "point": "Unit tests, Chrome smoke test (3 pass, skipped 0) and production build all succeed",
+          "effect": "awarded"
+        },
+        {
+          "ref": "web/tests-smoke/demo.smoke.mjs:134",
+          "quote": "assert.equal(shown.filter(s => s === 'SIM').length, 0);",
+          "point": "Smoke test fails if any manifest layer is simulated, so the demo path is checked for no synthetic layers",
+          "effect": "awarded"
+        },
+        {
+          "ref": "web/src/stage/synthetic-arrival.ts:9",
+          "quote": "Kept only as the fallback when step 06's arrival.png fails to load",
+          "point": "Synthetic test pattern is a labelled load-failure fallback, not on the demo path",
+          "effect": "awarded"
+        },
+        {
+          "ref": "web/src/rail/ignition.tsx:35",
+          "quote": "shown only when the pipeline says the timing is identifiable",
+          "point": "Start time display is gated on the pipeline's identifiability flag rather than computed or hardcoded in the UI",
+          "effect": "awarded"
+        },
+        {
+          "ref": "web/src/rail/overview.tsx:11",
+          "quote": "for (const s of fire.manifest.sources) counts[s.status]++;",
+          "point": "Real/modeled/simulated source counts are computed from manifest.json, not typed in",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/steps/s10_events.py:1",
+          "quote": "Step 10: key events, derived from the data rather than typed in.",
+          "point": "Timeline events are computed from fire files, and the pipeline writes them with source attribution",
+          "effect": "awarded"
+        },
+        {
+          "ref": "web/src/stage/fire-extension.ts:17",
+          "quote": "filtering would blend 0 (no data) into valid codes and paint a",
+          "point": "Severity raster is read unfiltered, so the renderer does not paint a fabricated low-severity fringe",
+          "effect": "awarded"
+        },
+        {
+          "ref": "web/src/data/fire.ts:58",
+          "quote": "{id: 'eaton', name: 'Eaton Fire'},",
+          "point": "Two fires are built and selectable (Palisades on line 59), so the demo is not one canned input, though only two are committed",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: make eval EVAL_DIR=/tmp/ember-judge-r4-run",
+          "quote": "synthetic benchmark cases loaded, not rerun, from the committed",
+          "point": "The 30 synthetic cases are read from stored records and only summarised here; the full rerun (make eval-full) was not run",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:214",
+          "quote": "make eval FIRE=palisades EVAL_DIR=/tmp/ember-eval-pal",
+          "point": "Palisades reproduction is documented but was not run in this log, so no Palisades headline number was reproduced",
+          "effect": "withheld"
+        },
+        {
+          "ref": "web/tests-smoke/demo.smoke.mjs:4",
+          "quote": "Only DOM text is",
+          "point": "Smoke test asserts DOM text only; 3D terrain and fire-layer rendering is not verified in the sandbox (line 5 says WebGL may not draw)",
+          "effect": "withheld"
+        },
+        {
+          "ref": "cmd: npm run eval:analyst -- --truth",
+          "quote": "> tsx scripts/eval-analyst.ts --truth",
+          "point": "Prints ground-truth values only, with no model call, so analyst answer quality is unmeasured",
+          "effect": "withheld"
+        },
+        {
+          "ref": "web/api/analyst.ts:47",
+          "quote": "MODEL_API_KEY is not set on the server, so the analyst is unavailable.",
+          "point": "Without a key the endpoint returns 503 with a message and no answer, as the README documents; the live analyst is never run here, so it earns no credit",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:53",
+          "quote": "Built and tested offline. Not yet run against the live API",
+          "point": "The README itself marks the analyst as not yet run live; neither credited nor counted broken under the rubric",
+          "effect": "withheld"
+        }
+      ],
+      "top_fixes": [
+        "Run make eval FIRE=palisades (and make eval-full if time allows) in a clean worktree and commit the reproduced output or an explicit diff, so the Palisades headline numbers are checked the same way as Eaton.",
+        "Make the synthetic benchmark verifiable beyond 2 of 30 cases: either re-simulate a larger fixed subset in make eval QUICK=1 or publish a log of make eval-full so the stored-case summaries are backed by a rerun.",
+        "Capture an actual WebGL render of the replay in the sandbox (for example a Playwright screenshot with the swiftshader flag already used in demo.smoke.mjs) and commit it with its command output, rather than relying on the authored docs/img/eaton-replay.jpg.",
+        "Run the analyst once against the live Muse Spark API and commit the scripts/eval-analyst.ts answer scores, so the one question-driven feature has measured accuracy and not only printed ground truth.",
+        "Code-split the deck.gl bundle: cmd4 reports a single 1,335 kB chunk and the Rollup warnings about misplaced annotations in zod and deck.gl, which add noise to the build log."
+      ]
+    },
+    "evidence": {
+      "key": "evidence",
+      "score": 7.5,
+      "rationale": "Nearly every quantitative README claim reproduces from committed files. The synthetic medians and p90s were recomputed from the 30 cases per fire, and the headline table, debris table, exposure odds ratios, weather correlations, wind ablation, and data counts all match. The debris evaluation is strong: leave-one-fire-out over 77 folds, paired bootstrap intervals, a fold-isolation test, and an honest \"did not clearly beat M1\" result. Negative results are reported (Eaton hold-out misses CAL FIRE's point, start times withheld, analyst eval not run). Evidence strength is uneven. Real-outcome checks are the debris LOFO, the exposure counts and the wind-station correlations. The back-trace claims rest on synthetic truth that uses the same spread equations, and on two real fires. The Palisades 315 m location win comes from a fit that predicts zero burned cells at the held-out times. The real hold-out keeps the held-out burn area inside its first fitted footprint, which RESULTS.md calls a sliver. The random forest's weak agreement with USGS is not reported, and the debris table sits outside the drift test. Score 7.5 rather than 8 because the lead feature's real validation is thin and two of its real-data claims are overstated.",
+      "evidence": [
+        {
+          "ref": "README.md:129",
+          "quote": "| Synthetic fires, location error (median): back-trace vs first-footprint centroid | 588 m vs 449 m | 526 m vs 1,624 m |",
+          "point": "Headline all-observation location medians match the recomputed medians from the 30 cases per fire.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: python3 -I recompute of web/public/data/eaton/eval/ignition_synthetic.json and palisades equivalent, cases list",
+          "quote": "all_obs dist median 588.1 449.4 p90 1578.1 3144.4 better 0.5666666666666667; all_obs dist median 526.5 1624.1 p90 1083.0 3005.0 better 0.8666666666666667",
+          "point": "Recomputed medians and p90s match README.md:129-130 and the summary blocks in the same files. Start-time medians also match: 78.4 min vs 1295.2 min (Eaton) and 274.3 min vs 2217.3 min (Palisades).",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: python3 -I print of calibration_all_observations in web/public/data/eaton/eval/ignition_synthetic.json",
+          "quote": "test_cov {'distance': 0.87, 'time': 0.93} r90 1717.3 t90w 10.31",
+          "point": "Matches README.md:132 (87% / 93%, radius 1,717 m, interval 10.31 h). The odd cases are a true 15-case test set, so n is small, as README.md:196 says.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:174",
+          "quote": "| Random forest, monotone in rainfall | 0.815 | 0.800 [0.688, 0.864] | 0.704 |",
+          "point": "Debris row matches model_eval.json rf_extended. Its printed figures are 'median_roc_auc': 0.8, 'ci95_median': [0.6875, 0.8636], and pooled ROC AUC 0.8153.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: python3 -I print of models in web/public/data/debris_flow/model_eval.json",
+          "quote": "'median_roc_auc': 0.8, 'weighted_roc_auc': 0.7539, 'ci95_median': [0.6875, 0.8636]",
+          "point": "Backs the rf_extended row. The paired figure in README.md:179 (+0.015 [-0.063, +0.097]) matches the model_eval notes, which report rf_extended +0.015 [-0.063, +0.097] against M1 published.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: python3 -I contrasts print of web/public/data/eaton/exposure_stats.json",
+          "quote": "vents 8279 0.349 [0.307, 0.397] {'destroyed': 0.4438, 'surviving': 0.031}",
+          "point": "Matches README.md:140 (0.35, 0.31-0.40). The Palisades vents OR 0.501 [0.453, 0.555] matches 0.50 (0.45-0.56). Unknown-rate figures in docs/RESULTS.md:123-146 also match.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:139",
+          "quote": "| Hourly wind vs the nearest airport station: HRRR vs ERA5 | r 0.90 vs 0.71 | r 0.85 vs 0.75 |",
+          "point": "Matches weather_station.json comparison_model_at_station and comparison_era5_seamless_at_station for both fires (Eaton 0.9 vs 0.71; Palisades 0.85 vs 0.75).",
+          "effect": "awarded"
+        },
+        {
+          "ref": "docs/RESULTS.md:99",
+          "quote": "| HRRR 3 km field | 2.02 | 0.45 | 0.424 | 2025-01-08T01:09:51Z |",
+          "point": "Backs README.md:138 (IoU 0.45, k 0.424 for the field; ERA5 lb8 IoU 0.30, k 11.314 at docs/RESULTS.md:102). Palisades is in docs/RESULTS.md:110-113, where ERA5 (0.40) edges HRRR (0.38), and README.md:138 reports that honestly.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "web/public/data/eaton/debris_flow_stats.json:41",
+          "quote": "0.8811",
+          "point": "Spearman 0.88 for M1 recalibrated at 16 mm/h matches README.md:180 (0.94 for Palisades, file value 0.942). The M1 reproduction gap is 3.33e-16 (Eaton) and 4.44e-16 (Palisades), matching README.md:164.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: python3 -I count of web/public/data/*/structures.geojson features",
+          "quote": "total 30565",
+          "point": "18,428 + 12,137 structures match README.md:30 'about 30,000 structures'.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "web/api/_lib/tools.ts:558",
+          "quote": "export const DATA_TOOLS: ChatCompletionFunctionTool[] = [",
+          "point": "Nine data tools (place_lookup through exposure_stats, tools.ts:559-575) plus final_answer at tools.ts:581 match README.md:114 'Muse Spark gets 9 read-only tools'. The analyst itself is not run, so this count is not credited as evidence of results.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/tests/test_report.py:7",
+          "quote": "def test_readme_headline_matches_the_eval_files():",
+          "point": "A drift test asserts the README headline block equals report.headline() built from the committed eval files. I did not run it, but the generator reads the eval files directly (pipeline/tools/report.py:288-289, cells() at :363).",
+          "effect": "awarded"
+        },
+        {
+          "ref": "pipeline/tests/test_s14_debris.py:289",
+          "quote": "def test_a_fold_never_sees_the_held_out_fire",
+          "point": "Leave-one-fire-out isolation is tested, and test_model_eval_follows_the_contract (test_s14_debris.py:357) checks the model_eval.json schema. Both support the debris numbers.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:101",
+          "quote": "so the real Eaton hold-out is a sanity check rather than an independent test",
+          "point": "The README discloses that the Eaton synthetic design choices were diagnosed on real Eaton data, and cites commits 0eab9dc and 66e8516. This is candid reporting of a limit.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:179",
+          "quote": "Machine learning did not clearly beat USGS's M1 where it matters.",
+          "point": "A negative result is stated and backed by paired intervals that include zero (rf_extended median minus M1 +0.015, CI -0.063 to +0.097; model_eval.json notes).",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:135",
+          "quote": "| Real hold-out: distance to CAL FIRE's reported point (baseline: first-footprint centroid) | 2,504 m (2,460 m) | 315 m (3,557 m) |",
+          "point": "The 315 m Palisades location win has no caveat. The fit behind it predicts zero burned cells at both held-out times and its estimated time falls after them (see the next item). README.md:136 caveats only the start time. Major overstatement.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "web/public/data/palisades/eval/ignition_holdout.json:26",
+          "quote": "2025-01-09T10:27:04Z",
+          "point": "The Palisades hold-out estimate time is after both held-out perimeters (lines 9-17). It predicts predicted_cells 0 at both (lines 11 and 17), and its 90% radius is 9675.6 m (line 29), so 'reference inside r90' is nearly trivial. docs/RESULTS.md:85 says the start is not a credible back-trace, but the location row does not carry that caveat.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "pipeline/steps/s11_ignition.py:165",
+          "quote": "astype(bool) | cum",
+          "point": "observations() unions each perimeter with all earlier ones, so the first fitted footprint (holdout_split, s11_ignition.py:356, fit = weighted(masks[HOLDOUT_N:], ...)) already contains the held-out burn area. The hold-out withholds snapshot times, not the burned extent.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "docs/RESULTS.md:51",
+          "quote": "apart from the sliver of their area the cumulative footprints keep",
+          "point": "Calls the leak a sliver, but web/public/data/eaton/eval/ignition_holdout.json:17 holds 1,077 cells at 07:12 and RESULTS.md:64 says only 0.2 ha lies outside the first fitted footprint. The held-out extent is effectively inside the fit.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "pipeline/steps/s11_ignition.py:398",
+          "quote": "masks.append(m | (masks[-1] if masks else False))",
+          "point": "The synthetic stress test ('first two held out', README.md:131) is built with the same cumulative union, so its hold-out rows inherit the leak.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "pipeline/steps/s11_ignition.py:15",
+          "quote": "simulated with physics that differs from the inverted model in kind, not just in parameters",
+          "point": "The docstring says 'in kind', but README.md:92 says the truth 'runs the same spread equations as the inverting model', and the listed perturbations are parameter-level plus noise. README.md:145 ('the physics deliberately differs') overstates this. The synthetic rows test parameter misspecification only.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:101",
+          "quote": "drew k from 4\u201316 to resemble the real Eaton fit of the time",
+          "point": "The synthetic spread-rate prior was moved toward real Eaton's fit (k 4-16 in 0eab9dc), then back to 0.25-4 (66e8516). The synthetic Eaton rows are therefore not independent of real Eaton data. This is disclosed, but it limits what those rows show.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:158",
+          "quote": "the start interval held the true start in 87\u2013100%",
+          "point": "The range is attributed to Eaton. Eaton's start-interval coverage is 93% (all observations) and 87% (first two held out). cmd: test_cov {'distance': 0.93, 'time': 0.87} is in the calibration block of web/public/data/eaton/eval/ignition_synthetic.json. 100% is Palisades only.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "web/public/data/eaton/debris_flow_stats.json:45",
+          "quote": "0.3787",
+          "point": "The mapped random forest agrees with USGS far less than M1 recalibrated (Spearman 0.38 at 16 mm/h; 0.47 at 24 mm/h). README.md:180 reports only M1's 0.88 and 0.94, so the mapped RF's agreement with USGS is missing evidence.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:19",
+          "quote": "a test fails if it drifts",
+          "point": "Only the headline block (README.md:126-142) is drift-tested. The debris table (README.md:170-176) and its prose have no drift test (no README reference in test_s14_debris.py or report.py).",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:120",
+          "quote": "so 14 are scored for Eaton and 13 for Palisades",
+          "point": "No committed analyst output backs these counts. docs/RESULTS.md:165-166 says 'not run yet' for both fires, and the truth counts need node_modules, which is absent. Unbacked, not contradicted.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:180",
+          "quote": "9.8% of those storms produced a debris flow",
+          "point": "9.8% is the base rate of watershed-storm records (model_eval.json base_rate 0.0983, line 57), not of storms. Wording slip.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:149",
+          "quote": "the reported point lies outside the first four mapped perimeters (up to 10:37Z)",
+          "point": "docs/RESULTS.md:64 computes distances only to the 07:06 and 10:33 perimeters, so the claim about all four is not backed by a committed file. Minor.",
+          "effect": "withheld"
+        }
+      ],
+      "top_fixes": [
+        "Caveat or remove the Palisades 315 m location row (README.md:135). The same fit predicts zero burned cells at both held-out times and its estimated time falls after them.",
+        "Rebuild the real hold-out so the first fitted footprint excludes the held-out burn area, or label it a timing-only test. Drop the 'sliver' wording (docs/RESULTS.md:51) and fix the same union in the synthetic stress test (pipeline/steps/s11_ignition.py:398).",
+        "Report the mapped random forest's agreement with USGS (Spearman 0.38-0.47 on Eaton at design storms, debris_flow_stats.json:45) beside M1's 0.88 in README.md:180.",
+        "Either add a structurally different synthetic truth or change 'in kind' (pipeline/steps/s11_ignition.py:15) to match README.md:92. State that the synthetic rows test parameter misspecification only.",
+        "Put the debris table (README.md:170-176) under a drift test like the headline block. Fix the wording slips: 'storms' should be records (README.md:180), and the Eaton coverage range (README.md:158) should read 87-93%.",
+        "Commit analyst eval outputs (README.md:120) once a key is available. Until then the analyst counts are unbacked."
+      ]
+    },
+    "clarity": {
+      "key": "clarity",
+      "score": 8,
+      "rationale": "The pitch is strong on its first screen. The product is stated in one line (README.md:3), the user, problem and why-now are each labelled (README.md:25, 27, 34), and the concrete numbers check out against the committed files: Eaton's first perimeter is 4.8 h after the reported start and Palisades' is 26 h after (arrival_meta.json), and the two structures files hold about 30,500 features. The demo deep links are read by the app (fire.ts:62, ui.ts:91) and the Eaton screenshot shows the 15:30 PST cursor the README describes. It stops short of 10 because the user and problem sit below the bullets and the run block, internal stream and design-doc jargon appears in the status table, the method sections are dense for a first-time reader, and the demo path shows only Eaton and never points to the homes analysis the pitch promises.",
+      "top_fixes": [
+        "Move the user and problem (README.md:25-32) above the run block and screenshot (README.md:9-17), or add one sentence naming the user under the tagline at README.md:3, so a first-time judge sees who it is for before the feature list.",
+        "Gloss or remove internal build jargon: 'stream C' (README.md:55, 238, 242), 'stream A' and 'three streams' (README.md:58), and 'the reference design's Resources tab' (README.md:54). A reader should not need WORKSTREAMS.md or DESIGN.md to read the status table.",
+        "Add a Palisades screenshot beside docs/img/eaton-replay.jpg, or a sentence saying what to expect on ?fire=palisades (README.md:17 mentions it only in passing), since the pitch covers two fires.",
+        "Add a short 60-second walkthrough that maps each pitch bullet (README.md:4-7) to a view, including Analysis then Homes for 'which homes survived' (web/src/rail/homes.tsx:151), which the Run-it path never mentions.",
+        "Put a plain-language summary ahead of 'How the hard part works' (README.md:60) and define IoU before its first use in the evidence table (README.md:138; defined only at README.md:150), so the method reads after the pitch rather than inside it."
+      ],
+      "evidence": [
+        {
+          "ref": "README.md:3",
+          "quote": "A forensic reconstruction of a real wildfire from public records.",
+          "point": "One-line statement of what the project is, in the first line of the README.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:25",
+          "quote": "The user: the analyst who has to explain a fire afterwards.",
+          "point": "Names the user explicitly, with a named list of who that includes (README.md:25).",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:28",
+          "quote": "Eaton's first mapped perimeter is 4.8 h after the reported start; Palisades' is 26 h after.",
+          "point": "Concrete problem statistic. Checked: web/public/data/eaton/arrival_meta.json:21 gives 2025-01-08T07:06:14Z against a 02:18:00Z seed (4.8 h), and web/public/data/palisades/arrival_meta.json:21 gives 2025-01-08T20:34:03Z against 2025-01-07T18:30:00Z (26.1 h).",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:34",
+          "quote": "Why now: the burn scars face their first winters now, and the evidence to reconstruct these fires only recently became public in machine-readable form:",
+          "point": "Why-now is dated and sourced. web/public/data/eaton/manifest.json:123 cites NIFC Operational Data Archive 2025, and manifest.json:36 cites Graber et al. 2026.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: python3 -c count features in web/public/data/{eaton,palisades}/structures.geojson",
+          "quote": "features 18428 ; features 12137",
+          "point": "Supports the about 30,000 structures claim at README.md:30: 18,428 plus 12,137 is about 30,565 features, so the number is not inflated.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:17",
+          "quote": "Then open http://localhost:5173/?fire=eaton&t=2025-01-08T23:30:00Z for this view",
+          "point": "A working deep link for the demo. web/src/data/fire.ts:62 reads the fire parameter, and fire.ts:85 reads t to set the replay time. docs/img/eaton-replay.jpg shows the Jan 8, 15:30 PST cursor the README caption names.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "web/src/state/ui.ts:91",
+          "quote": "const INITIAL_TAB: Tab = TAB_PARAM === 'risk' ? 'risk' : 'incident';",
+          "point": "The tab=risk deep link the README promises is honoured, so the debris-flow demo view is reachable as described.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:53",
+          "quote": "Not yet run against the live API",
+          "point": "The analyst is pitched as central to the user (README.md:41) but its status is stated honestly as not run live, so the pitch does not overclaim this part.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:134",
+          "quote": "| Real fire: estimated start time | withheld (not identifiable) | withheld (not identifiable) |",
+          "point": "The pitch's claim that no start time is shown (README.md:5) matches the data: the ignition output marks both fires as not identifiable, and the replay screenshot shows the start time withheld.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "README.md:54",
+          "quote": "the Risk tab replaces the reference design's Resources tab",
+          "point": "Internal design-document jargon in the status table. A first-time reader has no reference design to compare against.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:58",
+          "quote": "The build is split into three streams",
+          "point": "Build-process bookkeeping leaks into the public pitch. 'stream A' and 'stream C' (README.md:55, 238) are defined only in WORKSTREAMS.md, not in the README.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:25",
+          "quote": "The user: the analyst who has to explain a fire afterwards.",
+          "point": "The user and problem are first named after the four feature bullets, the run block and the screenshot (README.md:3-17), so a first-time judge reads about 24 lines before learning who this is for.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "web/src/rail/homes.tsx:151",
+          "quote": "Odds ratio of destruction, first-named vs second, matched on gust at arrival",
+          "point": "The pitch promises which homes survived (README.md:6), but the Run-it path (README.md:17) never directs the reader to Analysis then Homes, so that bullet has no stated demo step.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:17",
+          "quote": "and `?fire=palisades` switches fires",
+          "point": "The second fire is asserted but not shown. The only screenshot is Eaton (README.md:9), and no Palisades view is described.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "README.md:109",
+          "quote": "each construction feature gets a Mantel\u2013Haenszel odds ratio of destruction, stratified by gust \u00d7 distance",
+          "point": "Method density for a first-time reader. This term appears in the body (README.md:60-120) before the reader has seen any result, which weakens the pitch even though the method is not wrong.",
+          "effect": "withheld"
+        }
+      ]
+    },
+    "execution": {
+      "key": "execution",
+      "score": 6,
+      "rationale": "Execution is 6/10 at mid-event. Clean provenance and good commit hygiene: the only pre-event-dated commit is a docs-only spec, and the first code commit (ddbcdb4) holds stubs for the hard steps. Commit subjects are specific, tests ship with the code they test, and fixes track each judge round. Held back because the spread is not yet across the window: 73 of 74 commits fall on Oct 30 in a roughly 26-hour span, the BUILD.md schedule was compressed into day 2, and 37 of 74 commits share an exact second with another commit, so timestamps show batched landing rather than when work was done. Several commits are large generated-output dumps (23ee0c9, ddbcdb4). The scaffold check came back clean: the pipeline step files are 10-line stubs that raise SystemExit, and the big scaffold rows are lockfiles and GeoJSON. Scored at mid-event; the window is not yet used, so this is not a penalty for days not yet reached.",
+      "evidence": [
+        {
+          "ref": "cmd: git log --format='%h %ad %an %s' --date=iso",
+          "quote": "ab6e229 2026-10-29 21:35:29 -0700 Jonathan Tsang Add design and build spec for Sentinel Ember",
+          "point": "The first commit is a docs-only spec on the evening the plan starts (Thu Oct 29). Nothing precedes the event in history.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: git show ddbcdb4:pipeline/steps/s11_ignition.py",
+          "quote": "Not implemented yet. See docs/spec/BUILD.md \u00a75 and \u00a77.",
+          "point": "The scaffold's back-trace step is a 10-line stub that raises SystemExit. The core logic was not written before the first commit.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: git log --numstat --format='COMMIT %h %ad %s' --date=iso -- pipeline/ember/spread.py",
+          "quote": "COMMIT e467f60 2026-10-30 03:07:21 -0700 Anisotropic spread model: elliptical ROS with time-dependent Dijkstra (numba)",
+          "point": "The spread model, about 357 added lines, lands as its own commit after the scaffold, inside the event window.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "docs/spec/BUILD.md:38",
+          "quote": "git submodule `vendor/sentinel-app`",
+          "point": "The plan promises a vendored Sentinel submodule, but cmd: cat .gitmodules printed 'no .gitmodules'. No prior-work code is committed to HEAD.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: git log --format='%h %ad %an %s' --date=iso",
+          "quote": "856c220 2026-10-30 15:00:15 -0700 Jonathan Tsang README: correct three method statements the judges flagged",
+          "point": "Fixes are committed in response to each judge round (868a898 at 08:21, 0489aa1 at 14:54, 90010d9 at 22:34), so the record shows iteration on feedback.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: git log --stat --format='%h %ad %s' --date=iso",
+          "quote": "pipeline/tests/test_s14_debris.py | 258",
+          "point": "Tests ship in the same commit as the debris model (cce29b2, 'offline tests'), and commit subjects are specific rather than wip or fixes.",
+          "effect": "awarded"
+        },
+        {
+          "ref": "cmd: git log --format='%ad' --date=short | sort | uniq -c",
+          "quote": "73 2026-10-30",
+          "point": "73 of 74 commits fall on Oct 30 (PDT) and one on Oct 29. The history spans about 26 hours (21:35 Oct 29 to 23:37 Oct 30), not the six-day window.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "docs/spec/BUILD.md:301",
+          "quote": "| **Sat Oct 31** | Arrival raster (step 6), fire layer (path A, or B by 6 pm)",
+          "point": "The plan put the arrival raster on Sat Oct 31, but 4269ac2 'Arrival raster from timed perimeters' landed Oct 30 at 03:24. The schedule was compressed into day 2.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "cmd: git log --format='%ad' --date=iso | sort | uniq -c",
+          "quote": "4 2026-10-30 19:49:39 -0700",
+          "point": "Four unrelated commits (debris flows, Risk tab, reproduce.sh, USGS segments) share one second. 37 of 74 commits share an exact timestamp with another, so timestamps record batched landing, not authoring time.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "cmd: git log --stat --format='%h %ad %s' --date=iso",
+          "quote": "31 files changed, 195335 insertions(+), 44 deletions(-)",
+          "point": "23ee0c9 bundles about 195k lines of regenerated JSON and PNG outputs with its code, so the commit size reflects output dumps more than hand-written code.",
+          "effect": "withheld"
+        },
+        {
+          "ref": "cmd: git show --numstat --format='%h %s' ddbcdb4 | sort -rn | head -n 15",
+          "quote": "web/public/data/palisades/final_perimeter.geojson",
+          "point": "The largest scaffold rows are GeoJSON data and lockfiles (for example, web/package-lock.json). The 70-file, 64,668-line scaffold is mostly generated or lock content.",
+          "effect": "withheld"
+        }
+      ],
+      "top_fixes": [
+        "Commit as each piece finishes on the days the BUILD.md schedule names (Sat Oct 31 through Tue Nov 3). The remaining work should land across the window, not in one more overnight burst.",
+        "Stop batching unrelated changes into one moment: 37 of 74 commits share an exact timestamp with another commit (for example four commits at 19:49:39).",
+        "Keep regenerated outputs out of feature commits. Commit JSON and PNG outputs in their own commit per pipeline run, or leave them out of git, so commits such as 23ee0c9 (195k lines of outputs) do not dominate the history.",
+        "Update the BUILD.md day table to match what actually landed. The Sat and Sun items (arrival raster, back-trace) are already done on Oct 30, so the record should say so rather than leaving the plan out of step with the log.",
+        "Keep the scaffold's stubs honest: the step files that raise SystemExit ('Not implemented yet') are a good provenance signal, so leave them as they are in the history."
+      ]
+    }
+  },
+  "bonus": {
+    "bonus": 2,
+    "rationale": "Meta bonus 2 of 3, the same as rounds 2 and 3, since no Meta code changed after round 3 (git diff 90010d9 HEAD touches only README wording and pipeline/tools/report.py). Working offline, judged by reading code and tests and not by running them (node_modules is absent and I did not install anything): the Muse tool registry and final_answer schema, the server-side verifier, the scripted-client loop tests (eleven in the runAnalyst describe block), and the eval scorer tests. Built but never run against Meta: the OpenAI-compatible client in model.ts, the /api/analyst route and its UI wiring, the eval main, and both halves of smoke_meta.py. No Muse answer, analyst.json, or SAM output is committed, and the README says the live run has not happened. SAM 3.1 has a real streamed request and parser path in smoke_meta.py, but no offline test covers it, and both pipeline SAM steps are stubs that exit. Planned only: the PiP mask overlay, the sam-3.1 response cache, and the drone-footage step. Llama is not mentioned anywhere in the repo. The design is shaped by the Meta API: a tool loop that answers each parallel tool call, a named-then-auto tool_choice fallback, citation and number checks, and an eval with must-decline questions. That earns real offline credit. It does not reach 3, because the rubric does not credit \"it works\" without a key and nothing live is on record.",
+    "evidence": [
+      {
+        "ref": "web/api/_lib/model.ts:5",
+        "quote": "export const MODEL_BASE_URL = 'https://api.meta.ai/v1';",
+        "point": "Real client aimed at Meta's Model API: the OpenAI SDK with the base URL swapped, used by the route and the eval.",
+        "effect": "awarded"
+      },
+      {
+        "ref": "web/api/_lib/model.ts:8",
+        "quote": "No SDK retries and a short per-call timeout: the loop's own deadline keeps a request inside",
+        "point": "Timeout and retry settings are chosen around the Meta call's latency inside the serverless budget (analyst.ts:16-17).",
+        "effect": "awarded"
+      },
+      {
+        "ref": "web/api/_lib/tools.ts:558",
+        "quote": "export const DATA_TOOLS: ChatCompletionFunctionTool[] = [",
+        "point": "Nine read-only OpenAI function-tool definitions for muse-spark-1.3, with strict parameter schemas (additionalProperties false).",
+        "effect": "awarded"
+      },
+      {
+        "ref": "web/api/_lib/tools.ts:580",
+        "quote": "export const FINAL_ANSWER_TOOL: ChatCompletionFunctionTool = fn(",
+        "point": "A final_answer tool whose paragraphs must carry cite_ids, so the output format is designed around the model's tool-calling protocol.",
+        "effect": "awarded"
+      },
+      {
+        "ref": "web/api/_lib/analyst.ts:139",
+        "quote": "messages.push({role: 'tool', tool_call_id: call.id, content});",
+        "point": "Each call in a parallel batch gets its own tool message, the shape the model needs before it answers again.",
+        "effect": "awarded"
+      },
+      {
+        "ref": "web/api/_lib/analyst.ts:71",
+        "quote": "return chat.create({...base, tools, tool_choice: 'auto'});",
+        "point": "Falls back to tool_choice auto when the API rejects a named tool_choice; the fallback is tested at loop.test.ts:144.",
+        "effect": "awarded"
+      },
+      {
+        "ref": "web/api/_lib/verify.ts:145",
+        "quote": "else if (grounding && ungroundedNumbers(text, cites, grounding).length) out.dropped.ungrounded++;",
+        "point": "Server-side check that a paragraph's numbers appear in the outputs it cites, so the model's arithmetic is not trusted.",
+        "effect": "awarded"
+      },
+      {
+        "ref": "web/api/_tests/loop.test.ts:93",
+        "quote": "it('answers every parallel tool call before asking again', async () => {",
+        "point": "Offline test of parallel tool calls against a scripted fake client. Eleven runAnalyst tests use the fake, so the loop protocol is tested without the network.",
+        "effect": "awarded"
+      },
+      {
+        "ref": "web/api/_tests/loop.test.ts:10",
+        "quote": "file: it never runs in the app, the CLI or the eval, which all use the real model.",
+        "point": "The test file says its fake replaces the real client, so no offline test reaches the Meta request path.",
+        "effect": "withheld"
+      },
+      {
+        "ref": "cmd: grep -rn -E createChatClient|MODEL_BASE_URL|api.meta.ai|chat.completions|responses over web/api web/scripts pipeline/tests pipeline/tools",
+        "quote": "const client = new OpenAI({apiKey, baseURL: MODEL_BASE_URL, timeout: 20_000, maxRetries: 0});",
+        "point": "The only client construction is model.ts:10 and its callers in analyst.ts:55 and eval-analyst.ts:258. No line in web/api/_tests names createChatClient or the Meta base URL.",
+        "effect": "withheld"
+      },
+      {
+        "ref": "web/scripts/eval-analyst.ts:2",
+        "quote": "Analyst eval (BUILD.md step 15): 15 questions per fire whose answers are computed here, directly",
+        "point": "Eval design with ground truth computed by code independent of the analyst's tools, which is the right shape for testing a model.",
+        "effect": "awarded"
+      },
+      {
+        "ref": "web/scripts/eval-analyst.ts:180",
+        "quote": "return ig.timing?.identifiable === false ? {kind: 'decline', withheldMs: ms} : time(ms);",
+        "point": "Must-decline question: when the back-trace withholds a start time, the eval scores an honest refusal (scoreAnswer at eval-analyst.ts:223-228).",
+        "effect": "awarded"
+      },
+      {
+        "ref": "cmd: ls web/public/data/eaton/eval web/public/data/palisades/eval",
+        "quote": "ignition_holdout.json, ignition_synthetic.json, wind_ablation.json",
+        "point": "No analyst.json for either fire, the file eval-analyst.ts:315 writes. No measured Muse accuracy is committed.",
+        "effect": "withheld"
+      },
+      {
+        "ref": "README.md:53",
+        "quote": "**Built and tested offline. Not yet run against the live API**",
+        "point": "The README's own status for the analyst: no live Muse call has been made.",
+        "effect": "withheld"
+      },
+      {
+        "ref": "README.md:202",
+        "quote": "The analyst has not been run live against the Meta API.",
+        "point": "Repeated in the not-yet-verified list, so the eval and the analyst answers are unproven live.",
+        "effect": "withheld"
+      },
+      {
+        "ref": "web/src/rail/analyst.tsx:65",
+        "quote": "const r = await fetch('/api/analyst', {",
+        "point": "The UI sends questions to the real route, so the Meta call sits on the product path.",
+        "effect": "awarded"
+      },
+      {
+        "ref": "web/src/rail/analyst.tsx:183",
+        "quote": "Answers come only from the server; nothing is canned.",
+        "point": "The UI says answers come only from the server. Without a key, the route returns 503 (analyst.ts:43-49).",
+        "effect": "awarded"
+      },
+      {
+        "ref": "pipeline/tools/smoke_meta.py:148",
+        "quote": "result = await parse_responses_stream(sse_events(key, body), fmt).final_result()",
+        "point": "Real SAM 3.1 request path: a streamed Responses call parsed by meta_sam_parser (run_sam at lines 132-168). Credit is for the code only, since it has never run.",
+        "effect": "awarded"
+      },
+      {
+        "ref": "cmd: grep -rniE smoke|sam over pipeline/tests web/api/_tests web/tests-smoke",
+        "quote": "normalize_damage",
+        "point": "The only smoke or sam hits in the test trees are unrelated (a damage category, same, sample). No test imports smoke_meta or run_sam.",
+        "effect": "withheld"
+      },
+      {
+        "ref": "pipeline/steps/s12c_sam_video.py:10",
+        "quote": "not implemented yet (docs/spec/BUILD.md \u00a77)",
+        "point": "The drone-footage SAM step exits on run. s09c_sam_structures.py:10 is the same stub, so both SAM pipeline steps are planned only.",
+        "effect": "withheld"
+      },
+      {
+        "ref": "docs/spec/DESIGN.md:260",
+        "quote": "SAM 3.1 mask overlay in the PiP",
+        "point": "A spec with no code behind it. grep over web/src finds no SAM or mask overlay code.",
+        "effect": "withheld"
+      },
+      {
+        "ref": "pipeline/tools/smoke_meta.py:8",
+        "quote": "Costs: one short chat exchange; SAM is $2.50/1k images and $0.20/1k frames (50-frame minimum).",
+        "point": "Shows the team knows the billing shape, but no response cache exists in any SAM-related file (grep for cache returns nothing), so the planned caching is not built.",
+        "effect": "withheld"
+      },
+      {
+        "ref": "pipeline/Makefile:78",
+        "quote": "uv run --extra sam python -m tools.smoke_meta $(ARGS)",
+        "point": "The smoke-meta target is wired to the optional sam extra, which pins meta-sam-parser in pipeline/uv.lock:542. The target has never been run here.",
+        "effect": "awarded"
+      }
+    ],
+    "top_fixes": [
+      "Run make smoke-meta and npm run ask once with a key, then commit the redacted output under a tracked path. pipeline/work/ is gitignored, so the current smoke output cannot count as evidence.",
+      "Commit eval/analyst.json from npm run eval:analyst for both fires and make the README accuracy claim come from it. Right now no Muse accuracy exists anywhere in the repo.",
+      "Add offline tests for the Meta request path: createChatClient with a stubbed transport (request body, tool_choice, a parallel tool_calls reply) and run_sam's SSE parse on a canned stream.",
+      "Either build the planned sam-3.1 response cache and run s12c_sam_video.py on the FLAME 2 sample, or mark both SAM steps as planned in the README Meta table so the claim matches the stubs."
+    ]
+  },
+  "weighted": 73.5,
+  "total": 75.5,
+  "run_log": "Run log for judge-r4. All five commands exited 0; nothing failed, so no failures to record. Logs are in <scratchpad>/judge-r4/ (cmd1.log to cmd5.log).\n\nCOMMAND 1\nCommand: cd \"<workspace>/judge-r4/run/pipeline\" && uv sync && make test\nExit code: 0\nWall time: 59s\nLast 25 lines:\n + rasterio==1.4.4\n + requests==2.34.2\n + scikit-learn==1.9.1\n + scipy==1.17.1\n + shapely==2.2.0\n + sniffio==1.3.1\n + threadpoolctl==3.7.0\n + truststore==0.10.5\n + typing-extensions==4.16.0\n + typing-inspection==0.4.4\n + urllib3==2.8.0\nTEST_FIRES=eaton,palisades uv run pytest -q tests\n......................ss.....................ss......................... [ 38%]\n...............ss....................................................... [ 76%]\n......s....sss................ss............                             [100%]\n=============================== warnings summary ===============================\ntests/test_grid.py: 2 warnings\ntests/test_s03_landcover.py: 2 warnings\ntests/test_s06_arrival.py: 2 warnings\ntests/test_s08_severity.py: 4 warnings\n  <workspace>/judge-r4/run/pipeline/.venv/lib/python3.11/site-packages/rasterio/transform.py:189: PendingDeprecationWarning: Use `@` matmul instead of `*` mul operator for matrix multiplication\n    return Affine.translation(west, north) * Affine.scale(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n176 passed, 12 skipped, 10 warnings in 56.30s\n\nCOMMAND 2\nCommand: cd \"<same pipeline dir>\" && make eval EVAL_DIR=/tmp/ember-judge-r4-run\nExit code: 0\nWall time: 247s\nLast 25 lines (whole output is 7 lines):\nEVAL_DIR=\"/tmp/ember-judge-r4-run\" FIRE= uv run python -m steps.s11_ignition --eval-only --cases 0\nsynthetic benchmark cases loaded, not rerun, from the committed ../web/public/data/eaton/eval/ignition_synthetic.json; summary and calibration re-derived from them (make eval-full reruns the cases)\nsynthetic: {\"n\": 30, \"distance_m\": {\"backtrace\": {\"median\": 924.0, \"p90\": 2225.3}, \"baseline_first_footprint_centroid\": {\"median\": 1406.3, \"p90\": 4254.3}}, \"start_time_error_min\": {\"backtrace\": {\"median\": 186.2, \"p90\": 700.2}, \"baseline_area_backcast\": {\"median\": 3132.0, \"p90\": 47287.3}}, \"backtrace_beats_baseline\": {\"distance\": 0.67, \"time\": 0.97}, \"truth_in_search_domain\": 1.0}\nsynthetic, all observations: {\"n\": 30, \"distance_m\": {\"backtrace\": {\"median\": 588.1, \"p90\": 1578.1}, \"baseline_first_footprint_centroid\": {\"median\": 449.4, \"p90\": 3144.4}}, \"start_time_error_min\": {\"backtrace\": {\"median\": 78.4, \"p90\": 495.8}, \"baseline_area_backcast\": {\"median\": 1295.2, \"p90\": 7791.7}}, \"backtrace_beats_baseline\": {\"distance\": 0.57, \"time\": 0.93}, \"truth_in_search_domain\": 1.0}\ncalibration (hold-out): {\"tau_h\": 0.3, \"target\": 0.9, \"reached_on_calibration_half\": true, \"test_start_time_shown\": {\"cases\": 0, \"of\": 15, \"median_time_err_min\": null, \"max_time_err_min\": null, \"interval_contains_truth\": null}, \"calibration_cases\": 15, \"test_cases\": 15, \"test_coverage\": {\"distance\": 0.93, \"time\": 0.87}, \"median_test_r90_m\": 2800.6, \"median_test_t90_width_h\": 13.17}\ncalibration (all observations): {\"tau_h\": 0.3, \"target\": 0.9, \"reached_on_calibration_half\": true, \"test_start_time_shown\": {\"cases\": 0, \"of\": 15, \"median_time_err_min\": null, \"max_time_err_min\": null, \"interval_contains_truth\": null}, \"calibration_cases\": 15, \"test_cases\": 15, \"test_coverage\": {\"distance\": 0.87, \"time\": 0.93}, \"median_test_r90_m\": 1717.3, \"median_test_t90_width_h\": 10.31}\nholdout: {\"backtrace_distance_m\": 2503.5, \"baseline_distance_m\": 2460.5, \"backtrace_time_error_min\": 139.6, \"baseline_time_error_min\": -1854.2, \"reference_within_r90\": false, \"reference_outside_first_fit_footprint_m\": 1141.8, \"reference_within_t90\": true} [0.232, 0.15] {\"identifiable\": false, \"reasons\": [\"90% start-time interval is 10.6 h wide (limit 6 h)\"], \"interval90_width_h\": 10.61}\n\nComparison of /tmp/ember-judge-r4-run/ignition_holdout.json against web/public/data/eaton/eval/ignition_holdout.json (recursive exact-equality check, python3 -I): identical. No differing values.\n\nCOMMAND 3\nCommand: cd \"<same pipeline dir>\" && make eval QUICK=1 EVAL_DIR=/tmp/ember-judge-r4-quick\nExit code: 0\nWall time: 253s\nLast 25 lines (whole output is 2 lines):\nEVAL_DIR=\"/tmp/ember-judge-r4-quick\" FIRE= uv run python -m steps.s11_ignition --eval-only --cases 2 --check\ncheck: 2 cases, identical to the committed ones: True\n\n/tmp/ember-judge-r4-quick/ignition_check.json:\n{\"cases_checked\": 2, \"identical\": true, \"cases\": [{\"case\": 0, \"max_abs_diff\": 0.0, \"estimate\": {\"row\": 72, \"col\": 68, \"t0_h\": 7.246, \"k\": 1.667}, \"committed_estimate\": {\"row\": 72, \"col\": 68, \"t0_h\": 7.246, \"k\": 1.667}}, {\"case\": 1, \"max_abs_diff\": 0.0, \"estimate\": {\"row\": 54, \"col\": 158, \"t0_h\": 5.491, \"k\": 0.707}, \"committed_estimate\": {\"row\": 54, \"col\": 158, \"t0_h\": 5.491, \"k\": 0.707}}]}\n\nCOMMAND 4\nCommand: cd \"<same run>/web\" && export PATH=\"~/.nvm/versions/node/v20.19.3/bin:$PATH\" && node --version && npm ci && npm test && npm run build\nExit code: 0\nWall time: 21s\nLast 25 lines:\n// Wrapped in a `@__PURE__` IIFE: esbuild never tree-shakes a top-level initializer that contains a member access on `Number`, so the bare object literal survived into every bundle.\n\nin \"node_modules/zod/v4/core/util.js\" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.\nnode_modules/zod/v4/core/regexes.js (74:0): A comment\n\n\"/** Anchors a pattern source. The interpolation lives here rather than at the call site because\n * esbuild will not drop a `@__PURE__` call whose own argument interpolates a variable, but it\n * will drop `anchor(dateSource)`. Keeping it inline pinned `date` into every bundle. */\"\n\nin \"node_modules/zod/v4/core/regexes.js\" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.\n\u2713 1887 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                         0.71 kB \u2502 gzip:   0.39 kB\ndist/assets/index-DjAPeSPv.css         19.54 kB \u2502 gzip:   4.89 kB\ndist/assets/expression-Bl_GL2tO.js      1.19 kB \u2502 gzip:   0.51 kB\ndist/assets/index-Ca4iBhE0.js          16.68 kB \u2502 gzip:   4.96 kB\ndist/assets/index-_AwA6QlP.js          18.97 kB \u2502 gzip:   6.63 kB\ndist/assets/index-Df2ODYXs.js       1,335.48 kB \u2502 gzip: 391.37 kB\n\n(!) Some chunks are larger than 500 kB after minification. Consider:\n- Using dynamic import() to code-split the application\n- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks\n- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.\n\u2713 built in 2.91s\n(Outside the last 25 lines, the cmd4.log contains the npm test summary: \"Test Files 4 passed (4)\" and \"Tests 81 passed (81)\". The node --version output is at the top of the log and not shown here.)\n\nCOMMAND 5\nCommand: cd \"<same run>/web\" && export PATH=\"~/.nvm/versions/node/v20.19.3/bin:$PATH\" && npm run eval:analyst -- --truth\nExit code: 0\nWall time: 1s\nLast 25 lines (whole output is 19 lines):\n(blank)\n> sentinel-ember-web@0.1.0 eval:analyst\n> tsx scripts/eval-analyst.ts --truth\n(blank)\nstreet_1      2025-01-08T12:48:23Z   When did the fire first reach North Lake Avenue? Give the time in UTC (ISO 8601).\nstreet_2      2025-01-08T20:23:43Z   When did the fire first reach East Altadena Drive? Give the time in UTC (ISO 8601).\nstreet_3      2025-01-09T04:27:31Z   When did the fire first reach Kinneloa Canyon Road? Give the time in UTC (ISO 8601).\nstreet_4      2025-01-08T16:36:03Z   When did the fire first reach Fair Oaks Avenue? Give the time in UTC (ISO 8601).\nplace_1       2025-01-08T21:49:05Z   When did the fire reach Altadena (the neighborhood label point)? Give the time in UTC (ISO 8601).\narea_1        3411.6                 How many acres had burned by 2025-01-08T12:00:00Z? Give the number.\narea_2        8976.6                 How many acres had burned by 2025-01-09T00:00:00Z? Give the number.\nros_1         1130.1                 What was the head rate of spread, in chains per hour, at 2025-01-08T08:00:00Z? Give the number.\ngust_1        64.4                   What was the wind gust in mph at 2025-01-08T07:00:00Z? Give the number.\nrh_1          9                      What was the relative humidity in percent at 2025-01-09T22:00:00Z? Give the number.\nstructures_1  2561                   How many inspected structures within 1000 m of the Altadena place label were destroyed? Give the number.\nstructures_2  12                     How many inspected structures within 1000 m of the Echo Mountain peak were destroyed? Give the number.\nignition_1    decline (withheld 2025-01-08T01:09:51Z) When does the model ignition estimate put the start of the fire? Give the time in UTC (ISO 8601).\nexposure_1    0.349                  What is the odds ratio of destruction for fine-mesh or no vents versus coarse or unscreened vents? Give the number.\nplace_2       SKIPPED: no ground truth in the data\n\nCOMPARISON RESULTS\n- ignition_holdout.json (run vs committed web/public/data/eaton/eval/ignition_holdout.json): identical, no differing values.\n- ignition_check.json (QUICK=1 run): cases_checked 2, identical true, max_abs_diff 0.0 for both cases.",
+  "adversary": {
+    "claims_checked": [
+      {
+        "claim_ref": "README.md:19",
+        "claim": "Every number traces back to a public source or a committed eval file; the README headline table is generated and a test fails if it drifts",
+        "verdict": "holds",
+        "how_checked": "cmd: uv run python -m tools.report regenerated docs/RESULTS.md and README headline with no git diff; tests/test_report.py passes; cmd: make test equivalent gave 176 passed, 12 skipped (runner log)"
+      },
+      {
+        "claim_ref": "README.md:129-131",
+        "claim": "Synthetic medians: Eaton 588 vs 449 m and 78 min vs 21.6 h; Palisades 526 vs 1,624 m and 4.6 h vs 37.0 h; held-out rows 924/1,406 m, 3.1/52.2 h and 786/1,744 m, 16.4/109.7 h",
+        "verdict": "holds",
+        "how_checked": "Recomputed medians and win rates from the 30 raw cases per fire in web/public/data/<fire>/eval/ignition_synthetic.json; all match README to the stated rounding"
+      },
+      {
+        "claim_ref": "README.md:132",
+        "claim": "Coverage 87%/93% (radius 1,717 m, interval 10.31 h) for Eaton; 100%/100% (1,681 m, 43.25 h) for Palisades; real k 76.8 above every synthetic truth (max 3.6)",
+        "verdict": "holds",
+        "how_checked": "calibration_all_observations in each ignition_synthetic.json matches; recomputed truth k max Palisades 3.581 from cases[].truth.k"
+      },
+      {
+        "claim_ref": "README.md:133",
+        "claim": "0 of 15 unseen synthetic cases would show a start time, for both fires",
+        "verdict": "holds",
+        "how_checked": "calibration.test_start_time_shown.cases is 0 of 15 for both fires in both scenarios, per ignition_synthetic.json"
+      },
+      {
+        "claim_ref": "README.md:134",
+        "claim": "Real-fire start time is withheld (not identifiable) for both fires",
+        "verdict": "holds",
+        "how_checked": "web/public/data/<fire>/ignition.json timing.identifiable is false: Eaton 10.6 h interval; Palisades 7.5 h interval with k at ceiling"
+      },
+      {
+        "claim_ref": "README.md:135",
+        "claim": "Eaton hold-out distance to CAL FIRE point 2,504 m (baseline 2,460 m)",
+        "verdict": "holds",
+        "how_checked": "eval/ignition_holdout.json errors backtrace_distance_m 2503.5 and baseline_distance_m 2460.5; make eval reproduced identical file"
+      },
+      {
+        "claim_ref": "README.md:135",
+        "claim": "Palisades hold-out distance 315 m (baseline 3,557 m)",
+        "verdict": "holds",
+        "how_checked": "Numbers match eval/ignition_holdout.json (314.7 and 3556.9). Framing is a minor finding F5."
+      },
+      {
+        "claim_ref": "README.md:136",
+        "claim": "Hold-out start error 2.3 h (-30.9 h) Eaton; 40.0 h (-707.9 h) Palisades, the latter noted as not a credible start",
+        "verdict": "holds",
+        "how_checked": "errors backtrace_time_error_min 139.6 and baseline -1854.2 (Eaton); 2397.1 and -42476.1 (Palisades); Palisades estimate 2025-01-09T10:27:04Z is after held-out 2025-01-08T20:34 and 21:24"
+      },
+      {
+        "claim_ref": "README.md:137",
+        "claim": "CAL FIRE reported point is 1,772 m outside the first mapped footprint (Eaton) and 0 m (Palisades)",
+        "verdict": "holds",
+        "how_checked": "ignition.json reference_outside_first_footprint_m 1771.5 (Eaton) and 0.0 (Palisades)"
+      },
+      {
+        "claim_ref": "README.md:138",
+        "claim": "HRRR field vs single ERA5 point: Eaton IoU 0.45 k 0.424 vs IoU 0.30 k 11.314; Palisades IoU 0.38 vs 0.40, k 76.8 at ceiling",
+        "verdict": "holds",
+        "how_checked": "eval/wind_ablation.json: Eaton field mean_iou 0.445 k 0.424; era5_lb8 mean_iou 0.304 k 11.314; Palisades field 0.38, era5_lb8 0.404, k 76.8 ceiling. Ceiling wording is minor finding F2"
+      },
+      {
+        "claim_ref": "README.md:139",
+        "claim": "Hourly wind correlation with nearest airport station: HRRR 0.90 vs ERA5 0.71 (Eaton); 0.85 vs 0.75 (Palisades)",
+        "verdict": "holds",
+        "how_checked": "weather_station.json comparison_model_at_station and comparison_era5_seamless_at_station wind_corr, both fires"
+      },
+      {
+        "claim_ref": "README.md:140-141",
+        "claim": "Odds ratios: vents 0.35 (0.31-0.40) and 0.50 (0.45-0.56); roof 0.59 (0.53-0.66) and 0.58 (0.53-0.64)",
+        "verdict": "holds",
+        "how_checked": "Recomputed Mantel-Haenszel with RBG variance from structures.geojson and exposure.json: n matches exactly; vents 0.351 (0.308-0.399) Eaton, 0.502 Palisades; roof 0.587 and 0.579; agreement within 0.002, stored gust and distance rounded to 0.1"
+      },
+      {
+        "claim_ref": "README.md:28",
+        "claim": "Eaton first mapped perimeter is 4.8 h after reported start; Palisades first is 26 h after",
+        "verdict": "holds",
+        "how_checked": "Eaton 2025-01-08T07:06:14Z minus 02:18Z = 4.8 h (arrival_meta.json); Palisades first observation 2025-01-08T20:34:03Z minus 18:30Z Jan 7 = 26.1 h (ignition.json first_observation, aoi.json)"
+      },
+      {
+        "claim_ref": "README.md:30",
+        "claim": "Damage inspections are about 30,000 structures across the two fires",
+        "verdict": "holds",
+        "how_checked": "structures.geojson feature counts 18,428 (Eaton) and 12,137 (Palisades), total 30,565"
+      },
+      {
+        "claim_ref": "README.md:45-47",
+        "claim": "Data pipeline of 12 steps turning public sources into per-fire files, outputs committed under web/public/data",
+        "verdict": "holds",
+        "how_checked": "pipeline/Makefile all target lists 12 steps; web/public/data/eaton and palisades hold the committed outputs"
+      },
+      {
+        "claim_ref": "README.md:55-56",
+        "claim": "Drone footage not started (only API smoke test exists); FIRMS code gated and not used in committed outputs",
+        "verdict": "holds",
+        "how_checked": "pipeline/steps/s12_sentinel.py, s12c_sam_video.py, s09c_sam_structures.py, s13_scenario.py are 10-line not-implemented stubs; arrival_meta.json hotspot_refinements 0; no hotspots.geojson committed"
+      },
+      {
+        "claim_ref": "README.md:80-84",
+        "claim": "Search grid: 17 k values from 0.25 to 64 with 76.8 refinement ceiling; 16 start lags to about 90 h; 8 refined seeds; length-to-breadth cap chosen per fit from 1 to 8",
+        "verdict": "holds",
+        "how_checked": "pipeline/steps/s11_ignition.py:62-63 (K_GRID, LAGS_H; last lag 90.5 h), :77 LB_CHOICES, :223 len(seeds) == 8, :307 k at ceiling check"
+      },
+      {
+        "claim_ref": "README.md:62-67",
+        "claim": "Arrival cleaning: re-saves dropped, InFORM placeholder triangles removed, cumulative footprints clipped to final perimeter; first interval seeded from CAL FIRE start and location",
+        "verdict": "holds",
+        "how_checked": "pipeline/steps/s05_perimeters.py:297-310 placeholder and re-save rules; arrival_meta.json seed 1,743 m from reported point; Palisades first interval 186,795 of 379,458 new cells (49%)"
+      },
+      {
+        "claim_ref": "README.md:99",
+        "claim": "Synthetic start times drawn uniformly 2-8 h into the replay window, bracketing CAL FIRE starts at 2.3 h and 6.5 h in",
+        "verdict": "holds",
+        "how_checked": "pipeline/steps/s11_ignition.py:373 t0 = rng.uniform(2.0, 8.0); aoi.json windows 2025-01-08T00:00Z and 2025-01-07T12:00Z; starts 02:18Z and 18:30Z"
+      },
+      {
+        "claim_ref": "README.md:101",
+        "claim": "Synthetic k drawn log-uniform 0.25-4; commit 0eab9dc drew 4-16; commit 66e8516 moved it to 0.25-4",
+        "verdict": "holds",
+        "how_checked": "git show 0eab9dc diff sets K_TRUE_RANGE 4.0 to 16.0; git show 66e8516 diff sets (0.25, 4.0); current line pipeline/steps/s11_ignition.py:64"
+      },
+      {
+        "claim_ref": "README.md:101",
+        "claim": "Each synthetic case is inverted on every footprint and with the first two held out; make eval QUICK=1 recomputes the first cases and matches them exactly",
+        "verdict": "holds",
+        "how_checked": "cmd: make eval QUICK=1 EVAL_DIR=/tmp/ember-judge-r4-quick reports identical True, max_abs_diff 0.0 for both cases (runner log). The held-out wording is minor finding F6"
+      },
+      {
+        "claim_ref": "README.md:101",
+        "claim": "Palisades real fits: hold-out k 22.6; full fit k 76.8 at the ceiling",
+        "verdict": "holds",
+        "how_checked": "eval/ignition_holdout.json estimate.k 22.627; ignition.json map.k 76.8"
+      },
+      {
+        "claim_ref": "README.md:86-89",
+        "claim": "Temperature calibrated on half the synthetic cases and checked on the other half; start withheld when interval over 6 h, k at ceiling, or uncalibrated",
+        "verdict": "holds",
+        "how_checked": "pipeline/steps/s11_ignition.py calibrate() splits cases[0::2] and cases[1::2]; timing() at :298-310 checks width over 6, k at ceiling, and uncalibrated"
+      },
+      {
+        "claim_ref": "README.md:88",
+        "claim": "Hold-out picks its own shape cap: matches Eaton (1) but not Palisades (8 vs product 1.5)",
+        "verdict": "holds",
+        "how_checked": "eval/ignition_holdout.json lb_max 1.0 (Eaton) and 8.0 (Palisades); ignition.json lb_max 1.0 and 1.5"
+      },
+      {
+        "claim_ref": "README.md:103-111",
+        "claim": "House exposure: Mantel-Haenszel odds ratios stratified by gust x distance with Robins-Breslow-Greenland CI, plus an observability check",
+        "verdict": "holds",
+        "how_checked": "pipeline/steps/s09b_exposure.py:69-89 mantel_haenszel uses the RBG variance terms; stratum() at ~190 uses gust by median and distance bands; unknown_rate in exposure_stats.json"
+      },
+      {
+        "claim_ref": "README.md:72-75",
+        "claim": "Spread model: elliptical rate of spread with Anderson length-to-breadth, tan-squared slope term, 16-neighbour stencil, numba parallel batch",
+        "verdict": "holds",
+        "how_checked": "pipeline/ember/spread.py:181-199 _ros (Anderson form and elliptical factor); 16-neighbour stencil at :27; njit parallel batch at :339"
+      },
+      {
+        "claim_ref": "README.md:113-117",
+        "claim": "Analyst has 9 read-only tools plus final_answer; verification checks cited result, grounded numbers, cause and address patterns; integers up to 10 exempt",
+        "verdict": "holds",
+        "how_checked": "web/api/_lib/tools.ts:558 DATA_TOOLS has 9 entries plus FINAL_ANSWER_TOOL; web/api/_lib/verify.ts:103 exempts v <= 10 integers; CAUSE and ADDRESS patterns at top of verify.ts"
+      },
+      {
+        "claim_ref": "README.md:53",
+        "claim": "Without MODEL_API_KEY the chat shows the server's message and never an answer",
+        "verdict": "holds",
+        "how_checked": "cmd: POST /api/analyst on local dev server returned 503 with the MODEL_API_KEY not-set message; web/api/analyst.ts:47 returns before any model call; no canned answers in web/api or src/rail/analyst.tsx"
+      },
+      {
+        "claim_ref": "README.md:114",
+        "claim": "The analyst model is muse-spark-1.3 through the Meta Model API",
+        "verdict": "holds",
+        "how_checked": "web/api/_lib/analyst.ts:13 DEFAULT_MODEL muse-spark-1.3; web/api/_lib/model.ts baseURL https://api.meta.ai/v1"
+      },
+      {
+        "claim_ref": "README.md:120",
+        "claim": "15 questions per fire with truth computed from data files by code independent of the tools; 14 scored for Eaton and 13 for Palisades",
+        "verdict": "holds",
+        "how_checked": "cmd: npm run eval:analyst -- --truth shows 1 SKIPPED of 15; cmd: npm run eval:analyst -- --truth --fire palisades shows 2 SKIPPED; scripts/eval-analyst.ts reads files directly and imports no tool implementations"
+      },
+      {
+        "claim_ref": "README.md:145-151",
+        "claim": "Vector distances of CAL FIRE point: 1,721 m outside the 07:06Z polygon and 1,108 m outside the 10:34Z one; analysis grid 1,772 m and 1,142 m",
+        "verdict": "holds",
+        "how_checked": "Recomputed with shapely from perimeters.geojson and the aoi.json incident point: 1,720.5 m and 1,108.1 m; ignition.json 1,771.5 m; holdout errors 1,141.8 m"
+      },
+      {
+        "claim_ref": "README.md:156-159",
+        "claim": "Start time closer than baseline in 93% (Eaton) and 83% (Palisades) of cases; Eaton location win 57%; HRRR loss 2.16 to 2.02 and IoU 0.41 to 0.45; uniform wind IoU 0.46",
+        "verdict": "holds",
+        "how_checked": "Recomputed win rates from raw cases (Eaton time 0.93, distance 0.57; Palisades time 0.83); wind_ablation.json loss_h 2.163 to 2.022, era5 mean_iou 0.409 to field 0.445, uniform 0.464"
+      },
+      {
+        "claim_ref": "README.md:157",
+        "claim": "Start-time intervals 10-13 h for Eaton and 43-64 h for Palisades; Palisades full-fit 7.5 h interval withheld at the ceiling",
+        "verdict": "holds",
+        "how_checked": "calibration median widths 13.17 and 10.31 (Eaton), 63.5 and 43.25 (Palisades); ignition.json timing interval90_width_h 7.5 with k at ceiling"
+      },
+      {
+        "claim_ref": "README.md:157",
+        "claim": "Eaton real hold-out interval 23:15Z Jan 7 to 09:52Z Jan 8 holds CAL FIRE 02:18Z; estimate 2.3 h late",
+        "verdict": "holds",
+        "how_checked": "ignition_holdout.json t90 2025-01-07T23:15:09Z to 2025-01-08T09:51:33Z; reference_within_t90 true; time error 139.6 min"
+      },
+      {
+        "claim_ref": "README.md:158",
+        "claim": "On unseen synthetic cases the 90% radius held the truth in 87% of Eaton full-fit cases (13 of 15) and 93% of hold-out cases",
+        "verdict": "holds",
+        "how_checked": "Recomputed on the odd-numbered cases: distance coverage 0.87 full and 0.93 hold-out; time coverage 0.93 and 0.87. Palisades 100% wording is minor finding F4"
+      },
+      {
+        "claim_ref": "README.md:162-176",
+        "claim": "Debris-flow model table: pooled and within-storm ROC AUCs, within-storm intervals and Station Fire scores for M1, M1 recalibrated, RF, MLP and MLP with neighbours",
+        "verdict": "holds",
+        "how_checked": "Every figure I checked matches web/public/data/debris_flow/model_eval.json models[] (pooled.roc_auc, within_storm median and ci95_median, analogue.roc_auc)"
+      },
+      {
+        "claim_ref": "README.md:163",
+        "claim": "Stream segments: 956 for Eaton and 1,864 for Palisades",
+        "verdict": "holds",
+        "how_checked": "web/public/data/eaton/debris_flow.geojson has 956 features; palisades has 1,864; debris_flow_stats.json segments matches"
+      },
+      {
+        "claim_ref": "README.md:164-165",
+        "claim": "7,639 usable watershed-storm records from 77 fires, 2000-2024, of which 955 are debris flows",
+        "verdict": "holds",
+        "how_checked": "model_eval.json inventory used_records 7639, used_fires 77, used_flows 955; notes give the 2000-2024 span"
+      },
+      {
+        "claim_ref": "README.md:164",
+        "claim": "Our M1 implementation reproduces USGS likelihoods to within 5e-16 (largest difference 4.4e-16), which checks code, not model",
+        "verdict": "not_counted",
+        "how_checked": "Committed debris_flow_stats.json m1_check gives 3.33e-16 (Eaton) and 4.44e-16 (Palisades), but pipeline/steps/s15_debris_fire.py:423 needs the USGS assessment downloaded at run time and README.md:208 says make debris needs network"
+      },
+      {
+        "claim_ref": "README.md:166",
+        "claim": "Random forest is constrained never to fall as rainfall rises",
+        "verdict": "holds",
+        "how_checked": "model_eval notes: rf_extended 0 of 7,639 records fall at the seven design storms; monotonic_cst set at s14_debris_models.py:230; test_random_forests_never_fall_as_rain_rises passed in make test"
+      },
+      {
+        "claim_ref": "README.md:168-169",
+        "claim": "Scored leave-one-fire-out; within-storm figures use 99 fire-storm groups for trained models and 64 for M1",
+        "verdict": "holds",
+        "how_checked": "model_eval.json cv scheme leave-one-fire-out with 77 folds; within_storm groups 99 for trained models and 64 for m1_published"
+      },
+      {
+        "claim_ref": "README.md:179",
+        "claim": "Extended random forest minus M1 within-storm median is +0.015 [-0.063, +0.097]; extended MLP +0.004 [-0.104, +0.101]",
+        "verdict": "holds",
+        "how_checked": "model_eval.json vs_m1.published median_diff and ci95 for rf_extended (0.0154, [-0.063, 0.0972]) and mlp_extended (0.0038, [-0.1039, 0.1011])"
+      },
+      {
+        "claim_ref": "README.md:179",
+        "claim": "Every interval includes zero",
+        "verdict": "holds",
+        "how_checked": "All six median vs-M1 intervals include zero (vs_m1.published.ci95 for m1_refit, rf_m1vars, mlp_m1vars, rf_extended, mlp_extended, mlp_context). Record-weighted exclusions are noted in model_eval notes but not claimed"
+      },
+      {
+        "claim_ref": "README.md:179",
+        "claim": "One Thomas Fire storm holds about half of those records",
+        "verdict": "holds",
+        "how_checked": "model_eval notes: the 2018-01-09 Thomas storm has 857 records, 51% of the 1,672 within-storm records on M1's 64 groups"
+      },
+      {
+        "claim_ref": "README.md:180",
+        "claim": "M1 averages 0.363 on the 6,319 records it was not fitted on; M1 recalibrated keeps USGS ranking (Spearman 0.88 Eaton, 0.94 Palisades); 0.16 vs 0.71 at 24 mm/h on Eaton",
+        "verdict": "holds",
+        "how_checked": "model_eval notes give 0.363; debris_flow_stats.json agreement_by_i15 spearman 0.8811 and 0.942; mean_likelihood at 24 mm/h m1 0.1612 and usgs 0.7124"
+      },
+      {
+        "claim_ref": "README.md:180",
+        "claim": "Staley 2016 records are 25% flows against 10% of the rest",
+        "verdict": "holds",
+        "how_checked": "model_eval notes: observed rate 0.253 in Staley 2016 records and 0.098 in the rest"
+      },
+      {
+        "claim_ref": "README.md:181",
+        "claim": "Adding five nearest watersheds raised MLP pooled ROC AUC by 0.007 but lowered within-storm median by 0.058",
+        "verdict": "holds",
+        "how_checked": "model_eval.json: mlp_context pooled 0.8478 vs mlp_extended 0.8405 (+0.007); within-storm median 0.75 vs 0.8077 (-0.058)"
+      },
+      {
+        "claim_ref": "README.md:182",
+        "claim": "950 inventory records come from storms within 37 days of a fire, 857 of them one Thomas Fire storm; scenario storm 2025-02-13, 37 days after ignition",
+        "verdict": "holds",
+        "how_checked": "model_eval notes give 950 records (9 fires, 12 fire-storms) and 857 Thomas; debris_flow_stats.json scenario date 2025-02-13, days_since_fire 37"
+      },
+      {
+        "claim_ref": "README.md:182",
+        "claim": "The scenario storm is the first day with at least 25.4 mm of ERA5 precipitation at the fire",
+        "verdict": "not_counted",
+        "how_checked": "Rule is in pipeline/steps/s15_debris_fire.py:225-240 using Open-Meteo precipitation cached under gitignored work/; the series is not committed and README.md:208 says make debris needs network"
+      },
+      {
+        "claim_ref": "README.md:183",
+        "claim": "Palisades has no analogue: Topanga 2005 and Canyon 2007 recorded no debris flows; Station Fire 13 km from Eaton and held out",
+        "verdict": "holds",
+        "how_checked": "web/public/data/palisades/debris_flow_stats.json analogue.note: Canyon 2007 14 records, Topanga 2005 33 records, none with a recorded debris flow; eaton analogue: Station 13 km, held out as its own fold"
+      },
+      {
+        "claim_ref": "README.md:200",
+        "claim": "AVIRIS-3 dNBR covers about half of Eaton's perimeter and only a sliver of Palisades",
+        "verdict": "holds",
+        "how_checked": "severity_stats.json perimeter.coverage 0.5638 (Eaton) and 0.0203 (Palisades)"
+      },
+      {
+        "claim_ref": "README.md:194-199",
+        "claim": "Synthetic origins lie inside the first searched footprint in 100% of Eaton cases and 97-100% of Palisades cases",
+        "verdict": "holds",
+        "how_checked": "ignition_synthetic.json summary truth_in_search_domain 1.0 (Eaton); Palisades 0.97 all observations and 1.0 held-out"
+      },
+      {
+        "claim_ref": "README.md:14, README.md:219-223",
+        "claim": "npm ci, npm test, npm run build and npm run dev run without a key; dev serves the app and data",
+        "verdict": "holds",
+        "how_checked": "Runner log: npm ci, npm test (81 passed) and npm run build exit 0. My cmd: npm run dev then GET / 200, data/eaton/ignition.json 200, data/palisades/ignition.json 200"
+      },
+      {
+        "claim_ref": "README.md:213",
+        "claim": "make eval reruns the Eaton real hold-out and matches the committed ignition_holdout.json",
+        "verdict": "holds",
+        "how_checked": "cmd: make eval EVAL_DIR=/tmp/ember-judge-r4-run: identical, no differing values (runner log); docs/reproduction Eaton holdout JSON has 0 differences from committed"
+      },
+      {
+        "claim_ref": "README.md:214",
+        "claim": "make eval FIRE=palisades reproduces the committed Palisades hold-out",
+        "verdict": "holds",
+        "how_checked": "docs/reproduction/log.md records IDENTICAL for Palisades; docs/reproduction/palisades/holdout/ignition_holdout.json has 0 differences from committed"
+      },
+      {
+        "claim_ref": "README.md:215",
+        "claim": "make eval QUICK=1 recomputes two synthetic cases and checks them against the committed ones",
+        "verdict": "holds",
+        "how_checked": "cmd: make eval QUICK=1 EVAL_DIR=/tmp/ember-judge-r4-quick: check identical True, max_abs_diff 0.0 for both cases"
+      },
+      {
+        "claim_ref": "README.md:226",
+        "claim": "make eval-full takes about 70 min for Eaton and 100 min for Palisades",
+        "verdict": "not_counted",
+        "how_checked": "Not run; hours-long command outside the runner's documented set"
+      },
+      {
+        "claim_ref": "README.md:208",
+        "claim": "With the cached debris inputs the two debris steps take under 2 minutes",
+        "verdict": "not_counted",
+        "how_checked": "Needs network-cached inventory, soil-moisture and precipitation inputs not in the worktree; not run"
+      },
+      {
+        "claim_ref": "README.md:53, README.md:237",
+        "claim": "Analyst live run against the Meta API is pending a key",
+        "verdict": "not_counted",
+        "how_checked": "README marks it pending; no MODEL_API_KEY in the sandbox"
+      },
+      {
+        "claim_ref": "README.md:54",
+        "claim": "Web app: Drones tab disabled; wind layer off by default; start time withheld when not identifiable",
+        "verdict": "holds",
+        "how_checked": "web/src/header/Header.tsx marks drones unavailable; web/src/state/ui.ts wind visible false; web/src/stage/evidence-layers.ts shows start time withheld when timing is not identifiable"
+      },
+      {
+        "claim_ref": "README.md:242",
+        "claim": "Everything except the Sentinel detector was built during the hackathon",
+        "verdict": "holds",
+        "how_checked": "git log: 74 commits, one on 2026-10-29 (ab6e229 spec, BUILD.md day 0 Thu Oct 29 night) and 73 on 2026-10-30; several commits share identical timestamps (for example 03:24:33 three times)"
+      },
+      {
+        "claim_ref": "README.md:242",
+        "claim": "FireTrace name and logo are not used",
+        "verdict": "holds",
+        "how_checked": "grep for FireTrace hits README.md, docs/spec and docs/judge only; no hits under web/src or web/index.html"
+      },
+      {
+        "claim_ref": "docs/spec/WORKSTREAMS.md (privacy contract)",
+        "claim": "structures.geojson carries no address, APN, year built or owner fields",
+        "verdict": "holds",
+        "how_checked": "Union of property keys in both structures.geojson files: damage, structure_category, roof, eaves, vents, siding, window_pane and similar; none match address, APN, year, owner or name"
+      },
+      {
+        "claim_ref": "README.md:58 (WORKSTREAMS stream A)",
+        "claim": "This branch carries stream A (data, forensics, analyst backend) and the web app's wiring to those outputs",
+        "verdict": "holds",
+        "how_checked": "pipeline/ and web/api/ present; stream A files exist in web/public/data (arrival.png, series.json, events.json, spine.geojson, profile.json, weather.json, wind_field.json, exposure, ignition, manifest); eval/analyst.json absent, as README:53 states"
+      },
+      {
+        "claim_ref": "docs/reproduction/log.md",
+        "claim": "Reproduction log: hold-outs identical and synthetic checks identical, written at commit 67933f4",
+        "verdict": "holds",
+        "how_checked": "Commit object 67933f4 exists in the repo; docs/reproduction holdout and quick check JSON match committed eval files with 0 field differences"
+      },
+      {
+        "claim_ref": "README.md:9",
+        "claim": "Caption replay at Jan 8, 15:30 PST matches the link time 2025-01-08T23:30:00Z",
+        "verdict": "holds",
+        "how_checked": "15:30 PST is 23:30 UTC by arithmetic (UTC-8)"
+      }
+    ],
+    "findings": [
+      {
+        "id": "F1",
+        "severity": "minor",
+        "claim": "9.8% of those storms produced a debris flow",
+        "claim_ref": "README.md:180",
+        "contradiction_ref": "web/public/data/debris_flow/model_eval.json models m1_published pooled base_rate 0.0983",
+        "evidence": "README: 9.8% of those storms produced a debris flow. model_eval: pooled base_rate 0.0983 over 6,319 watershed-storm records",
+        "why": "The 9.8% is a rate per watershed-storm record, not per storm; the sentence misstates the unit."
+      },
+      {
+        "id": "F2",
+        "severity": "minor",
+        "claim": "Palisades wind row: IoU 0.38, k 76.8 vs IoU 0.40, k 76.8 (ceiling)",
+        "claim_ref": "README.md:138",
+        "contradiction_ref": "pipeline/tools/report.py:344 flags (ceiling) only on the ERA5 side; web/public/data/palisades/eval/wind_ablation.json variants field k_at_ceiling true",
+        "evidence": "wind_ablation field: k 76.8, k_at_ceiling true; era5_lb8: k 76.8, k_at_ceiling true. Only the second cell carries (ceiling) in the README row",
+        "why": "The HRRR-side k is also at the ceiling, so the row implies only the pre-HRRR fit hit it. Both should be marked."
+      },
+      {
+        "id": "F3",
+        "severity": "minor",
+        "claim": "The physics deliberately differs from the model in the synthetic benchmark; code says it differs in kind",
+        "claim_ref": "README.md:145",
+        "contradiction_ref": "pipeline/steps/s11_ignition.py:390 truth = sp.arrival(...), the same function as the inversion; README.md:92-93 says the same spread equations",
+        "evidence": "s11 docstring line 15: physics that differs from the inverted model in kind, not just in parameters. Truth at line 390 calls the same sp.arrival used to invert",
+        "why": "The truth differs in parameters and inputs, not in equations. README:145 and the s11 'in kind' docstring overstate the difference; README:92 is the accurate wording."
+      },
+      {
+        "id": "F4",
+        "severity": "minor",
+        "claim": "Coverage is close to, not always at, 90%",
+        "claim_ref": "README.md:158",
+        "contradiction_ref": "web/public/data/palisades/eval/ignition_synthetic.json calibration_all_observations test_coverage distance 1.0 and time 1.0; README.md:133",
+        "evidence": "Palisades full-fit test coverage 1.0 and 1.0 with median r90 1,681 m; headline row at README.md:133 reads 100% / 100%",
+        "why": "The bullet does not say Palisades full-fit coverage is 100%, which is well above 90% and not close to it. The caveat in README.md:157 covers only the hold-out temperature."
+      },
+      {
+        "id": "F5",
+        "severity": "minor",
+        "claim": "Real hold-out distance Palisades 315 m (baseline 3,557 m) presented as a location win",
+        "claim_ref": "README.md:135",
+        "contradiction_ref": "web/public/data/palisades/eval/ignition_holdout.json held_out predicted_cells 0 and iou 0.0 at both held-out times; estimate t 2025-01-09T10:27:04Z",
+        "evidence": "held_out: predicted_cells 0, iou 0.0 for 2025-01-08T20:34:03Z and 21:24:23Z. README.md:136 caveats only the start time, saying not a credible start",
+        "why": "The fit predicts none of the two held-out footprints, so the location distance is not a validated result. The caveat sits only on the time row; the distance row carries none."
+      },
+      {
+        "id": "F6",
+        "severity": "minor",
+        "claim": "Hold-out fit keeps only a sliver of the held-out perimeters (cumulative footprints)",
+        "claim_ref": "docs/RESULTS.md:51",
+        "contradiction_ref": "pipeline/steps/s11_ignition.py:165 cumulative union '| cum'; check on the model grid: 1,077 of 1,077 Eaton and 7,410 of 7,410 Palisades held-out cells inside the fit first footprint",
+        "evidence": "RESULTS.md:51 says the fit is fitted without the first two perimeters apart from the sliver of their area the cumulative footprints keep. The grid shows the whole held-out area inside the first fit footprint",
+        "why": "Wording understates how much spatial information the fit's first observation carries. RESULTS.md:64 explains the cumulative property, so this is imprecise wording, not a false claim; the hold-out is a timing hold-out."
+      }
+    ]
+  },
+  "critical_findings": [],
+  "surviving_critical": 0,
+  "judge": {
+    "verdict": "reject",
+    "rationale": "Verdict: reject. Rule 1 fails on its own: the fixed arithmetic gives 73.5 weighted + 2 Meta bonus = 75.5, below 80, before my verdict is consulted. Rule 2 holds: zero critical findings survived, and after checking the adversary's six findings against the repository I agree none is critical (F5 and F6 are real overstatements of a hold-out result; the rest are wording). With my own scores substituted (depth 8, works 8, execution 6.5, everything else as the panel scored) the total is 76.0 + 2 = 78.0, so even on my reading the repo is about two points short. The gap is small and the fixes below are specific.\n\nWhat I verified myself, read-only on the judged checkout at 21b3109 and by running the documented commands in a scratchpad copy:\n- make test: 176 passed, 12 skipped in 60.3 s with TEST_FIRES=eaton,palisades, matching the runner's log exactly.\n- cd web && npm ci && npm test && npm run build on Node 20.19.3 with the local Chrome: vitest 81 passed (4 files); the new browser smoke test ran all three demo views (Eaton at 2025-01-08T23:30:00Z, Palisades, Eaton Risk tab) with 3 pass, 0 fail, 0 skipped; the production build succeeded (one 1.3 MB chunk warning). The smoke test asserts the withheld-start text, \"12 real \u00b7 8 modeled sources \u00b7 none simulated\", the map key, the timeline at Jan 8 15:30 PST, a positive Fire Area readout, the Evidence tab's 20 manifest rows with zero SIM, and the Risk tab's model table (web/tests-smoke/demo.smoke.mjs:98-178). I confirmed manifest.json holds 12 REAL and 8 MODELED sources for each fire.\n- Both committed reproduction hold-outs (docs/reproduction/eaton/holdout/ignition_holdout.json, docs/reproduction/palisades/holdout/ignition_holdout.json) are byte-identical (cmp) to web/public/data/<fire>/eval/ignition_holdout.json, and since the log's commit 67933f4 the only change under pipeline/ember, pipeline/steps/s0*/s11 and web/public/data is a 3-line print statement in s11_ignition.py:625-627. So the Palisades reproduction the works panel said was \"not run this round\" is on record and applies to HEAD.\n- Recomputed from the 30 committed cases per fire: Eaton all-observations medians 588.1 m vs 449.4 m, 78.4 min vs 1,295 min, back-trace better in 57% / 93%; hold-out 924 m vs 1,406 m; calibration test coverage 0.87 / 0.93 (radius 1,717 m, interval 10.31 h). Palisades 526.5 m vs 1,624 m, coverage 1.0 / 1.0, tau 0.6 h (full) and 38.4 h (hold-out, the top of TAUS_H at s11_ignition.py:67). All match README.md:129-133 and report.py's headline(), which test_report.py pins.\n- Exposure ORs (vents 0.349 [0.307, 0.397] Eaton; 0.501 [0.453, 0.555] Palisades), HRRR vs ERA5 station r (0.90/0.71; 0.85/0.75) and 30,565 structures match README.md:30 and :139-141. Debris rows match model_eval.json (rf_extended pooled 0.8153, within-storm median 0.8 [0.6875, 0.8636], vs_m1 published +0.0154 [-0.063, 0.0972]; m1_published base_rate 0.0983 on 6,319 records).\n- Code citations: s11_ignition.py:165 (cumulative union), :192-247 (two-stage search, posterior from the stage-1 grid only), :299-310 (identifiability gate), :356-358 (holdout_split), :376-390 (synthetic truth calls the same sp.arrival), :398 (synthetic masks also cumulative), :439-464 (split-half calibration), :641 (hold-out recomputed in eval); spread.py:57-77 (unsourced constants), :194-198 (Anderson LB, e = 0 when lb_max is 1.0, which Eaton's deployed fit uses: web/public/data/eaton/ignition.json map.lb_max 1.0), :290 (corner-cut guard), :325-330 (hinge loss); s14_debris_models.py:287 (fold excludes the held-out fire, imputer included), :338-382 (cluster bootstrap, paired differences, 20k-resample check). The panel read the code accurately.\n- Palisades hold-out: estimate t 2025-01-09T10:27:04Z is after both held-out perimeters (20:34 and 21:24 on Jan 8), predicted_cells 0 and IoU 0.0 at both, r90 9,676 m. README.md:135 prints 315 m with no caveat; only the time row (:136) carries one. I agree with the evidence panel and adversary F5 that this is an overstatement in a generated headline table.\n- Commit history: 74 commits, one author, from a docs-only spec at 21:35 Oct 29 to 23:37 Oct 30 (73 on Oct 30), present in every hour block from 01:00 to 23:00 except 07, 09-10, 12, 16-17 and 20; 37 of 74 share an exact second with another commit in 13 groups (four unrelated commits at 19:49:39); author and committer dates agree on all 74, so the batching is at landing time, not a rebase. The scaffold's s11 stub raises SystemExit \"not implemented yet\" (git show ddbcdb4:pipeline/steps/s11_ignition.py). No pre-event code.\n- Meta bonus: the rationale's premise that git diff 90010d9 HEAD \"touches only README wording and pipeline/tools/report.py\" is wrong for the repo (18 files, 1,862 insertions: debris bootstrap, Risk tab, smoke test) but right for web/api and smoke_meta.py, which are unchanged, so 2 of 3 stands: model.ts:5 targets api.meta.ai, the loop is tested against a scripted client only (loop.test.ts, 13 tests), no analyst.json exists, and README.md:53 and :202 say the live run has not happened.\n\nWhere the panel and I differ (recorded below, no effect on the arithmetic): depth 7.5 and evidence 7.5 are each half a point below round 3, yet every change since 90010d9 is additive (cluster-bootstrap intervals, paired differences against M1, 258 lines of debris tests, a browser smoke test, the \"did not clearly beat M1\" correction the round-3 judge asked for). Nothing in the repo got shallower or less evidenced; the drop is panel variance. I raise depth to 8 and works to 8 on repo evidence, keep evidence at 7.5 because the 315 m row and the \"fitted without the first two perimeters\" wording are genuine overstatements, and raise execution to 6.5 because the window is a quarter elapsed and the record is continuous from a spec-only root. Ambition 7 and clarity 8 I keep.\n\nRanking of fixes by rubric impact: the single largest lever is the one the panel named in three dimensions and the bonus: run the analyst live once per fire and commit eval/analyst.json. That alone is worth about +1 bonus and +0.5 each on works and ambition, roughly +3, enough to cross 80 on my reading. Second is gating the Palisades location cell in report.py the way the time cell already is, and calling the hold-out a timing hold-out. Third is a spotting mechanism (the deepest change and the only one that moves both 25% dimensions). Everything else is polish worth a point or less.",
+    "disagreements": [
+      {
+        "dimension": "depth",
+        "panel_score": 7.5,
+        "judge_score": 8,
+        "evidence": "The rubric asks how much of the repo is original logic versus glue around one API call. The core has no API call: a hand-written numba time-dependent Dijkstra with an indexed heap and corner-cut guard (pipeline/ember/spread.py:201-310), an elliptical ROS (spread.py:194-198), a two-stage inversion whose posterior comes from the regular stage-1 grid only (pipeline/steps/s11_ignition.py:192-247), split-half simulation-based calibration (s11_ignition.py:438-464), an identifiability gate (s11_ignition.py:299-310), Mantel-Haenszel/RBG statistics (s09b_exposure.py:87), and, new since round 3 and absent from the panel's awarded list, a cluster bootstrap over fire-storm groups with paired differences against M1 and a 20,000-resample check (s14_debris_models.py:338-382) plus a fold-isolation test (pipeline/tests/test_s14_debris.py:289). I counted 738 + 423 + 797 + 282 + 615 + 268 + 253 + 154 lines in those files alone. The panel's withheld items (unsourced constants at spread.py:57-77, lb_max 1.0 making e = 0 at :196, the same sp.arrival for the synthetic truth at s11:390, stock scikit-learn at s14:230) are real and keep it from 8.5, but they are about physics fidelity, not about the share of original logic. Round 3 scored 8 on a strictly smaller codebase."
+      },
+      {
+        "dimension": "works",
+        "panel_score": 7.5,
+        "judge_score": 8,
+        "evidence": "I ran the documented offline commands in a scratchpad copy: make test 176 passed / 12 skipped in 60.3 s (identical to the runner); cd web && npm ci && npm test && npm run build on Node 20.19.3 with local Chrome: 81 unit tests passed and the browser smoke test passed 3 of 3 with 0 skipped (web/tests-smoke/demo.smoke.mjs:98-178 asserts the withheld-start text, '12 real \u00b7 8 modeled sources \u00b7 none simulated', the map key, 'Jan 8, 15:30 PST', a positive Fire Area readout, 20 Evidence rows with 0 SIM, and the Risk tab's model table for both fires). Both committed reproduction hold-outs are byte-identical (cmp) to web/public/data/{eaton,palisades}/eval/ignition_holdout.json and only a 3-line print (s11_ignition.py:625-627) changed since the log's commit 67933f4, so the Palisades reproduction the panel withheld for is on record (docs/reproduction/log.md). Nothing on the demo path is mocked: the synthetic pattern is a labelled load-failure fallback (web/src/stage/synthetic-arrival.ts:9), start time is gated by the pipeline flag (web/src/rail/ignition.tsx:35-56), source counts come from manifest.json. Withheld from 8.5: the smoke test asserts DOM text, not pixels (demo.smoke.mjs:4-5), make eval reads the 30 synthetic cases rather than rerunning them (disclosed, s11:625), and the analyst has never answered (README.md:53), which the rubric neither credits nor counts broken."
+      },
+      {
+        "dimension": "execution",
+        "panel_score": 6,
+        "judge_score": 6.5,
+        "evidence": "The rubric asks whether commits are spread across the window rather than one dump and whether code predates the event. The window is Thu Oct 29 night to Tue Nov 3 (docs/spec/BUILD.md:9, :299-304) and judging is at 23:37 on Fri Oct 30, so about 26 of roughly 120 hours have elapsed; 74 commits from a docs-only root (ab6e229, 21:35 Oct 29) cover 15 of the 23 hour blocks of Oct 30 (cmd: git log --date=format:'%Y-%m-%d %H' | sort | uniq -c), the scaffold's hard steps are SystemExit stubs (git show ddbcdb4:pipeline/steps/s11_ignition.py: 'not implemented yet'), and author and committer dates agree on all 74 commits, so nothing was rebased to look spread out. The legitimate deductions are the same-second batching (37 of 74 commits share a second in 13 groups; four at 19:49:39) and output dumps inside feature commits (23ee0c9: 31 files, 195,335 insertions), which hide authoring time; that is a 6.5 at a quarter of the window, not a 6. The round-3 judge made the same point against a 5."
+      }
+    ],
+    "top_fixes": [
+      {
+        "fix": "Run the Muse Spark analyst live once per fire and commit the result. With MODEL_API_KEY in web/.env: `cd web && npm run eval:analyst -- --fire eaton` and `npm run eval:analyst -- --fire palisades`, which write web/public/data/<fire>/eval/analyst.json (web/scripts/eval-analyst.ts:315); commit both files plus one redacted `npm run ask -- \"When did the fire reach Lake Avenue?\"` transcript under docs/ (pipeline/work/ is gitignored, so smoke output there does not count). Then `cd pipeline && make report`: report.py:274-285 already reads eval/analyst.json and replaces the 'not run yet' lines at docs/RESULTS.md:165-166; update README.md:53, :120, :202 and the Meta table at :237 from 'not yet run' to the measured accuracy, time_accuracy, decline_accuracy and citation_validity. Also run `make smoke-meta` once (pipeline/Makefile:78) and commit its redacted stdout so sam-3.1's request path has a run on record.",
+        "dimension": "meta_bonus (also ambition, works, evidence)",
+        "expected_effect": "Meta bonus 2 -> 3 (+1.0): the rubric credits 'it works' only once a call has happened. Works +0.5 (+1.0) because the one unexercised feature becomes demonstrated; ambition +0.5 (+1.25) because the model-native piece earns credit; evidence +0.25 because README.md:120's '14 scored for Eaton and 13 for Palisades' gets a committed file behind it. Total about +2.5 to +3.5, enough on its own to cross 80 on my reading.",
+        "refs": [
+          "web/scripts/eval-analyst.ts:315",
+          "web/api/_lib/model.ts:5",
+          "web/api/analyst.ts:43-49",
+          "pipeline/tools/report.py:274-285",
+          "pipeline/tools/smoke_meta.py:132-168",
+          "pipeline/Makefile:78",
+          "README.md:53",
+          "README.md:120",
+          "README.md:202",
+          "README.md:237",
+          "docs/RESULTS.md:165-166"
+        ]
+      },
+      {
+        "fix": "Gate the Palisades location result and relabel the hold-out, in the generators, not the generated files (docs/RESULTS.md:3 says do not edit by hand; test_report.py pins the README block). In pipeline/tools/report.py, make holdout_place() (line 328) apply the same gate holdout_time() already applies at lines 193-201: when after_held_out(h) (line 187) is true or every held_out[*].predicted_cells is 0 (web/public/data/palisades/eval/ignition_holdout.json:11-17; estimate t at :26 is 2025-01-09T10:27:04Z, after both held-out times), print 'withheld: the fit predicts none of the held-out footprints' in place of '315 m (3,557 m)', and write the same flag into the holdout dict in s11_ignition.py:645-660 (e.g. location_credible: false) so the app and analyst can read it. Replace the 'apart from the sliver of their area the cumulative footprints keep' sentence (report.py:403 -> docs/RESULTS.md:51) with: the hold-out withholds the first two perimeters' times; their extent lies inside the fitted footprints by construction (s11_ignition.py:165 unions each perimeter with earlier ones), so it is a timing hold-out. Change s11_ignition.py:15 and :376 ('in kind') and README.md:145 ('physics deliberately differs') to match README.md:92 (same spread equations, perturbed inputs). Run `make report` and `make test` afterwards.",
+        "dimension": "evidence",
+        "expected_effect": "Evidence 7.5 -> 8 (+0.75). Removes the one headline-table overstatement that qualifies as 'major: overstated' under the rubric and the two wording findings (adversary F3, F5, F6) that would otherwise recur every round.",
+        "refs": [
+          "pipeline/tools/report.py:187-201",
+          "pipeline/tools/report.py:328",
+          "pipeline/tools/report.py:369",
+          "pipeline/tools/report.py:403",
+          "pipeline/steps/s11_ignition.py:15",
+          "pipeline/steps/s11_ignition.py:165",
+          "pipeline/steps/s11_ignition.py:376",
+          "pipeline/steps/s11_ignition.py:645-660",
+          "web/public/data/palisades/eval/ignition_holdout.json:11-29",
+          "README.md:135-136",
+          "README.md:145",
+          "docs/RESULTS.md:51",
+          "pipeline/tests/test_report.py:7"
+        ]
+      },
+      {
+        "fix": "Add the mechanism the shape cap stands in for. In pipeline/ember/spread.py add a wind-aligned ember/spotting kernel as extra edges in the Dijkstra (the neighbour loop at :280-310): with probability or deterministic rate p_spot, a burning cell ignites a cell d metres downwind after a delay, with d and p fitted per fire. Fit it in s11_ignition.py's select_lb() (:250-258) alongside or instead of the length-to-breadth cap. Success criteria: Palisades' k leaves the 76.8 ceiling (web/public/data/palisades/ignition.json lb_selection: every cap above 1.0 sits at 76.8; README.md:193) and Eaton's fit no longer needs lb_max 1.0 (web/public/data/eaton/ignition.json map.lb_max 1.0 makes e = 0 at spread.py:196, so wind direction no longer shapes the fire). Then use the kernel in the synthetic truth only (s11_ignition.py:390 currently calls the same sp.arrival as the inversion) so the 90% coverage finally tests structural error, which README.md:194 admits it does not. Separately, source C_WIND, B_WIND, C_SLOPE and FUEL_TABLE (spread.py:57-77) against Rothermel/Anderson/Scott-Burgan fuel-model values, or fit them, and record the provenance in the docstring at spread.py:3 and the model card.",
+        "dimension": "depth (also ambition)",
+        "expected_effect": "Depth 7.5 -> 8 or 8.5 (+1.25 to +2.5): a new mechanism with a fitted parameter and a structurally different synthetic truth addresses four of the panel's six withheld items. Ambition 7 -> 7.5 (+1.25) if Palisades becomes fittable, since the hardest case is currently outside the model's reach. The largest total lever after the live analyst run, and the most work.",
+        "refs": [
+          "pipeline/ember/spread.py:3",
+          "pipeline/ember/spread.py:57-77",
+          "pipeline/ember/spread.py:194-198",
+          "pipeline/ember/spread.py:280-310",
+          "pipeline/steps/s11_ignition.py:250-258",
+          "pipeline/steps/s11_ignition.py:376-390",
+          "web/public/data/eaton/ignition.json",
+          "web/public/data/palisades/ignition.json",
+          "README.md:84",
+          "README.md:188-194"
+        ]
+      },
+      {
+        "fix": "Make the demo path verification cover the render and the second fire. In web/tests-smoke/demo.smoke.mjs add one pixel assertion per fire after the DOM checks: take page.screenshot({clip: <map area>}) (or read the deck.gl canvas with preserveDrawingBuffer) and assert that a non-trivial share of pixels differs from the page background, so the 3D progression and scar are shown to draw under --enable-unsafe-swiftshader rather than only the DOM text the file's header (lines 4-5) admits it checks. In pipeline/Makefile:70 make `make eval` run both fires (or add `eval-both`) so the Palisades hold-out is rerun by the judge runner, not only by the committed docs/reproduction/log.md; and commit one `make eval-full` log for each fire (README.md:226: about 70 and 100 min) under docs/reproduction/ so the 30-case synthetic summaries rest on a logged rerun rather than 2 checked cases. Code-split deck.gl with build.rollupOptions.output.manualChunks in web/vite.config.ts to clear the 1.3 MB chunk warning.",
+        "dimension": "works",
+        "expected_effect": "Works 7.5 -> 8.5 (+1.0 to +2.0): the three withheld items that remain after the analyst fix (render not asserted, Palisades not rerun in-round, synthetic cases not re-simulated) are each answered by a committed artefact or an automated check.",
+        "refs": [
+          "web/tests-smoke/demo.smoke.mjs:4-5",
+          "web/tests-smoke/demo.smoke.mjs:98-134",
+          "pipeline/Makefile:70-80",
+          "docs/reproduction/log.md",
+          "README.md:213-215",
+          "README.md:226",
+          "web/vite.config.ts"
+        ]
+      },
+      {
+        "fix": "Restructure the README's first screen. Move 'Who it's for, and why now' (README.md:23-41) above the run block and screenshot (README.md:9-17), or add one sentence naming the user under the tagline at README.md:3. Replace build jargon a first-time reader cannot resolve: 'stream C' (README.md:55, :238, :242), 'three streams' and 'stream A' (README.md:58), and 'the reference design's Resources tab' (README.md:54), with plain words or a one-line gloss. Add a Palisades screenshot beside docs/img/eaton-replay.jpg (README.md:17 mentions ?fire=palisades only in passing) and a 60-second walkthrough that maps each pitch bullet (README.md:4-7) to a view, including Analysis then Homes for 'which homes survived' (web/src/rail/homes.tsx:151), which the Run-it path never reaches. Define IoU at its first use (README.md:138; currently defined at :150).",
+        "dimension": "clarity",
+        "expected_effect": "Clarity 8 -> 9 (+1.0). Every withheld item in the clarity panel is a README edit; none needs code.",
+        "refs": [
+          "README.md:3-17",
+          "README.md:23-41",
+          "README.md:54-58",
+          "README.md:138",
+          "README.md:150",
+          "README.md:238-242",
+          "web/src/rail/homes.tsx:151",
+          "docs/img/eaton-replay.jpg"
+        ]
+      },
+      {
+        "fix": "Commit hygiene for the rest of the window. Land each piece as it finishes on Sat Oct 31 through Tue Nov 3 (the BUILD.md:299-304 schedule), not in one more overnight burst; stop batching unrelated changes into one second (37 of 74 commits share an exact timestamp with another, e.g. four unrelated commits at 19:49:39: be0c306, 4b09fbe, 78fc784, 7ee5f34), so the log records when work happened; put regenerated JSON/PNG outputs in their own per-run commit instead of inside feature commits (23ee0c9: 31 files, 195,335 insertions). Update the BUILD.md day table to say the Sat/Sun items (arrival raster 4269ac2, back-trace 19df2b6) landed Oct 30.",
+        "dimension": "execution",
+        "expected_effect": "Execution 6 -> 7 or 8 (+0.5 to +1.0). Low weight (5%), but it is the only dimension whose score rises by itself if the remaining days are used as the plan says.",
+        "refs": [
+          "docs/spec/BUILD.md:299-304",
+          "cmd: git log --format='%ad' --date=iso | sort | uniq -c",
+          "cmd: git show --stat 23ee0c9"
+        ]
+      },
+      {
+        "fix": "Close the smaller evidence gaps the panel and adversary found. At README.md:180 report the mapped random forest's agreement with USGS beside M1's: Spearman 0.38-0.47 on Eaton and 0.63-0.77 on Palisades across the design storms (web/public/data/{eaton,palisades}/debris_flow_stats.json agreement_by_i15.rf.spearman_vs_usgs) against M1's 0.88 and 0.94; change '9.8% of those storms' to 'records' (model_eval.json m1_published pooled.base_rate 0.0983 over 6,319 watershed-storm records); in report.py:344 flag '(ceiling)' on the field side too when v['field']['k_at_ceiling'] is true (web/public/data/palisades/eval/wind_ablation.json: every variant at 76.8, flag true), so README.md:138 does not imply only the ERA5 fit hit it; make README.md:158's '87-100%' say which fire each end belongs to; and generate the debris table (README.md:170-176) from model_eval.json in report.py so it sits under the same drift test as the headline block.",
+        "dimension": "evidence",
+        "expected_effect": "Evidence +0.25 (+0.4) and it clears adversary findings F1, F2 and F4 so they stop recurring. Cheap: report.py and README edits plus `make report`.",
+        "refs": [
+          "README.md:138",
+          "README.md:158",
+          "README.md:170-180",
+          "pipeline/tools/report.py:344",
+          "web/public/data/eaton/debris_flow_stats.json",
+          "web/public/data/palisades/debris_flow_stats.json",
+          "web/public/data/debris_flow/model_eval.json",
+          "web/public/data/palisades/eval/wind_ablation.json",
+          "pipeline/tests/test_report.py:7"
+        ]
+      }
+    ]
+  },
+  "approved": false
+}

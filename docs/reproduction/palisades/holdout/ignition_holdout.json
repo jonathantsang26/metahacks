@@ -1,0 +1,103 @@
+{
+  "fit_observations": [
+    "2025-01-09T22:53:47Z",
+    "2025-01-10T00:25:40Z",
+    "2025-01-10T19:05:53Z"
+  ],
+  "held_out": [
+    {
+      "t": "2025-01-08T20:34:03Z",
+      "observed_cells": 5185,
+      "predicted_cells": 0,
+      "iou": 0.0
+    },
+    {
+      "t": "2025-01-08T21:24:23Z",
+      "observed_cells": 7410,
+      "predicted_cells": 0,
+      "iou": 0.0
+    }
+  ],
+  "estimate": {
+    "lonlat": [
+      -118.547378,
+      34.071779
+    ],
+    "t": "2025-01-09T10:27:04Z",
+    "k": 22.627,
+    "lb_max": 8.0,
+    "r90_m": 9675.6,
+    "t90": [
+      "2025-01-07T06:53:47Z",
+      "2025-01-09T22:23:47Z"
+    ],
+    "timing": {
+      "identifiable": false,
+      "reasons": [
+        "90% start-time interval is 63.5 h wide (limit 6 h)"
+      ],
+      "interval90_width_h": 63.5
+    },
+    "tau_h": 38.4,
+    "uncertainty_calibrated": true
+  },
+  "lb_selection": [
+    {
+      "lb_max": 1.0,
+      "loss_h": 2.5057,
+      "k": 32.0
+    },
+    {
+      "lb_max": 1.25,
+      "loss_h": 2.5205,
+      "k": 76.8
+    },
+    {
+      "lb_max": 1.5,
+      "loss_h": 2.499,
+      "k": 26.667
+    },
+    {
+      "lb_max": 2.0,
+      "loss_h": 2.3904,
+      "k": 22.627
+    },
+    {
+      "lb_max": 3.0,
+      "loss_h": 2.3528,
+      "k": 22.627
+    },
+    {
+      "lb_max": 8.0,
+      "loss_h": 2.3333,
+      "k": 22.627
+    }
+  ],
+  "uncertainty_calibrated": true,
+  "baselines": {
+    "first_fit_footprint_centroid_lonlat": [
+      -118.582434,
+      34.064274
+    ],
+    "area_backcast_t": "2024-12-09T06:33:55Z"
+  },
+  "reference": {
+    "source": "CAL FIRE incidents API",
+    "url": "https://www.fire.ca.gov/incidents/2025/1/7/palisades-fire/",
+    "t": "2025-01-07T18:30:00Z",
+    "lonlat": [
+      -118.54453,
+      34.07022
+    ],
+    "note": "Reported incident location, not an investigated origin."
+  },
+  "errors": {
+    "backtrace_distance_m": 314.7,
+    "baseline_distance_m": 3556.9,
+    "backtrace_time_error_min": 2397.1,
+    "baseline_time_error_min": -42476.1,
+    "reference_within_r90": true,
+    "reference_outside_first_fit_footprint_m": 0.0,
+    "reference_within_t90": true
+  }
+}

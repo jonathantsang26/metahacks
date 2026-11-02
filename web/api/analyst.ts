@@ -1,7 +1,9 @@
 import type {IncomingMessage, ServerResponse} from 'node:http';
 import {DEFAULT_MODEL, runAnalyst} from './_lib/analyst.js';
+import {BudgetError, budgetedChat, capUsd, chooseStore, memoryStore, NO_STORE_MESSAGE} from './_lib/budget.js';
 import {FIRE_ID, FireStore} from './_lib/data.js';
 import {createChatClient} from './_lib/model.js';
+import {clientId, createLimiter, limitMessage, REPORT_COST, type Limiter} from './_lib/ratelimit.js';
 import type {AnalystRequest, HistoryTurn} from './_lib/types.js';
 
 /**
@@ -11,12 +13,22 @@ import type {AnalystRequest, HistoryTurn} from './_lib/types.js';
 
 const MAX_QUESTION = 2000;
 const MAX_HISTORY = 12;
-const MAX_TURN = 4000;
+const MAX_TURN = 2000;
+/** History is resent on every model round, so its total size, not just its turn count, sets a request's cost. */
+const MAX_HISTORY_CHARS = 8000;
 const MAX_BODY = 64 * 1024;
 /** Leaves room for one forced final call (20 s timeout) inside vercel.json's maxDuration of 60 s. */
 const LOOP_BUDGET_MS = 35_000;
 
-type Result = {status: number; body: unknown};
+type Result = {status: number; body: unknown; headers?: Record<string, string>};
+/** Who is asking, and the limiter that decides whether they may spend a model call now. */
+type Guard = {client: string; limiter: Limiter};
+
+const limiter = createLimiter();
+/** Only with ANALYST_BUDGET_LOCAL=1 and no shared store: counts this process only. */
+const localBudget = memoryStore();
+
+type Env = {MODEL_API_KEY?: string} & Parameters<typeof chooseStore>[0];
 
 export function parseRequest(body: unknown): AnalystRequest | string {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return 'Body must be a JSON object.';
@@ -36,10 +48,13 @@ export function parseRequest(body: unknown): AnalystRequest | string {
     })
     .slice(-MAX_HISTORY)
     .map(h => ({role: h.role, content: h.content.slice(0, MAX_TURN)}));
-  return {question: b.question.trim(), fire, mode, history};
+  // Keep the most recent turns that fit in MAX_HISTORY_CHARS.
+  let total = 0;
+  const kept = history.reverse().filter(h => (total += h.content.length) <= MAX_HISTORY_CHARS).reverse();
+  return {question: b.question.trim(), fire, mode, history: kept};
 }
 
-export async function handleAnalyst(body: unknown, env: {MODEL_API_KEY?: string} = process.env, root?: string): Promise<Result> {
+export async function handleAnalyst(body: unknown, env: Env = process.env, root?: string, guard?: Guard): Promise<Result> {
   const key = env.MODEL_API_KEY?.trim();
   if (!key) {
     return {
@@ -51,10 +66,20 @@ export async function handleAnalyst(body: unknown, env: {MODEL_API_KEY?: string}
   if (typeof req === 'string') return {status: 400, body: {error: req}};
   const store = new FireStore(req.fire, root);
   if (!store.exists()) return {status: 404, body: {error: `No data for fire "${req.fire}".`}};
+  // Counted only for requests that would reach the model.
+  if (guard) {
+    const v = guard.limiter.take(guard.client, req.mode === 'report' ? REPORT_COST : 1);
+    if (!v.ok) return {status: 429, body: {error: limitMessage(v)}, headers: {'Retry-After': String(v.retryAfterS)}};
+  }
+  // Never spends untracked: without the shared store (or an explicit local opt-in) it refuses.
+  const budget = chooseStore(env, () => localBudget);
+  if (!budget) return {status: 503, body: {error: NO_STORE_MESSAGE}};
   try {
-    const run = await runAnalyst(req, {chat: createChatClient(key), store, model: DEFAULT_MODEL, deadline: Date.now() + LOOP_BUDGET_MS});
+    const chat = budgetedChat(createChatClient(key), budget, capUsd(env));
+    const run = await runAnalyst(req, {chat, store, model: DEFAULT_MODEL, deadline: Date.now() + LOOP_BUDGET_MS});
     return {status: 200, body: run.response};
   } catch (e) {
+    if (e instanceof BudgetError) return {status: e.status, body: {error: e.message}};
     const status = (e as {status?: unknown}).status;
     if (typeof status === 'number') {
       console.error(`[analyst] model API error ${status}: ${(e as Error).message}`);
@@ -65,8 +90,9 @@ export async function handleAnalyst(body: unknown, env: {MODEL_API_KEY?: string}
   }
 }
 
-function send(res: ServerResponse, status: number, body: unknown): void {
+function send(res: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
   res.statusCode = status;
+  for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Cache-Control', 'no-store');
   res.end(JSON.stringify(body));
@@ -103,6 +129,6 @@ export default async function handler(req: IncomingMessage & {body?: unknown}, r
   } catch (e) {
     return send(res, e instanceof RangeError ? 413 : 400, {error: e instanceof RangeError ? 'Body too large.' : 'Body is not valid JSON.'});
   }
-  const out = await handleAnalyst(body);
-  send(res, out.status, out.body);
+  const out = await handleAnalyst(body, process.env, undefined, {client: clientId(req), limiter});
+  send(res, out.status, out.body, out.headers);
 }

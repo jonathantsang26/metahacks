@@ -17,7 +17,7 @@ TEST_FIRES ?= eaton,palisades
 RUN := FIRE=$(FIRE) uv run python -m
 
 .PHONY: all aoi dem landcover firms perimeters arrival weather severity vectors exposure events ignition \
-        test eval eval-full report smoke-meta clean-cache
+        debris test eval eval-full report smoke-meta clean-cache
 
 all: aoi dem landcover firms perimeters weather severity vectors arrival ignition events exposure
 
@@ -57,6 +57,12 @@ ignition: arrival weather landcover
 
 exposure: arrival vectors weather
 	$(RUN) steps.s09b_exposure
+
+# Post-fire debris flows (Risk tab): models on USGS's inventory (14), then USGS's segments per fire (15).
+debris:
+	uv run python -m steps.s14_debris_models
+	FIRE=eaton uv run python -m steps.s15_debris_fire
+	FIRE=palisades uv run python -m steps.s15_debris_fire
 
 test:
 	TEST_FIRES=$(TEST_FIRES) uv run pytest -q tests

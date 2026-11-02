@@ -3,6 +3,7 @@ import type {
   ChatCompletionMessageFunctionToolCall,
   ChatCompletionMessageParam
 } from 'openai/resources/chat/completions';
+import {MAX_COMPLETION_TOKENS} from './budget.js';
 import type {Aoi, FireStore} from './data.js';
 import {createToolRunner, DATA_TOOLS, FINAL_ANSWER_TOOL} from './tools.js';
 import type {AnalystRequest, AnalystResponse, Mode} from './types.js';
@@ -13,9 +14,12 @@ import {verifyAnswer} from './verify.js';
 export const DEFAULT_MODEL = 'muse-spark-1.3';
 export const MAX_ROUNDS = 8;
 
-export type ChatRequest = Pick<ChatCompletionCreateParamsNonStreaming, 'model' | 'messages' | 'tools' | 'tool_choice'>;
+export type ChatRequest = Pick<ChatCompletionCreateParamsNonStreaming, 'model' | 'messages' | 'tools' | 'tool_choice' | 'max_completion_tokens'>;
 type ToolCallLike = {id: string; type: string; function?: {name: string; arguments: string}};
-export type ChatReply = {choices: {message: {content: string | null; tool_calls?: ToolCallLike[] | null}}[]};
+export type ChatReply = {
+  choices: {message: {content: string | null; tool_calls?: ToolCallLike[] | null}; finish_reason?: string | null}[];
+  usage?: {prompt_tokens: number; completion_tokens: number; prompt_tokens_details?: {cached_tokens?: number} | null} | null;
+};
 export type ChatClient = {create(req: ChatRequest): Promise<ChatReply>};
 
 export type AnalystRun = {
@@ -88,12 +92,18 @@ export async function runAnalyst(
   let forced = false;
 
   let rounds = 0;
+  let truncated = false;
   while (rounds < maxRounds) {
     const round = ++rounds;
     // Past the deadline (or on the last round) the model gets one call that must be final_answer.
     const lastChance = round === maxRounds || (deps.deadline !== undefined && Date.now() >= deps.deadline);
-    const base = {model, messages};
+    const base = {model, messages, max_completion_tokens: MAX_COMPLETION_TOKENS};
     const reply = forced || lastChance ? await forceFinal(deps.chat, base) : await deps.chat.create({...base, tools: [...DATA_TOOLS, FINAL_ANSWER_TOOL], tool_choice: 'auto'});
+    // A reply cut off at the output cap can't hold a usable answer; retrying would pay for the same again.
+    if (reply.choices[0]?.finish_reason === 'length') {
+      truncated = true;
+      break;
+    }
     const msg = reply.choices[0]?.message;
     const calls = (msg?.tool_calls ?? []).filter(isFunctionCall);
 
@@ -147,7 +157,9 @@ export async function runAnalyst(
       tool_calls: toolCalls,
       dropped: {uncited: 0, guardrail: 0, ungrounded: 0},
       model,
-      note: `The model did not return a final answer within ${rounds} rounds, so there is nothing verified to show.`
+      note: truncated
+        ? `The model's reply hit the ${MAX_COMPLETION_TOKENS}-token output limit, so there is nothing verified to show.`
+        : `The model did not return a final answer within ${rounds} rounds, so there is nothing verified to show.`
     },
     audit: {rounds, proposed_cite_ids: 0, invalid_cite_ids: 0, final_answer: false}
   };

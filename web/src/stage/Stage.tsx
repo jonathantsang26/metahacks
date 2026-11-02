@@ -19,6 +19,7 @@ import {dashExtension, manifestRow, useIgnitionPart, usePerimeterPart, useSpineP
 import {distanceM} from './drape';
 import {usePlaceLabels, useRoadPart, useStructurePart, useTreePart, useWindPart} from './context-layers';
 import {useHighlightPart} from './highlight';
+import {useDebrisPart} from './debris-layer';
 import {Compass, HoverInspector, MapControls, MapNotes, SyntheticChip, type StageNote} from './overlays';
 
 const PITCH_3D = 58;
@@ -43,6 +44,8 @@ export function Stage({fire}: {fire: FireData}) {
   const setBearing = useUi(s => s.setBearing);
   const setHover = useUi(s => s.setHover);
   const selectStructure = useUi(s => s.selectStructure);
+  const risk = useUi(s => s.risk);
+  const setRisk = useUi(s => s.setRisk);
   const [dem, setDem] = useState<Dem | null>(null);
   const [viewState, setViewState] = useState<MapViewState>(() => ({
     longitude: fire.aoi.center[0],
@@ -162,6 +165,7 @@ export function Stage({fire}: {fire: FireData}) {
   const placeLabels = usePlaceLabels(fire, dem, layers.labels.visible);
   const treePart = useTreePart(fire, dem, t, terrain.visible, arrivalRaster, arrivalWindow);
   const highlightPart = useHighlightPart(dem, highlight);
+  const debrisPart = useDebrisPart(fire, dem, layers.debrisFlow, risk, setRisk);
 
   // Labels from every layer compete for space; the survivors depend on the camera.
   const labels = useMemo<MapLabel[]>(
@@ -273,7 +277,14 @@ export function Stage({fire}: {fire: FireData}) {
       detail: finalRow.source,
       swatches: [{color: '#ffffff', label: 'Final perimeter', shape: 'dash'}]
     });
-  notes.push(...ignitionPart.notes, ...spinePart.notes, ...windPart.notes, ...structurePart.notes, ...roadPart.notes);
+  notes.push(
+    ...ignitionPart.notes,
+    ...spinePart.notes,
+    ...windPart.notes,
+    ...structurePart.notes,
+    ...roadPart.notes,
+    ...debrisPart.notes
+  );
   const osmRow = manifestRow(fire, 'Roads, peaks & places');
   if (osmRow && (layers.roads.visible || layers.labels.visible))
     notes.push({
@@ -314,6 +325,7 @@ export function Stage({fire}: {fire: FireData}) {
     }),
     ...treePart.layers,
     ...roadPart.layers,
+    ...debrisPart.layers,
     new PathLayer<number[][], {getDashArray: [number, number]; dashJustified: boolean}>({
       id: 'final-perimeter',
       data: perimeterPaths,

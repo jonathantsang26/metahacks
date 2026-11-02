@@ -45,7 +45,8 @@ export const LAYERS: LayerDef[] = [
 ];
 
 /** Debris-flow models shown on the Risk tab (debris_flow.geojson: `<model>_p_<I15>`). */
-export type RiskModel = 'usgs' | 'm1' | 'rf' | 'mlp';
+/** usgs = USGS's published M1; m1 = M1 recalibrated on the inventory; rf = random forest (monotone in rainfall). */
+export type RiskModel = 'usgs' | 'm1' | 'rf';
 /** USGS's design storms: peak 15-minute rainfall intensity, mm/h. */
 export const DESIGN_I15 = [16, 20, 24, 28, 32, 36, 40] as const;
 
@@ -85,11 +86,17 @@ type UiState = {
   setRisk: (patch: Partial<UiState['risk']>) => void;
 };
 
+/** `?tab=risk` opens a tab directly, for shareable links; Drones has no data, so it is never opened. */
+const TAB_PARAM = new URLSearchParams(location.search).get('tab');
+const INITIAL_TAB: Tab = TAB_PARAM === 'risk' ? 'risk' : 'incident';
+
 export const useUi = create<UiState>(set => ({
-  tab: 'incident',
+  tab: INITIAL_TAB,
   viewMode: '3d',
   bearing: 0,
-  layers: Object.fromEntries(LAYERS.map(l => [l.id, l])) as Record<LayerId, LayerDef>,
+  layers: Object.fromEntries(
+    LAYERS.map(l => [l.id, l.id === 'debrisFlow' && INITIAL_TAB === 'risk' ? {...l, visible: true} : l])
+  ) as Record<LayerId, LayerDef>,
   hover: null,
   flyTo: null,
   highlight: null,

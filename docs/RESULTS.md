@@ -48,7 +48,7 @@ The 6 h identifiability rule would have withheld the start time in all 15 of tho
 
 ## Ignition back-trace: real hold-out
 
-The model never sees the first two perimeters or CAL FIRE's reference. CAL FIRE's point is the reported incident location, not an investigated origin.
+The hold-out fit is fitted without the first two perimeters (apart from the sliver of their area the cumulative footprints keep, stated per fire) and never uses CAL FIRE's reference. It mainly tests timing: the later footprints it fits still contain most of the early perimeters' area, so its location says less than its start time. CAL FIRE's point is the reported incident location, not an investigated origin.
 
 **Eaton Fire**: fit on 4 perimeters from 2025-01-08T10:33:59Z; held out 2025-01-08T07:06:14Z, 2025-01-08T07:12:13Z.
 
@@ -60,6 +60,8 @@ The model never sees the first two perimeters or CAL FIRE's reference. CAL FIRE'
 | Official start inside the 90% interval (2025-01-07T23:15:09Z – 2025-01-08T09:51:33Z) | yes | – |
 | IoU with held-out perimeter 2025-01-08T07:06:14Z | 0.23 | – |
 | IoU with held-out perimeter 2025-01-08T07:12:13Z | 0.15 | – |
+
+CAL FIRE's reported point, by vector distance to the perimeter polygons: the first mapped perimeter (2025-01-08T07:06:14Z): 1,721 m outside it; the hold-out fit's first perimeter (2025-01-08T10:33:59Z): 1,108 m outside it. The analysis-grid distances the fits use differ by up to a few cells. Footprints are cumulative, so 0.2 ha of the held-out perimeters that lies outside the hold-out fit's first perimeter stays in its footprints.
 
 Hold-out fit: **start time not identifiable**: 90% start-time interval is 10.6 h wide (limit 6 h). The timeline omits the estimated start.
 
@@ -77,6 +79,8 @@ Full fit: **start time not identifiable**: 90% start-time interval is 10.6 h wid
 | Official start inside the 90% interval (2025-01-07T06:53:47Z – 2025-01-09T22:23:47Z) | yes | – |
 | IoU with held-out perimeter 2025-01-08T20:34:03Z | 0.00 | – |
 | IoU with held-out perimeter 2025-01-08T21:24:23Z | 0.00 | – |
+
+CAL FIRE's reported point, by vector distance to the perimeter polygons: the first mapped perimeter (2025-01-08T20:34:03Z): inside it; the hold-out fit's first perimeter (2025-01-09T22:53:47Z): inside it. The analysis-grid distances the fits use differ by up to a few cells. Footprints are cumulative, so 0.5 ha of the held-out perimeters that lies outside the hold-out fit's first perimeter stays in its footprints.
 
 The hold-out estimate starts at 2025-01-09T10:27:04Z, after the held-out perimeters, which it therefore predicts as unburned: its start time is not a credible back-trace, and the start-time error above is not a result.
 
@@ -158,5 +162,7 @@ OR < 1: the first group was destroyed less often than the second within the same
 
 ## Analyst eval
 
-- **Eaton Fire**: not run yet. The analyst eval (`cd web && npm run eval:analyst -- --fire eaton`) needs `MODEL_API_KEY`; its ground truth is computed from the data files (`npm run eval:analyst -- --truth --fire eaton`).
-- **Palisades Fire**: not run yet. The analyst eval (`cd web && npm run eval:analyst -- --fire palisades`) needs `MODEL_API_KEY`; its ground truth is computed from the data files (`npm run eval:analyst -- --truth --fire palisades`).
+- **Eaton Fire** (`muse-spark-1.3`, live, 2026-10-31): 13 of 14 answers match the data-derived truth (time 4/5, number 8/8, decline 1/1). 20 of 20 cited ids came from a tool result. Paragraphs dropped by the verifier: uncited 0, guardrail 0, ungrounded 0. Skipped (no truth in the data): place_2.
+  - Miss, `street_3`: When did the fire first reach Kinneloa Canyon Road? Truth 2025-01-09T04:27:31Z (roads.geojson × arrival.png); the answer gave no time or number.
+- **Palisades Fire** (`muse-spark-1.3`, live, 2026-10-31): 12 of 13 answers match the data-derived truth (time 3/4, number 8/8, decline 1/1). 17 of 17 cited ids came from a tool result. Paragraphs dropped by the verifier: uncited 0, guardrail 0, ungrounded 0. Skipped (no truth in the data): street_4, place_2.
+  - Miss, `street_3`: When did the fire first reach Pacific Coast Highway? Truth 2025-01-08T20:03:48Z (roads.geojson × arrival.png); the answer gave 2025-01-08T20:41:00.000Z.
