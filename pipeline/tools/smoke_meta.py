@@ -22,6 +22,7 @@ import json
 import mimetypes
 import os
 import sys
+from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 
 import requests
@@ -129,7 +130,19 @@ async def sse_events(key: str, body: dict):
             yield json.loads(payload)
 
 
-async def run_sam(key: str, media_part: dict, prompt: str, video: bool, tag: str) -> bool:
+async def run_sam(
+    key: str,
+    media_part: dict,
+    prompt: str,
+    video: bool,
+    tag: str,
+    events: Callable[[str, dict], AsyncIterator[dict]] = sse_events,
+) -> bool:
+    """Segment `prompt` in the media; True when boxes come back and every line parsed.
+
+    `events(key, body)` yields the Responses API events; tests pass a fixture source instead of HTTP.
+    A stream that fails, or ends before the response completes, raises.
+    """
     from meta_sam_parser import (
         decode_mask_to_raster,
         image_segmentation_format,
@@ -145,10 +158,15 @@ async def run_sam(key: str, media_part: dict, prompt: str, video: bool, tag: str
         "metadata": {"include_confidence": "true"},
     }
     fmt = video_segmentation_format() if video else image_segmentation_format()
-    result = await parse_responses_stream(sse_events(key, body), fmt).final_result()
+    result = await parse_responses_stream(events(key, body), fmt).final_result()
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     (OUT_DIR / f"sam_{tag}.txt").write_text(result.raw_output)
+    if result.outcome.status != "completed":
+        why = result.outcome.detail or (
+            "the stream ended with no response.completed event" if result.outcome.reason == "eof" else "no reason given"
+        )
+        raise RuntimeError(f"{SAM_MODEL} response did not complete: {why}")
     boxes = [r for r in result.records if r.kind == "box"]
     masks = [r for r in result.records if r.kind == "mask"]
     objects = {r.object_id for r in boxes}
@@ -163,8 +181,10 @@ async def run_sam(key: str, media_part: dict, prompt: str, video: bool, tag: str
     for d in result.diagnostics[:5]:
         print(f"    diagnostic: {d}")
     print(f"  raw output → {OUT_DIR / f'sam_{tag}.txt'}")
-    ok = bool(boxes)
-    print(f"  {'PASS' if ok else 'CHECK'}  {SAM_MODEL} {'found' if ok else 'found nothing for'} '{prompt}'")
+    malformed = [d for d in result.diagnostics if d.severity == "error"]
+    ok = bool(boxes) and not malformed
+    note = f" ({len(malformed)} malformed line{'' if len(malformed) == 1 else 's'})" if malformed else ""
+    print(f"  {'PASS' if ok else 'CHECK'}  {SAM_MODEL} {'found' if boxes else 'found nothing for'} '{prompt}'{note}")
     return ok
 
 
