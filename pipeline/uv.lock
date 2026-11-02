@@ -283,6 +283,7 @@ sam = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "meta-sam-parser" },
     { name = "pytest" },
 ]
 
@@ -303,7 +304,10 @@ requires-dist = [
 provides-extras = ["sam"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.2.0" }]
+dev = [
+    { name = "meta-sam-parser", specifier = ">=0.1" },
+    { name = "pytest", specifier = ">=9.2.0" },
+]
 
 [[package]]
 name = "h11"

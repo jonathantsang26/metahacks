@@ -26,6 +26,8 @@ package = false
 [dependency-groups]
 dev = [
     "pytest>=9.2.0",
+    # Pure Python, no dependencies: lets `make test` run the offline SAM 3.1 parse test.
+    "meta-sam-parser>=0.1",
 ]
 
 [tool.pytest.ini_options]
