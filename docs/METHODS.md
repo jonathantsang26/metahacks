@@ -68,6 +68,8 @@ Each synthetic fire runs on the fire's real terrain, fuels and HRRR wind field, 
 - a perturbed length-to-breadth cap;
 - ±1-cell mapping noise.
 
+So the benchmark tests parameter misspecification only: it does not test a fire whose spread follows different equations from the model's.
+
 Synthetic start times are drawn uniformly 2–8 h into the replay window, a range that brackets CAL FIRE's reported start for both fires (2.3 h and 6.5 h in); the inversion itself never uses this prior.
 
 The spread-rate range is centred on the fuel table itself: k log-uniform 0.25–4, i.e. its base rates off by up to 4× either way. It has not always been: commit `0eab9dc` drew k from 4–16 to resemble the real Eaton fit of the time (k ≈ 11), and `66e8516` moved it to 0.25–4 when the HRRR fit brought Eaton's k to 0.42. Other design choices (the shape cap, the start-time lags) were also diagnosed on the real Eaton grid, so the real Eaton hold-out is a sanity check rather than an independent test. The real Palisades fits (k 22.6 in the hold-out, 76.8 at the ceiling in the full fit) lie outside the synthetic range, so Palisades' synthetic coverage describes slower fires than the real one. Each case is inverted twice: on every footprint, as the app does, and with the first two held out, as in the real hold-out. `make eval QUICK=1` recomputes the first cases and checks that they match the committed ones exactly.

@@ -15,7 +15,7 @@ Each coverage share below is followed by its 95% Wilson score interval in parent
 | Start-time error | all perimeters (as the app fits) | 78 min | 8.3 h | 21.6 h | 129.9 h | 93% of cases |
 | Start-time error | first 2 held out (stress test) | 3.1 h | 11.7 h | 52.2 h | 788.1 h | 97% of cases |
 
-Truth physics differs from the inverted model: per-fuel R0 x U(0.75,1.3); smooth patchy fuel field, log-std 0.25, ~4 cells; wind speed x U(0.85,1.15), direction ±15°, timing ±1.5 h; k log-uniform in [0.25, 4.0]; ±1-cell perimeter noise. Location baseline = centroid of the first footprint the fit sees; time baseline = linear back-extrapolation of sqrt(area).
+The truth runs the same spread equations as the inverted model, on inputs the model never sees, so the benchmark tests parameter misspecification only. Perturbations: per-fuel R0 x U(0.75,1.3); smooth patchy fuel field, log-std 0.25, ~4 cells; wind speed x U(0.85,1.15), direction ±15°, timing ±1.5 h; k log-uniform in [0.25, 4.0]; ±1-cell perimeter noise. Location baseline = centroid of the first footprint the fit sees; time baseline = linear back-extrapolation of sqrt(area).
 
 Search domain: the back-trace searches the first footprint its fit sees. The true origin lay inside it in 100% of cases (all perimeters (as the app fits)); 100% of cases (first 2 held out (stress test)). A synthetic fire grown from its origin almost always contains it, so the benchmark does not test an origin outside the first mapped perimeter, which is where CAL FIRE's reported point lies for Eaton.
 
@@ -36,7 +36,7 @@ The 6 h identifiability rule would have withheld the start time in all 15 of tho
 | Start-time error | all perimeters (as the app fits) | 4.6 h | 12.5 h | 37.0 h | 94.8 h | 83% of cases |
 | Start-time error | first 2 held out (stress test) | 16.4 h | 25.3 h | 109.7 h | 301.4 h | 87% of cases |
 
-Truth physics differs from the inverted model: per-fuel R0 x U(0.75,1.3); smooth patchy fuel field, log-std 0.25, ~4 cells; wind speed x U(0.85,1.15), direction ±15°, timing ±1.5 h; k log-uniform in [0.25, 4.0]; ±1-cell perimeter noise. Location baseline = centroid of the first footprint the fit sees; time baseline = linear back-extrapolation of sqrt(area).
+The truth runs the same spread equations as the inverted model, on inputs the model never sees, so the benchmark tests parameter misspecification only. Perturbations: per-fuel R0 x U(0.75,1.3); smooth patchy fuel field, log-std 0.25, ~4 cells; wind speed x U(0.85,1.15), direction ±15°, timing ±1.5 h; k log-uniform in [0.25, 4.0]; ±1-cell perimeter noise. Location baseline = centroid of the first footprint the fit sees; time baseline = linear back-extrapolation of sqrt(area).
 
 Search domain: the back-trace searches the first footprint its fit sees. The true origin lay inside it in 97% of cases (all perimeters (as the app fits)); 100% of cases (first 2 held out (stress test)). A synthetic fire grown from its origin almost always contains it, so the benchmark does not test an origin outside the first mapped perimeter, which is where CAL FIRE's reported point lies for Eaton.
 
