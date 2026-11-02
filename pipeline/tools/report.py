@@ -10,6 +10,7 @@ Run: uv run python -m tools.report   (or: make report)
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 from ember.config import REPO_DIR, load_fire
@@ -28,6 +29,30 @@ def read(fire, name):
 
 def fmt_min(m: float) -> str:
     return f"{m / 60:.1f} h" if abs(m) >= 120 else f"{m:.0f} min"
+
+
+def count(share: float, n: int) -> int:
+    """The number of cases behind a share the eval files store rounded to 2 decimals.
+    Exact for n up to 50; refuses a share that no whole count reproduces."""
+    k = round(share * n)
+    if not 0 < n <= 50 or round(k / n, 2) != round(share, 2):
+        raise ValueError(f"no whole count of {n} cases gives a share of {share}")
+    return k
+
+
+def wilson(k: int, n: int, z: float = 1.959964) -> tuple[float, float]:
+    """Wilson score interval (95% by default) for k successes in n trials."""
+    p = k / n
+    d = 1 + z * z / n
+    mid = (p + z * z / (2 * n)) / d
+    half = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
+    return max(0.0, mid - half), min(1.0, mid + half)
+
+
+def share_ci(k: int, n: int) -> str:
+    """'87% (62–96%)' for 13 of 15: the share with its 95% Wilson interval."""
+    lo, hi = wilson(k, n)
+    return f"{k / n:.0%} ({lo * 100:.0f}–{hi * 100:.0f}%)"
 
 
 def synthetic_section(fire) -> list[str]:
@@ -78,15 +103,17 @@ def synthetic_section(fire) -> list[str]:
 def calibration_lines(cal, label: str) -> list[str]:
     if not cal:
         return []
-    t = cal["test_coverage"]
+    t, n = cal["test_coverage"], cal["test_cases"]
+    hit = {key: count(t[key], n) for key in ("distance", "time")}
     reached = ("" if cal["reached_on_calibration_half"] else
                " (uncalibrated: no temperature tried reached the 90% target on the calibration half, so this is the widest "
                "tried, and the fits it serves withhold their start time)")
     return [
         f"Uncertainty calibration, {label}: posterior temperature tau = {cal['tau_h']:g} h, chosen on the {cal['calibration_cases']} "
         f"even-numbered cases{reached}. On the {cal['test_cases']} odd-numbered cases it never saw, the 90% radius "
-        f"(median {cal['median_test_r90_m']:,.0f} m) contains the true ignition in {t['distance']:.0%} of cases and the "
-        f"90% start-time interval (median width {cal['median_test_t90_width_h']:g} h) contains the true start in {t['time']:.0%}.",
+        f"(median {cal['median_test_r90_m']:,.0f} m) contains the true ignition in {hit['distance']} of {n} cases, "
+        f"{share_ci(hit['distance'], n)}, and the 90% start-time interval (median width {cal['median_test_t90_width_h']:g} h) "
+        f"contains the true start in {hit['time']} of {n}, {share_ci(hit['time'], n)}.",
         "",
     ] + shown_lines(cal.get("test_start_time_shown"))
 
@@ -97,10 +124,12 @@ def shown_lines(shown) -> list[str]:
         return []
     if not shown["cases"]:
         return [f"The 6 h identifiability rule would have withheld the start time in all {shown['of']} of those cases.", ""]
-    return [f"The 6 h identifiability rule would have shown a start time in {shown['cases']} of those {shown['of']} cases; "
+    n = shown["cases"]
+    k = count(shown["interval_contains_truth"], n)
+    return [f"The 6 h identifiability rule would have shown a start time in {n} of those {shown['of']} cases; "
             f"in those, the median start-time error is {fmt_min(shown['median_time_err_min'])} (worst "
-            f"{fmt_min(shown['max_time_err_min'])}) and the interval contains the truth in "
-            f"{shown['interval_contains_truth']:.0%}.", ""]
+            f"{fmt_min(shown['max_time_err_min'])}) and the interval contains the truth in {k} of {n}, "
+            f"{share_ci(k, n)}.", ""]
 
 
 def holdout_section(fire) -> list[str]:
@@ -333,11 +362,12 @@ def headline(fires) -> list[str]:
 
     def coverage(f):
         c = syn(f)["calibration_all_observations"]
+        n = c["test_cases"]
         k_hi = max(case["truth"]["k"] for case in syn(f)["cases"])
         regime = (f"; the real fit's k ({ign(f)['map']['k']:g}) lies above every synthetic truth (max {k_hi:.1f})"
                   if ign(f)["map"]["k"] > k_hi else "")
-        return (f"{c['test_coverage']['distance']:.0%} / {c['test_coverage']['time']:.0%} "
-                f"(radius {c['median_test_r90_m']:,.0f} m, interval {c['median_test_t90_width_h']:g} h)"
+        return (" / ".join(share_ci(count(c["test_coverage"][key], n), n) for key in ("distance", "time"))
+                + f"; radius {c['median_test_r90_m']:,.0f} m, interval {c['median_test_t90_width_h']:g} h"
                 + ("" if c["reached_on_calibration_half"] else "; uncalibrated, widest temperature tried") + regime)
 
     def holdout_place(f):
@@ -389,7 +419,7 @@ def headline(fires) -> list[str]:
         f"| Synthetic fires, location error (median): back-trace vs first-footprint centroid | {cells(lambda f: dist(syn(f)['summary_all_observations']))} |",
         f"| Synthetic fires, start-time error (median): back-trace vs √area back-extrapolation | {cells(lambda f: time(syn(f)['summary_all_observations']))} |",
         f"| The same with the first two perimeters held out: location; start time | {cells(lambda f: dist(syn(f)['summary']) + '; ' + time(syn(f)['summary']))} |",
-        f"| 90% radius / interval contains the truth, on synthetic cases the calibration never saw | {cells(coverage)} |",
+        f"| 90% radius / interval contains the truth, on synthetic cases the calibration never saw (95% CI) | {cells(coverage)} |",
         f"| Unseen synthetic cases where the app would show a start time | {cells(shown)} |",
         f"| Real fire: estimated start time | {cells(real_start)} |",
         f"| Real hold-out: distance to CAL FIRE's reported point (baseline: first-footprint centroid) | {cells(holdout_place)} |",
@@ -422,6 +452,8 @@ def main() -> None:
         "Do not edit by hand.",
         "",
         "## Ignition back-trace: synthetic recovery benchmark",
+        "",
+        "Each coverage share below is followed by its 95% Wilson score interval in parentheses, since it rests on few cases.",
         "",
     ]
     for f in fires:
