@@ -10,7 +10,7 @@ Every link below opens the replay at an exact moment: `?fire=` picks the fire an
 - Stay online: the 3D terrain mesh is decoded by a loaders.gl worker that is fetched from unpkg.com at run time (see [`CROSS_BROWSER.md`](CROSS_BROWSER.md)).
 - Open each link once before recording, so the textures are cached and the first frame isn't blank.
 - Beat 6 (Risk): its numbers come from `web/public/data/eaton/debris_flow.geojson` and `debris_flow_stats.json` and the README's Post-fire debris flows section. Check that the Risk tab shows the same before recording.
-- Beat 5 (Analyst) runs live on https://sentinel-ember.vercel.app, behind a hard spend cap and a limit of 10 questions per 30 minutes per visitor, so keep rehearsals short. Locally it needs `MODEL_API_KEY` in `web/.env`. If the live call is refused, use the fallback line in that beat. Never show an answer the app didn't produce.
+- Beat 5 (Analyst) runs live on https://sentinel-ember.vercel.app, behind a hard spend cap and a limit of 10 questions per 30 minutes per visitor, so keep rehearsals short. Locally it needs `MODEL_API_KEY` in the repo-root `.env`, plus either the Upstash store variables (`vercel env pull` in `web/`, into `web/.env.local`) or `ANALYST_BUDGET_LOCAL=1`; without one of those the analyst refuses. If the live call is refused, use the fallback line in that beat. Never show an answer the app didn't produce.
 
 ## Beats
 
