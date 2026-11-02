@@ -15,9 +15,10 @@ import path from 'node:path';
 import {PNG} from 'pngjs';
 import {DEFAULT_MODEL, runAnalyst} from '../api/_lib/analyst.js';
 import {FireStore} from '../api/_lib/data.js';
+import {budgetedChat, capUsd, chooseStore, memoryStore, NO_STORE_MESSAGE} from '../api/_lib/budget.js';
 import {createChatClient} from '../api/_lib/model.js';
 import type {AnalystResponse} from '../api/_lib/types.js';
-import {modelApiKey, NO_KEY_MESSAGE, WEB_ROOT} from './_env.js';
+import {localEnv, modelApiKey, NO_KEY_MESSAGE, NO_STORE_HINT, WEB_ROOT} from './_env.js';
 
 const argAfter = (flag: string) => {
   const i = process.argv.indexOf(flag);
@@ -179,7 +180,7 @@ function buildQuestions(): {questions: Question[]; skipped: {id: string; reason:
     const ms = Date.parse(ig.map.t);
     return ig.timing?.identifiable === false ? {kind: 'decline', withheldMs: ms} : time(ms);
   });
-  add('exposure_1', `What is the odds ratio of destruction for fine-mesh or no vents versus coarse or unscreened vents?${N}`, 'exposure_stats.json', () => {
+  add('exposure_1', `What odds ratio does exposure_stats list for the vents contrast?${N}`, 'exposure_stats.json', () => {
     if (!has('exposure_stats.json')) return null;
     const c = read<{contrasts: {feature: string; or: number | null}[]}>('exposure_stats.json').contrasts.find(x => x.feature === 'vents');
     return c?.or != null ? value(c.or) : null;
@@ -255,7 +256,14 @@ async function main(): Promise<void> {
     console.error(`${NO_KEY_MESSAGE}\nNo eval was run and eval/analyst.json was not written. (--truth prints the ground truth without a key.)`);
     process.exit(2);
   }
-  const chat = createChatClient(key);
+  // Same key as the deployed analyst, so the run counts against the same budget, or refuses.
+  const env = localEnv();
+  const budget = chooseStore(env, memoryStore);
+  if (!budget) {
+    console.error(`${NO_STORE_MESSAGE}\n${NO_STORE_HINT}\nNo eval was run.`);
+    process.exit(2);
+  }
+  const chat = budgetedChat(createChatClient(key), budget, capUsd(env));
   const store = new FireStore(FIRE, WEB_ROOT);
   const rows: Row[] = [];
   let proposed = 0;

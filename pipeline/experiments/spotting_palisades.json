@@ -1,0 +1,116 @@
+{
+  "fire": "palisades",
+  "lb_max": 1.5,
+  "model_cell_m": 95.0,
+  "k_ceiling": 64.00000000000007,
+  "settings": [
+    {
+      "spot_m": 0.0,
+      "spot_wind_mph": 0.0,
+      "spot_delay_h": 0.0,
+      "k": 76.8,
+      "k_at_ceiling": true,
+      "loss_h": 5.054,
+      "t": "2025-01-08T19:17:41Z",
+      "iou_by_observation": [
+        0.431,
+        0.585,
+        0.287,
+        0.292,
+        0.304
+      ],
+      "mean_iou": 0.38,
+      "seconds": 82
+    },
+    {
+      "spot_m": 500.0,
+      "spot_wind_mph": 25.0,
+      "spot_delay_h": 0.25,
+      "k": 76.8,
+      "k_at_ceiling": true,
+      "loss_h": 5.054,
+      "t": "2025-01-08T19:17:41Z",
+      "iou_by_observation": [
+        0.431,
+        0.585,
+        0.287,
+        0.292,
+        0.304
+      ],
+      "mean_iou": 0.38,
+      "seconds": 82
+    },
+    {
+      "spot_m": 1000.0,
+      "spot_wind_mph": 25.0,
+      "spot_delay_h": 0.25,
+      "k": 76.8,
+      "k_at_ceiling": true,
+      "loss_h": 5.054,
+      "t": "2025-01-08T19:17:41Z",
+      "iou_by_observation": [
+        0.431,
+        0.585,
+        0.287,
+        0.292,
+        0.304
+      ],
+      "mean_iou": 0.38,
+      "seconds": 82
+    },
+    {
+      "spot_m": 2000.0,
+      "spot_wind_mph": 25.0,
+      "spot_delay_h": 0.25,
+      "k": 76.8,
+      "k_at_ceiling": true,
+      "loss_h": 5.054,
+      "t": "2025-01-08T19:17:41Z",
+      "iou_by_observation": [
+        0.431,
+        0.585,
+        0.287,
+        0.292,
+        0.304
+      ],
+      "mean_iou": 0.38,
+      "seconds": 86
+    },
+    {
+      "spot_m": 1000.0,
+      "spot_wind_mph": 15.0,
+      "spot_delay_h": 0.25,
+      "k": 76.8,
+      "k_at_ceiling": true,
+      "loss_h": 5.054,
+      "t": "2025-01-08T19:17:41Z",
+      "iou_by_observation": [
+        0.431,
+        0.585,
+        0.287,
+        0.292,
+        0.304
+      ],
+      "mean_iou": 0.38,
+      "seconds": 87
+    },
+    {
+      "spot_m": 2000.0,
+      "spot_wind_mph": 15.0,
+      "spot_delay_h": 0.25,
+      "k": 76.8,
+      "k_at_ceiling": true,
+      "loss_h": 5.048,
+      "t": "2025-01-08T19:31:45Z",
+      "iou_by_observation": [
+        0.364,
+        0.578,
+        0.287,
+        0.292,
+        0.304
+      ],
+      "mean_iou": 0.365,
+      "seconds": 87
+    }
+  ]
+}

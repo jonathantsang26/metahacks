@@ -1,6 +1,7 @@
 import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
+import {PNG} from 'pngjs';
 import {describe, expect, it} from 'vitest';
 import {FireStore} from '../_lib/data.js';
 import {createToolRunner} from '../_lib/tools.js';
@@ -113,7 +114,61 @@ describe('street_fire_timeline', () => {
     const {result} = call('street_fire_timeline', {name: 'Imaginary Lane'});
     expect(result.found).toBe(false);
   });
+
+  // The live eval of 2026-10-31 missed both of these: sampling every 40 m skipped arrival cells
+  // of ~16 m, so Kinneloa Canyon Road (it clips the burn) read as unburned and PCH came out 37 min late.
+  const streets: [string, string][] = [
+    ['eaton', 'North Lake Avenue'],
+    ['eaton', 'East Altadena Drive'],
+    ['eaton', 'Kinneloa Canyon Road'],
+    ['eaton', 'Fair Oaks Avenue'],
+    ['palisades', 'Palisades Drive'],
+    ['palisades', 'West Sunset Boulevard'],
+    ['palisades', 'Pacific Coast Highway']
+  ];
+  it.each(streets)('%s: first burn on %s matches every cell the street crosses (1 m walk)', (fire, name) => {
+    const truth = firstBurnByCellWalk(fire, name);
+    expect(truth).not.toBeNull();
+    const fireStore = new FireStore(fire);
+    const {result} = call('street_fire_timeline', {name}, createToolRunner(fireStore));
+    expect(result.first_burn).not.toBeNull();
+    const stepMs = fireStore.arrival().windowMs / 253;
+    // first_burn is rounded to the minute; the tool and the walk read the same cell codes.
+    expect(Math.abs(Date.parse(result.first_burn.t) - truth!)).toBeLessThanOrEqual(Math.max(stepMs, 60_000));
+  });
 });
+
+/** Earliest arrival over every arrival.png cell the named street passes through, read straight
+ * from the PNG with a 1 m walk (independent of the tool's sampling). */
+function firstBurnByCellWalk(fire: string, name: string): number | null {
+  const dir = `public/data/${fire}`;
+  const png = PNG.sync.read(readFileSync(`${dir}/arrival.png`));
+  const [w, s, e, n] = (JSON.parse(readFileSync(`${dir}/dem.json`, 'utf8')) as {bounds: number[]}).bounds;
+  const [t0, t1] = (JSON.parse(readFileSync(`${dir}/aoi.json`, 'utf8')) as {window_utc: string[]}).window_utc.map(Date.parse);
+  const roads = JSON.parse(readFileSync(`${dir}/roads.geojson`, 'utf8')) as {
+    features: {geometry: {type: string; coordinates: number[][]}; properties: {name: string | null}}[];
+  };
+  let best: number | null = null;
+  for (const f of roads.features) {
+    if (f.properties.name !== name || f.geometry.type !== 'LineString') continue;
+    const c = f.geometry.coordinates;
+    for (let i = 0; i + 1 < c.length; i++) {
+      const [x0, y0] = c[i];
+      const [x1, y1] = c[i + 1];
+      const steps = Math.max(1, Math.ceil(Math.hypot((x1 - x0) * 92_000, (y1 - y0) * 111_000)));
+      for (let k = 0; k <= steps; k++) {
+        const col = Math.floor(((x0 + ((x1 - x0) * k) / steps - w) / (e - w)) * png.width);
+        const row = Math.floor(((n - (y0 + ((y1 - y0) * k) / steps)) / (n - s)) * png.height);
+        if (col < 0 || row < 0 || col >= png.width || row >= png.height) continue;
+        const code = png.data[(row * png.width + col) * 4];
+        if (code < 1 || code > 254) continue;
+        const ms = t0 + ((code - 1) / 253) * (t1 - t0);
+        if (best === null || ms < best) best = ms;
+      }
+    }
+  }
+  return best;
+}
 
 describe('structures_near', () => {
   it('returns counts only: no ids, coordinates or address fields', () => {

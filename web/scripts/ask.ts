@@ -7,7 +7,7 @@
  */
 import {handleAnalyst} from '../api/analyst.js';
 import type {AnalystResponse} from '../api/_lib/types.js';
-import {modelApiKey, NO_KEY_MESSAGE, WEB_ROOT} from './_env.js';
+import {localEnv, modelApiKey, NO_KEY_MESSAGE, WEB_ROOT} from './_env.js';
 
 function parseArgs(argv: string[]) {
   const opts = {fire: 'eaton', mode: 'answer' as 'answer' | 'report', json: false, question: ''};
@@ -48,7 +48,8 @@ async function main(): Promise<void> {
     console.error(NO_KEY_MESSAGE);
     process.exit(2);
   }
-  const out = await handleAnalyst({question: opts.question, fire: opts.fire, mode: opts.mode}, {MODEL_API_KEY: key}, WEB_ROOT);
+  // Same budget as the deployed analyst: the Upstash store variables come from localEnv().
+  const out = await handleAnalyst({question: opts.question, fire: opts.fire, mode: opts.mode}, {...localEnv(), MODEL_API_KEY: key}, WEB_ROOT);
   if (out.status !== 200) {
     console.error(`HTTP ${out.status}: ${(out.body as {error?: string}).error ?? JSON.stringify(out.body)}`);
     process.exit(1);

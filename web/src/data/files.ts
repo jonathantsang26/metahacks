@@ -203,13 +203,39 @@ export type DebrisFlowStats = {
   scenario: {date: string; days_since_fire: number; soil_moisture_0_7cm: number | null; soil_moisture_source: string};
   segments: number;
   m1_check: {max_abs_diff_vs_usgs: number};
-  agreement: Record<string, {spearman_vs_usgs_24: number; class_agreement_24: number}>;
-  likelihood_class_counts_24: Record<string, Record<string, number>>;
+  /** M1's form refitted on every usable inventory record: the map's `m1_p_*` column. */
+  m1_recalibrated: {B: number; Ct: number; Cf: number; Cs: number; records: number};
+  /** Keyed by design I15 (mm/h), then by model (`usgs`, `m1`, `rf`). */
+  agreement_by_i15: Record<string, Record<string, {spearman_vs_usgs: number; class_agreement: number}>>;
+  likelihood_class_counts: Record<string, Record<string, Record<string, number>>>;
+  mean_likelihood: Record<string, Record<string, number>>;
+  /** The inventory fire that stands in for this one, or null with a note saying there is none. */
+  analogue: {fire: string | null; note: string};
   usgs_median_thresholds_mm_h: {I15_50: number; I15_75: number};
   notes: string[];
 };
 
 type Scores = {roc_auc: number; pr_auc: number; brier: number; base_rate: number};
+
+/**
+ * ROC AUC within each fire and storm with both outcomes: the ranking a design-storm map shows. The
+ * ci95_* are 95% intervals from a cluster bootstrap that resamples whole fire-storm groups.
+ */
+export type WithinStorm = {
+  groups: number; records: number; median_roc_auc: number; weighted_roc_auc: number;
+  ci95_median?: [number, number]; ci95_weighted?: [number, number];
+};
+
+/**
+ * A model's within-storm figures minus M1's on the same groups (difference of the medians and of the
+ * record-weighted means), each with a 95% interval from resamples that draw the same groups for both.
+ * The *_check intervals are the same from a larger draw (20,000 resamples): an interval counts as
+ * excluding 0 only when both draws exclude it, and is borderline when just one does.
+ */
+export type WithinStormDiff = {
+  groups: number; median_diff: number; ci95: [number, number]; weighted_diff: number; ci95_weighted: [number, number];
+  ci95_check?: [number, number]; ci95_weighted_check?: [number, number];
+};
 
 /** debris_flow/model_eval.json (shared across fires): the models scored on USGS's observed inventory. */
 export type DebrisModelEval = {
@@ -220,7 +246,20 @@ export type DebrisModelEval = {
   models: {
     id: string; label: string; features: string[]; cv: string; n: number; flows: number;
     pooled: Scores; per_fire: {fires: number; median_roc_auc: number; iqr: [number, number]};
+    /** On the model's own records: m1_published's are fewer (outside the inventory M1 was fitted on). */
+    within_storm: WithinStorm;
+    /** Every model on m1_published's records, so all rows compare on the same groups. */
+    within_storm_on_m1_records?: WithinStorm;
+    /**
+     * A trained model minus M1, paired on the same groups: minus m1_published on its records, minus
+     * m1_refit on all (refit null for m1_refit itself). Null for m1_published.
+     */
+    vs_m1?: {published: WithinStormDiff; refit: WithinStormDiff | null} | null;
     analogue: {fire: string; year: number; n: number; flows: number; roc_auc: number; brier: number} | null;
+    /** True for the models behind the map's columns. */
+    on_map: boolean;
+    /** m1_refit only: the coefficients refitted on every usable record (debris_flow_stats.json's m1_recalibrated). */
+    coefficients?: {B: number; Ct: number; Cf: number; Cs: number};
   }[];
   importance: Record<string, {feature: string; drop_in_auc: number}[]>;
   notes: string[];

@@ -303,6 +303,16 @@ dock/side/                 KeyEvents, Detections, AirOpsLog
 | **Mon Nov 2** | **Drones tab as a footage player**: PiP + HUD, Sentinel boxes + SAM masks, and Detections. Homes panel. 9c if it was a go. Analyst eval (step 15). Evidence tab. 2D mode if time allows. **Feature freeze at 11 pm.** | A 3-minute run-through works end to end |
 | **Tue Nov 3** | Polish only. Record the demo video; write the README (Real vs Sim, every eval number, which Meta models do what, prior-work disclosure) and the submission form. **Submit by 6 pm.** | Submitted. The official close is Wed Nov 4, 5 pm PST, which leaves buffer. |
 
+**What actually landed (updated Sat Oct 31; the git log is the record):**
+- **Ahead of plan, by Fri Oct 30:** the Sat and Sun rows except where noted below. That covers:
+  - the arrival raster and the fire layer on path A, the timeline, charts and key events;
+  - the back-trace with its hold-out and synthetic benchmark;
+  - the analyst end to end (tools, verifier, citation chips, report);
+  - the house-level join with the Homes panel, the hover inspector, the Weather card, Layers, the Evidence tab and 2D mode.
+- **Added, not in this plan:** the Risk tab (post-fire debris flows, scored against USGS's inventory) replaced the Resources tab, the first item on the drop list.
+- **Late:** Thursday's Meta smoke test ran on the evening of Fri Oct 30 (Pacific), with `muse-spark-1.3` tool calling and `sam-3.1` on a still image rather than a clip. The live analyst eval (step 15) ran at the same time.
+- **Not yet:** the FLAME 2 vision eval and the Drones footage player are in review on a teammate's branch, scored on a ground-level stand-in dataset until FLAME 2 is available. Aerial imagery for 9c was not found.
+
 **Team split**: three parallel streams, sized to the Claude plans. They are defined in [WORKSTREAMS.md](WORKSTREAMS.md), together with the file and API contracts between them and a day-by-day table per stream.
 - **A: Data & forensics** (20x)
 - **B: Web app** (20x)

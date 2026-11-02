@@ -208,10 +208,18 @@ const arrivalAt: Impl = (args, {store, tz}) => {
 type Burn = {ms: number; lon: number; lat: number};
 type StreetSample = {n: number; burned: number; first: Burn | null; last: Burn | null};
 
-function sampleStreet(raster: ArrivalRaster, lines: number[][][]): StreetSample {
+/** A quarter of the raster's smaller cell side, so the walk visits every cell a street crosses,
+ * including corners it only clips (sampling every 40 m skipped cells of ~16 m). */
+function streetStepM(raster: ArrivalRaster): number {
+  const [w, s, e, n] = raster.bounds;
+  const [mx, my] = metersPerDegree((s + n) / 2);
+  return Math.min(((e - w) * mx) / raster.width, ((n - s) * my) / raster.height) / 4;
+}
+
+function sampleStreet(raster: ArrivalRaster, lines: number[][][], stepM: number): StreetSample {
   const out: StreetSample = {n: 0, burned: 0, first: null, last: null};
   for (const line of lines) {
-    for (const [lon, lat] of densify(line, 40)) {
+    for (const [lon, lat] of densify(line, stepM)) {
       const s = sampleArrival(raster, lon, lat);
       if (!s.inBounds) continue;
       out.n++;
@@ -242,9 +250,10 @@ const streetFireTimeline: Impl = (args, {store, tz}) => {
     };
   }
   const raster = store.arrival();
+  const stepM = streetStepM(raster);
   const fmt = (b: Burn | null) => (b ? {...stamp(roundToMinute(b.ms), tz), lon: r5(b.lon), lat: r5(b.lat)} : null);
   const streets = picked
-    .map(({v}) => ({name: [...v.names].sort()[0], segments: v.lines.length, ...sampleStreet(raster, v.lines)}))
+    .map(({v}) => ({name: [...v.names].sort()[0], segments: v.lines.length, ...sampleStreet(raster, v.lines, stepM)}))
     .sort((a, b) => b.n - a.n);
   const n = streets.reduce((a, s) => a + s.n, 0);
   const burned = streets.reduce((a, s) => a + s.burned, 0);
@@ -286,7 +295,7 @@ const streetFireTimeline: Impl = (args, {store, tz}) => {
           }
         : {}),
       ...(alsoMatching.length ? {also_matching: alsoMatching} : {}),
-      sample_spacing_m: 40,
+      sample_spacing_m: r1(stepM),
       time_resolution_min: Math.round(arrivalStepMin(raster)),
       note: burned ? 'Times come from the interpolated arrival raster and are approximate.' : 'None of the sampled points along this street burned in the data.'
     },
@@ -560,7 +569,7 @@ export const DATA_TOOLS: ChatCompletionFunctionTool[] = [
     name: {type: 'string', description: 'Place or street name, e.g. "Lake Ave" or "Mount Wilson".'}
   }, ['name']),
   fn('arrival_at', 'When the fire reached a point: burned or not, arrival time (UTC and local), confidence 0-1, and whether the point is inside the final perimeter.', {lon: LON, lat: LAT}, ['lon', 'lat']),
-  fn('street_fire_timeline', 'When the fire reached a named street: samples every segment of the street every ~40 m and returns the first and last burn times with their locations, and the burned fraction.', {
+  fn('street_fire_timeline', 'When the fire reached a named street: walks every segment of the street through each arrival-raster cell it crosses and returns the first and last burn times with their locations, and the burned fraction of the sampled points.', {
     name: {type: 'string', description: 'Street name, e.g. "Lake Ave" or "North Lake Avenue".'}
   }, ['name']),
   fn('fire_state_at', 'Fire size and head rate of spread at the nearest hour to t, plus the head position when known.', {t: T}, ['t']),
