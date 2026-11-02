@@ -3,6 +3,11 @@ import DeckGL from '@deck.gl/react';
 import {LinearInterpolator, type Layer, type MapViewState} from '@deck.gl/core';
 import {TerrainLayer} from '@deck.gl/geo-layers';
 import {PathLayer} from '@deck.gl/layers';
+// The loaders.gl worker that decodes dem.png into the terrain mesh: the installed copy (the one
+// @deck.gl/geo-layers depends on), which Vite copies into the build as a hashed asset, so it is
+// served from this site. Without workerUrl, loaders.gl fetches the worker from unpkg.com at run
+// time, and wherever unpkg is blocked the terrain, and the fire layers drawn on it, never appear.
+import terrainWorkerUrl from '@loaders.gl/terrain/terrain-worker.js?url';
 
 import type {FireData} from '../data/fire';
 import {perimeterRings} from '../data/fire';
@@ -23,6 +28,7 @@ import {useDebrisPart} from './debris-layer';
 import {Compass, HoverInspector, MapControls, MapNotes, SyntheticChip, type StageNote} from './overlays';
 
 const PITCH_3D = 58;
+const TERRAIN_LOAD_OPTIONS = {terrain: {workerUrl: terrainWorkerUrl}};
 const fireExtension = new FireExtension();
 const transition = new LinearInterpolator(['pitch', 'bearing', 'zoom', 'longitude', 'latitude']);
 const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
@@ -304,6 +310,7 @@ export function Stage({fire}: {fire: FireData}) {
       bounds: fire.dem.bounds,
       elevationDecoder: fire.dem.decoder,
       meshMaxError: 2,
+      loadOptions: TERRAIN_LOAD_OPTIONS,
       material: {ambient: 0.72, diffuse: 0.4, shininess: 4, specularColor: [20, 20, 20]},
       // '3d' picks the terrain surface under the cursor; plain picking unprojects onto sea level,
       // which at this pitch reads a point 1–3 km beyond the cursor.

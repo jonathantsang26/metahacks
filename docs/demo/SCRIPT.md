@@ -7,7 +7,7 @@ Every link below opens the replay at an exact moment: `?fire=` picks the fire an
 ## Before recording
 
 - `cd web && npm ci && npm run dev`, in desktop Chrome or Safari at 1600×950 or larger. The app needs WebGL2.
-- Stay online: the 3D terrain mesh is decoded by a loaders.gl worker that is fetched from unpkg.com at run time (see [`CROSS_BROWSER.md`](CROSS_BROWSER.md)).
+- The 3D terrain no longer needs unpkg.com: its decoder worker is served with the app (see issue 1 in [`CROSS_BROWSER.md`](CROSS_BROWSER.md)). Fonts still come from Google Fonts, and Beat 5 needs the live analyst, so record online.
 - Open each link once before recording, so the textures are cached and the first frame isn't blank.
 - Beat 6 (Risk): its numbers come from `web/public/data/eaton/debris_flow.geojson` and `debris_flow_stats.json` and the README's Post-fire debris flows section. Check that the Risk tab shows the same before recording.
 - Beat 5 (Analyst) runs live on https://sentinel-ember.vercel.app, behind a hard spend cap and a limit of 10 questions per 30 minutes per visitor, so keep rehearsals short. Locally it needs `MODEL_API_KEY` in the repo-root `.env`, plus either the Upstash store variables (`vercel env pull` in `web/`, into `web/.env.local`) or `ANALYST_BUDGET_LOCAL=1`; without one of those the analyst refuses. If the live call is refused, use the fallback line in that beat. Never show an answer the app didn't produce.

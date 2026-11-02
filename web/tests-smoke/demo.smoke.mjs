@@ -3,7 +3,9 @@
  * temporary directory, serves it with `vite preview` on a free port, and drives the locally
  * installed Google Chrome through playwright-core, so no browser is downloaded. Each view checks
  * its DOM text and then that the map draws: the WebGL context exists, a screenshot of the map
- * canvas has the terrain in it, and on Eaton the fire progression's colours are on it.
+ * canvas has the terrain in it, and on Eaton the fire progression's colours are on it. Requests to
+ * unpkg.com are blocked, and each view asserts it made none and loaded the terrain worker from the
+ * app's own origin.
  *
  * CHROME_PATH=<binary> picks the browser (and is then the only one tried); with no Chrome found
  * the tests skip. SMOKE_DIST=<dir> serves an existing build instead of building.
@@ -24,23 +26,15 @@ import {build, preview} from 'vite';
 const webRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readData = file => JSON.parse(readFileSync(path.join(webRoot, 'public/data', file), 'utf8'));
 
-// deck.gl's TerrainLayer parses dem.png in a loaders.gl worker that it fetches from unpkg.com, for
-// the installed loaders.gl version. Where unpkg is unreachable (a sandbox, CI without network) the
-// worker fails and the terrain never draws; the fire layers, which live in its shader, go with it.
-// The test serves that file from node_modules instead, so the map check needs no network.
-const UNPKG_LOADERS = /^https:\/\/unpkg\.com\/@loaders\.gl\/([\w-]+)@([^/]+)\/dist\/([\w.-]+\.js)$/;
-
-/** The installed copy of a loaders.gl worker script, or null if that package or version is not installed. */
-function localLoadersFile(url) {
-  const [, pkg, version, file] = url.match(UNPKG_LOADERS);
-  const dir = path.join(webRoot, 'node_modules/@loaders.gl', pkg);
-  try {
-    if (JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8')).version !== version) return null;
-    return readFileSync(path.join(dir, 'dist', file));
-  } catch {
-    return null;
-  }
-}
+// deck.gl's TerrainLayer parses dem.png in a loaders.gl worker. The app serves the installed copy
+// from its own origin (src/stage/Stage.tsx); left to its default, loaders.gl fetches the worker from
+// unpkg.com, and wherever unpkg is blocked the terrain never draws, nor the fire layers, which live
+// in its shader. Every request to unpkg.com is recorded and blocked, and each map check asserts
+// there were none and that the terrain worker came from the app's origin.
+const isUnpkg = url => url.hostname === 'unpkg.com' || url.hostname.endsWith('.unpkg.com');
+const TERRAIN_WORKER = /\/terrain-worker[\w-]*\.js$/;
+/** Per page: the unpkg.com URLs it requested, and the URLs it loaded the terrain worker from. */
+const requestsOf = new WeakMap();
 
 /** Runs in the page before the app: records every WebGL context that fails to be created or is lost. */
 function recordWebglFailures() {
@@ -163,11 +157,14 @@ describe('demo path in Chrome', {skip: SKIP, timeout: 240_000}, () => {
     // Uncaught errors are reported, not failed on: the assertions below say whether the page works.
     page.on('pageerror', e => t.diagnostic(`page error: ${e.message}`));
     await page.addInitScript(recordWebglFailures);
-    await page.route(UNPKG_LOADERS, route => {
-      const body = localLoadersFile(route.request().url());
-      if (body) return route.fulfill({body, contentType: 'text/javascript'});
-      t.diagnostic(`no installed copy of ${route.request().url()}; fetching it`);
-      return route.continue();
+    const requests = {unpkg: [], terrainWorker: []};
+    requestsOf.set(page, requests);
+    await page.route(isUnpkg, route => {
+      requests.unpkg.push(route.request().url());
+      return route.abort('blockedbyclient');
+    });
+    page.on('request', r => {
+      if (TERRAIN_WORKER.test(new URL(r.url()).pathname)) requests.terrainWorker.push(r.url());
     });
     await page.goto(`${origin}/${query}`, {waitUntil: 'domcontentloaded'});
     t.after(() => page.close());
@@ -217,6 +214,12 @@ describe('demo path in Chrome', {skip: SKIP, timeout: 240_000}, () => {
       writeFileSync(path.join(dir, `${name}.png`), shot);
     }
     assert.deepEqual(failures, [], `WebGL failed in Chrome: ${failures.join('; ')}`);
+    const {unpkg, terrainWorker} = requestsOf.get(page);
+    assert.deepEqual(unpkg, [], `the page requested files from unpkg.com: ${unpkg.join(', ')}`);
+    assert.ok(
+      terrainWorker.some(url => url.startsWith(`${origin}/`)),
+      `the terrain worker was not loaded from ${origin}: ${terrainWorker.join(', ') || 'no request for it'}`
+    );
     if (!ok) {
       const file = path.join(tmpdir(), `ember-smoke-${name}.png`);
       writeFileSync(file, shot);
