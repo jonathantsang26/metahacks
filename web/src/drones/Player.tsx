@@ -197,7 +197,7 @@ export function FootagePlayer({fire}: {fire: FireData}) {
             <span className="text-live">●</span> {playing ? 'PLAY' : 'PAUSE'} {fmtClock(time)}
           </div>
           <div>{clip.title.toUpperCase()}</div>
-          <div className="text-white/70">EO · RECORDED</div>
+          <div className="text-white/70">RECORDED</div>
         </div>
         <div className="pointer-events-none absolute right-5 top-4 max-w-[45%] text-right font-mono text-2xs leading-4 text-white">
           <div>FRAME {frame}</div>

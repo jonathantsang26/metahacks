@@ -31,7 +31,7 @@ function ClipDetail({fire, clip}: {fire: FireData; clip: Clip}) {
   const objects = masks ? new Set(masks.map(m => m.object_id)).size : null;
   const length = clip.window_s ? clip.window_s[1] - clip.window_s[0] : null;
   return (
-    <Card title={clip.title} aside={<Chip tone={clip.publish ? 'real' : 'muted'}>{clip.publish ? 'OUR FOOTAGE' : 'NOT THIS FIRE'}</Chip>}>
+    <Card title={clip.title} aside={<Chip tone="muted">NOT THIS FIRE</Chip>}>
       <div className="grid grid-cols-3 gap-x-3 gap-y-2 px-3 py-2">
         <Stat label="Length" value={length !== null ? fmtClock(length) : '–'} sub={clip.window_s ? `from ${fmtClock(clip.window_s[0])}` : undefined} />
         <Stat label="Frame rate" value={clip.fps.toFixed(0)} sub="fps" />
