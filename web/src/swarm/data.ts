@@ -4,13 +4,15 @@ import type {FireData} from '../data/fire';
 import {loadFireJson} from '../data/files';
 
 /**
- * The drone-swarm simulation's outputs (pipeline/sim/run.py → public/data/<fire>/swarm/). Everything
- * here is SIM: simulated drones flown over the replayed fire. Rollouts are precomputed; the app makes
- * no model calls for them.
+ * The drone-swarm simulation's outputs (pipeline/sim/run.py → public/data/<fire>/swarm/): simulated
+ * drones flown over the replayed fire (docs/SWARM.md). Rollouts are precomputed and replayed as static
+ * files; the app makes no model calls for them.
  */
 
-export type SwarmPolicy = 'muse' | 'muse-hybrid' | 'greedy' | 'lawnmower';
+export type SwarmPolicy = 'muse-fcst-muse' | 'forecast-physics' | 'muse' | 'muse-hybrid' | 'greedy' | 'lawnmower';
 export const POLICY_LABEL: Record<SwarmPolicy, string> = {
+  'muse-fcst-muse': 'Muse Spark forecaster + swarm',
+  'forecast-physics': 'Physics forecast edge + rule',
   muse: 'Muse Spark swarm',
   'muse-hybrid': 'Muse Spark commander + greedy squads',
   greedy: 'Greedy baseline',
@@ -18,7 +20,18 @@ export const POLICY_LABEL: Record<SwarmPolicy, string> = {
 };
 
 export type SwarmTask = {squad: number; center_km: [number, number]; radius_km: number; objective: string; why?: string};
+/** The forecast the commander targeted at a decision (sim/forecast.py SwarmForecast.targets). */
+export type SwarmForecast = {
+  method: 'physics' | 'muse';
+  status?: 'FORECAST';
+  from_map_utc: string;
+  valid_utc: string;
+  rejected?: boolean;
+  note?: string;
+  growth_areas: {center_km: [number, number]; area_ha: number; bearing_deg: number}[];
+};
 export type SwarmDecision = {
+  forecast?: SwarmForecast | null;
   t: string;
   waypoints_km: Record<string, [number, number][]>;
   rejected: string[];
@@ -45,7 +58,7 @@ export type SwarmMetrics = {
 /** One sample: [t_s since t0, lon, lat, alt_m (absolute), mode index, battery 0-1]. */
 export type TrackSample = [number, number, number, number, number, number];
 export type Rollout = {
-  label: 'SIM';
+  label: string;
   disclaimer: string;
   fire: string;
   policy: SwarmPolicy;
@@ -65,7 +78,7 @@ export type Rollout = {
 };
 type Spread = {mean: number; min: number; max: number} | null;
 export type SwarmEval = {
-  label: 'SIM';
+  label: string;
   disclaimer: string;
   metric_notes: Record<string, string>;
   policies: Partial<
@@ -93,7 +106,7 @@ export type SwarmEval = {
 
 export const useSwarmUi = create<{policy: SwarmPolicy; show: boolean; setPolicy: (p: SwarmPolicy) => void; setShow: (v: boolean) => void}>(
   set => ({
-    policy: 'muse',
+    policy: 'muse-fcst-muse',
     show: false,
     setPolicy: policy => set({policy}),
     setShow: show => set({show})
@@ -120,6 +133,45 @@ function useJson<T>(fire: FireData, file: string | null): {data: T | null; error
 export const useSwarmEval = (fire: FireData) => useJson<SwarmEval>(fire, 'swarm/eval.json');
 export const useRollout = (fire: FireData, policy: SwarmPolicy, seed = 0) =>
   useJson<Rollout>(fire, `swarm/${policy}_s${seed}.json`);
+
+/** One line of <run>_s<seed>_events.jsonl: an agent's status and short output at a decision. */
+export type AgentEvent = {
+  seq: number;
+  t_utc: string;
+  agent: string;
+  parent: string | null;
+  role: 'forecaster' | 'commander' | 'squad' | 'drone';
+  model: string | null;
+  task: string;
+  status: 'spawned' | 'done' | 'failed';
+  output: string;
+};
+
+const eventCache = new Map<string, Promise<AgentEvent[]>>();
+export function useAgentEvents(fire: FireData, policy: SwarmPolicy, seed = 0): AgentEvent[] | null {
+  const [events, setEvents] = useState<AgentEvent[] | null>(null);
+  useEffect(() => {
+    let live = true;
+    setEvents(null);
+    const url = `${fire.base}/swarm/${policy}_s${seed}_events.jsonl`;
+    let p = eventCache.get(url);
+    if (!p) {
+      p = fetch(url).then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.text().then(txt => txt.split('\n').filter(Boolean).map(l => JSON.parse(l) as AgentEvent));
+      });
+      eventCache.set(url, p);
+    }
+    p.then(
+      e => live && setEvents(e),
+      () => live && setEvents([])
+    );
+    return () => {
+      live = false;
+    };
+  }, [fire, policy, seed]);
+  return events;
+}
 
 /** Each drone's state at time t (ms): interpolated position, and the mode and battery of the sample before. */
 export function dronesAt(r: Rollout, t: number) {
