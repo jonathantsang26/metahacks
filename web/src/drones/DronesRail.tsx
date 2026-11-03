@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import type {FireData} from '../data/fire';
 import {useFireJson} from '../data/files';
 import {Button, Card, Chip, Missing, Row, Stat, SubHead} from '../rail/ui';
@@ -118,7 +119,12 @@ function EvalCard({fire}: {fire: FireData}) {
 export function DronesRail({fire}: {fire: FireData}) {
   const clips = useClips(fire);
   const clip = useSelectedClip(fire);
-  const {clipId, select} = useFootage();
+  const {clipId, select, autoOpen} = useFootage();
+  // Open the first clip on arrival, so the tab lands on playing footage instead of the incident map.
+  const first = clips.data?.[0]?.id;
+  useEffect(() => {
+    if (first) autoOpen(first);
+  }, [first, autoOpen]);
   return (
     <>
       <Card title="Drone Footage" aside={clips.data && <span className="text-xs text-muted">{clips.data.length} clips</span>}>
