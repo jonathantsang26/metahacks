@@ -2,7 +2,7 @@ import type {IncomingMessage} from 'node:http';
 
 /**
  * Rate limits for the public analyst: each question spends Meta API credits on the server's key,
- * and the deployed demo has no sign-in. Two sliding windows, both in this instance's memory:
+ * and the public site has no sign-in. Two sliding windows, both in this instance's memory:
  * one per visitor (client IP) and one for everyone.
  *
  * Memory is per serverless instance, so a cold start, a redeploy or a second instance starts
@@ -96,9 +96,9 @@ export function limitMessage(v: Refusal): string {
   const who = v.scope === 'visitor' ? 'per visitor' : 'across all visitors';
   // A refused report (cost > 1) may still leave room for a plain question.
   if (v.cost > 1 && v.left > 0) {
-    return `This public demo allows ${per} ${who}, and a report counts as ${v.cost}. ${v.left} ${v.left === 1 ? 'question is' : 'questions are'} left: ask a question now, or try the report again in ${mins} min.`;
+    return `The public site allows ${per} ${who}, and a report counts as ${v.cost}. ${v.left} ${v.left === 1 ? 'question is' : 'questions are'} left: ask a question now, or try the report again in ${mins} min.`;
   }
   return v.scope === 'visitor'
-    ? `This public demo allows ${per} per visitor (a report counts as ${REPORT_COST}). Try again in ${mins} min.`
-    : `The public demo's analyst has reached its limit of ${per} across all visitors. Try again in ${mins} min.`;
+    ? `The public site allows ${per} per visitor (a report counts as ${REPORT_COST}). Try again in ${mins} min.`
+    : `The analyst has reached its limit of ${per} across all visitors. Try again in ${mins} min.`;
 }

@@ -1,4 +1,4 @@
-# Demo video script
+# Video script
 
 About 3 minutes. Check the official length limit before recording, and cut beat 3 first if you're over.
 

@@ -1,5 +1,5 @@
 /**
- * Browser smoke test of the demo path (npm test, npm run test:smoke). It builds the app into a
+ * Browser smoke test of the main views (npm test, npm run test:smoke). It builds the app into a
  * temporary directory, serves it with `vite preview` on a free port, and drives the locally
  * installed Google Chrome through playwright-core, so no browser is downloaded. Each view checks
  * its DOM text and then that the map draws: the WebGL context exists, a screenshot of the map
@@ -130,7 +130,7 @@ function freePort() {
 const {browser, skip} = await launchChrome();
 const SKIP = skip && `no browser for the smoke test: ${skip}; set CHROME_PATH to a Chrome or Chromium binary to run it`;
 
-describe('demo path in Chrome', {skip: SKIP, timeout: 240_000}, () => {
+describe('main views in Chrome', {skip: SKIP, timeout: 240_000}, () => {
   let server;
   let origin;
   let outDir;

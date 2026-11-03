@@ -177,7 +177,7 @@ export function budgetedChat(inner: ChatClient, store: BudgetStore, cap: number)
         console.error('[analyst] budget store failed', e);
         throw new BudgetError('Spend tracking is unavailable, so the analyst is paused rather than spending untracked.');
       }
-      if (!ok) throw new BudgetError(`The public demo's analyst has used its $${cap} budget for the Meta API, so it is paused.`);
+      if (!ok) throw new BudgetError(`The analyst has used its $${cap} budget for the Meta API, so it is paused.`);
       let reply: ChatReply;
       try {
         reply = await inner.create(full);
