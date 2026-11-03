@@ -41,7 +41,8 @@ class DroneSpec:
 
     mass_kg: float = 1.8
     max_thrust_ratio: float = 2.5
-    max_airspeed: float = 21.0  # m/s at full horizontal thrust; sets the drag area
+    max_airspeed: float = 21.0  # m/s (M4TD Sport mode); with max_tilt_deg it sets the drag area
+    max_tilt_deg: float = 35.0  # body tilt that holds max_airspeed in still air (typical of DJI Sport mode)
     cruise_speed: float = 15.0  # m/s ground-speed command
     climb_rate: float = 5.0  # m/s
     agl_m: float = 120.0  # survey height above ground (FAA Part 107 ceiling)
@@ -55,8 +56,13 @@ class DroneSpec:
 
     @property
     def drag_area(self) -> float:
-        """Cd*A such that full horizontal thrust balances drag at max_airspeed."""
-        horiz = self.mass_kg * G * np.sqrt(self.max_thrust_ratio**2 - 1)
+        """Cd*A such that level flight at max_airspeed needs a max_tilt_deg tilt: drag = m g tan(tilt).
+
+        Sizing it from full thrust instead (v2) made 15 m/s cruise cost 1.5 x hover thrust and about
+        half the battery life, far below the M4TD's 54 min at speed. Spare thrust still lets a drone
+        push into a headwind well past max_airspeed.
+        """
+        horiz = self.mass_kg * G * math.tan(math.radians(self.max_tilt_deg))
         return 2 * horiz / (RHO * self.max_airspeed**2)
 
 
@@ -285,14 +291,17 @@ class SwarmSim:
             self.plan[i] = []
 
     def _home_cost(self, p, u, v) -> float:
-        """Battery fraction needed to fly home against the current wind, at a 1.6 thrust/weight cruise."""
+        """Battery fraction needed to fly home against the current wind, at cruise speed."""
         hx, hy = self.base[0] - p[0], self.base[1] - p[1]
         dist = math.hypot(hx, hy)
         if dist < 1:
             return 0.0
         along = (u * hx + v * hy) / dist
-        ground = max(self.spec.cruise_speed + along, 2.0)
-        return dist / ground * self._drain(1.6)
+        spec = self.spec
+        ground = max(spec.cruise_speed + along, 2.0)
+        air = math.hypot(spec.cruise_speed, math.hypot(u, v)) if along == 0 else abs(spec.cruise_speed - along)
+        level = math.tan(math.radians(spec.max_tilt_deg)) * (air / spec.max_airspeed) ** 2
+        return dist / ground * self._drain(math.hypot(1.0, level) * 1.1)  # 10% for climbs and gust work
 
     def _recall(self, i, why):
         self.mode[i] = "rtb"
@@ -340,6 +349,9 @@ class SwarmSim:
         # Short of the clearance needed ahead: slow down and climb first.
         short = ahead + 40.0 - P[:, 2]
         speed = speed * np.clip(1 - short / 60.0, 0.15, 1.0)
+        # Over the ceiling where the ground falls away faster than the drone can descend: slow down too.
+        over = P[:, 2] - (here + spec.agl_m)
+        speed = speed * np.clip(1 - over / 20.0, 0.25, 1.0)
         v_cmd = np.column_stack([dirn * speed[:, None], np.clip(0.5 * err_z, -spec.climb_rate, spec.climb_rate)])
         a_cmd = 1.2 * (v_cmd - V)
         # Drag against the local wind plus turbulence scaled by the hour's gust excess.
