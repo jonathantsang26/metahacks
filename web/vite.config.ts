@@ -1,6 +1,7 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {defineConfig, loadEnv, type Plugin} from 'vite';
+import {defaultClientConditions, defineConfig, loadEnv, type Plugin} from 'vite';
 import react from '@vitejs/plugin-react';
 
 const webRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -35,7 +36,43 @@ function analystApi(): Plugin {
   };
 }
 
+/**
+ * LIVE mode runs Sentinel with onnxruntime-web; its WebAssembly runtimes are copied from node_modules
+ * into public/ort/ (served at /ort/, set as ort.env.wasm.wasmPaths) so nothing loads from a CDN.
+ * Plain SIMD for the WASM backend, asyncify for WebGPU. public/ort/ is generated, not committed.
+ * The `onnxruntime-web-use-extern-wasm` condition picks the builds that load their runtime from
+ * wasmPaths instead of having Vite emit a second copy of each .wasm into assets/.
+ */
+const ORT_FILES = ['ort-wasm-simd-threaded.wasm', 'ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.asyncify.wasm', 'ort-wasm-simd-threaded.asyncify.mjs'];
+function ortWasm(): Plugin {
+  return {
+    name: 'sentinel-ort-wasm',
+    configResolved() {
+      const from = path.join(webRoot, 'node_modules/onnxruntime-web/dist');
+      const to = path.join(webRoot, 'public/ort');
+      fs.mkdirSync(to, {recursive: true});
+      for (const f of ORT_FILES) {
+        const src = path.join(from, f);
+        const dst = path.join(to, f);
+        if (!fs.existsSync(dst) || fs.statSync(dst).size !== fs.statSync(src).size) fs.copyFileSync(src, dst);
+      }
+    },
+    // In dev, Vite refuses to let source import() a file from public/ (the runtime loads its .mjs glue
+    // that way), so serve /ort/ directly, ahead of Vite's transform middleware.
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const name = req.url?.match(/^\/ort\/([^?]+)/)?.[1];
+        if (!name || !ORT_FILES.includes(name)) return next();
+        res.setHeader('Content-Type', name.endsWith('.wasm') ? 'application/wasm' : 'text/javascript');
+        fs.createReadStream(path.join(webRoot, 'public/ort', name)).pipe(res);
+      });
+    }
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), analystApi()],
+  plugins: [react(), analystApi(), ortWasm()],
+  resolve: {conditions: ['onnxruntime-web-use-extern-wasm', ...defaultClientConditions]},
+  optimizeDeps: {exclude: ['onnxruntime-web']},
   server: {port: 5173}
 });

@@ -11,7 +11,7 @@
     "build": "tsc --noEmit && tsc --noEmit -p api && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p api",
-    "test": "vitest run api && node --test --test-reporter=spec tests-smoke/demo.smoke.mjs",
+    "test": "vitest run api src && node --test --test-reporter=spec tests-smoke/demo.smoke.mjs",
     "test:smoke": "node --test --test-reporter=spec tests-smoke/demo.smoke.mjs",
     "ask": "tsx scripts/ask.ts",
     "eval:analyst": "tsx scripts/eval-analyst.ts"
@@ -25,6 +25,7 @@
     "@deck.gl/react": "^9.1.0",
     "@luma.gl/core": "^9.4.2",
     "@luma.gl/shadertools": "^9.4.2",
+    "onnxruntime-web": "1.30.0",
     "openai": "^6.49.0",
     "pngjs": "^7.0.0",
     "react": "18.3.1",
