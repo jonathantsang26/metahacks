@@ -82,13 +82,16 @@ describe('projectDets', () => {
     expect(Math.abs(distanceM(h.lon, h.lat, LON0, LAT0) - 100)).toBeLessThan(2);
   });
 
-  it('drops boxes above the horizon and keeps only corners that reach the ground', () => {
+  it('drops boxes above the horizon; an oblique box keeps its bottom corners only', () => {
     const level = {lat: LAT0, lon: LON0, altMslM: 600, yawDeg: 0, pitchDeg: 0};
     const sky: Det = {box: [600, 0, 680, 100], cls: 0, score: 0.5};
     expect(projectDets([sky], ['fire'], level, cam, {dem: flat(500)}, meta())).toEqual([]);
     const straddle: Det = {box: [600, 300, 680, 600], cls: 0, score: 0.5};
     const [h] = projectDets([straddle], ['fire'], level, cam, {dem: flat(500)}, meta());
     expect(h.corners.length).toBe(2);
+    // Both on the bottom edge's ground line: the same distance ahead.
+    const north = h.corners.map(c => distanceM(LON0, c[1], LON0, LAT0));
+    expect(Math.abs(north[0] - north[1])).toBeLessThan(0.5);
   });
 
   it('flags hits outside the map', () => {

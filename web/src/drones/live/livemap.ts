@@ -35,7 +35,7 @@ export type LiveHit = {
   elevM: number;
   conf: number;
   cls: string;
-  /** Ground footprint of the box: its corners that reach the ground, [lon, lat, elev]. */
+  /** Ground footprint of the box, [lon, lat, elev]: all four corners for a nadir camera, else the two bottom corners; those that miss the ground are left out. */
   corners: [number, number, number][];
   radiusM: number;
   ground: 'dem' | 'flat';
@@ -103,6 +103,7 @@ export function resolvePose(
  * One frame's boxes → map hits. The anchor follows locateBox: the box centre when the camera looks
  * nearly straight down, else the bottom-centre (flames' ground contact; a box centre would project
  * behind the fire). Corners that look above the horizon are left out of the footprint.
+ * Oblique cameras keep only the bottom corners (see below).
  */
 export function projectDets(
   dets: Det[],
@@ -118,13 +119,22 @@ export function projectDets(
     const loc = locateBox({box: d.box, cls: classes[d.cls] ?? `class ${d.cls}`, conf: d.score}, pose, cam, {...ground, anchor});
     if (!loc) continue;
     const [x1, y1, x2, y2] = d.box;
+    // Oblique view: a flame box's top edge is flame height, not ground, and would project far behind
+    // the fire, so only the bottom corners (the ground contact) are kept. Nadir: all four.
+    const px: [number, number][] =
+      anchor === 'center'
+        ? [
+            [x1, y1],
+            [x2, y1],
+            [x2, y2],
+            [x1, y2]
+          ]
+        : [
+            [x1, y2],
+            [x2, y2]
+          ];
     const corners: [number, number, number][] = [];
-    for (const [u, v] of [
-      [x1, y1],
-      [x2, y1],
-      [x2, y2],
-      [x1, y2]
-    ]) {
+    for (const [u, v] of px) {
       const g = pixelToGround(pose, cam, u, v, ground);
       if (g) corners.push([g.lon, g.lat, g.elevM]);
     }
