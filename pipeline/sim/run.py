@@ -117,6 +117,31 @@ def rollout(fire: str, policy_name: str, seed: int, hours: float, out: Path, moc
     return doc
 
 
+def flyable(fire: str, out: Path, hours: int = 72) -> dict:
+    """Hourly share of the area where the gust at flight height is within the drone's rating: when a swarm could fly at all."""
+    from .env import DroneSpec
+    from .world import World, parse_t
+
+    w, spec = World(fire), DroneSpec()
+    sx, sy = w.size_m
+    X, Y = np.meshgrid((np.arange(24) + 0.5) / 24 * sx, (np.arange(16) + 0.5) / 16 * sy)
+    t0 = parse_t(w.aoi["official"]["incident"]["start_utc"])
+    t0 -= t0 % 3600
+    rows = []
+    for h in range(hours):
+        t = t0 + h * 3600
+        g = w.gust(t, X.ravel(), Y.ravel()) * (spec.agl_m / 10) ** w.wind_shear_exp
+        burned = np.isfinite(w.arrival) & (w.arrival > t) & (w.arrival <= t + 3600)
+        rows.append({"t": iso(t), "flyable_share": round(float(np.mean(g <= spec.wind_ceiling)), 3),
+                     "median_gust_ms": round(float(np.median(g)), 1), "cells_burning_next_hour": int(burned.sum())})
+    doc = {"label": LABEL, "gust_limit_ms": spec.wind_ceiling, "agl_m": spec.agl_m,
+           "note": "HRRR hourly gust (10 m, max of the preceding hour) scaled to flight height by the 1/7 power law, on a 24 x 16 sample of the area.",
+           "hours": rows}
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "flyable.json").write_text(json.dumps(doc, indent=1) + "\n")
+    return doc
+
+
 def summarize(out: Path) -> dict:
     runs = [json.loads(p.read_text()) for p in sorted(out.glob("*_s*.json"))]
     by: dict[str, list] = {}
@@ -173,6 +198,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     out = a.out or DATA_DIR / a.fire / "swarm"
     if a.summary:
+        flyable(a.fire, out)
         print(json.dumps(summarize(out)["policies"], indent=1))
         return
     if a.mock and out.resolve().is_relative_to((REPO_DIR / "web").resolve()):

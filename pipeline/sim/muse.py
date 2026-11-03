@@ -46,7 +46,7 @@ def scrub(text: str) -> str:
 RULES = """You coordinate a simulated survey-drone swarm (SIM) flying over a replay of a real wildfire's spread on real terrain.
 Goal: keep the active fire front observed. Score: the share of newly burning ground a camera sees within 60 minutes of the fire reaching it, then the hourly share of the burned area the swarm has seen.
 You know only what the swarm has observed (fire_clusters: ground seen actively burning in the last 30 min), the coverage age of each 2 km block, the current-hour wind and the publicly reported start point. You cannot see where the fire is unless a drone has looked.
-Coordinates are km east (x) and north (y) of the area's south-west corner. Wind "toward_deg" is the compass direction the air moves toward; fires usually run downwind. A drone's camera sees about 0.3 km around it. Drones fly about 15 m/s at 120 m above ground; the wind ceiling is 12 m/s and above it they are recalled automatically, and they return to base on their own for battery swaps.
+Coordinates are km east (x) and north (y) of the area's south-west corner. Wind "toward_deg" is the compass direction the air moves toward; fires usually run downwind. A drone's camera sees about 0.15 km around it. Drones fly about 15 m/s at up to 120 m above ground. Where the hour's gust at flight height (gust_ms) is over 12 m/s they cannot launch and are recalled automatically (wind_grid shows where it is flyable). They return to base on their own for battery swaps; each drone has 3 batteries that take 60 min to recharge.
 Never discuss what started the fire or who is responsible. Talk only about where to fly and why."""
 
 COMMANDER_TOOL = {

@@ -31,10 +31,12 @@ RHO = 1.1  # kg/m^3, air density at about 1 km elevation
 class DroneSpec:
     """A thermal survey multirotor in the DJI Matrice 4TD / 30T class (docs/SWARM.md cites the specs).
 
-    Wind limit 12 m/s and 54 min maximum flight time (M4TD; M30T 41 min); 45 min usable is assumed.
-    120 m is the FAA Part 107 ceiling. The camera reach assumes a 45 deg diagonal-FOV thermal camera
-    tilted 45 deg at 120 m, which sees the ground from about 50 m to 290 m out. Top speed and mass are
-    round assumptions, not a product's figures.
+    Wind rating 12 m/s, 54 min maximum flight (47 min hover), 15 m/s Normal and 21 m/s Sport speed
+    (M4TD). The rating is checked against the hour's gust at flight height, not the mean wind. 40 min
+    usable (cold air, wind, margin) and a 25% landing reserve are assumed. 120 m is the FAA Part 107
+    ceiling, and every drone stays at or under it. The thermal camera (640x512, 45 deg diagonal FOV,
+    about 29 deg vertical) tilted 45 deg at 120 m sees a wedge about 70-200 m ahead; with the gimbal
+    panning, its sweep is modelled as a 150 m circle. Each drone has 3 batteries, recharged in 60 min.
     """
 
     mass_kg: float = 1.8
@@ -43,11 +45,13 @@ class DroneSpec:
     cruise_speed: float = 15.0  # m/s ground-speed command
     climb_rate: float = 5.0  # m/s
     agl_m: float = 120.0  # survey height above ground (FAA Part 107 ceiling)
-    endurance_s: float = 45 * 60  # usable, at hover-equivalent thrust
-    reserve: float = 0.15  # battery fraction kept for margin on top of the trip home
+    endurance_s: float = 40 * 60  # usable, at hover-equivalent thrust
+    reserve: float = 0.25  # battery fraction kept for margin on top of the trip home
     swap_s: float = 5 * 60  # battery swap at base
-    sensor_range_m: float = 300.0  # ground reach of the tilted thermal camera
-    wind_ceiling: float = 12.0  # m/s at flight height; above it a drone may not launch and is recalled
+    batteries: int = 3  # packs per drone
+    recharge_s: float = 60 * 60  # a pack is ready again this long after it comes off
+    sensor_range_m: float = 150.0  # radius of the panning thermal camera's sweep
+    wind_ceiling: float = 12.0  # m/s gust at flight height; above it a drone may not launch and is recalled
 
     @property
     def drag_area(self) -> float:
@@ -60,8 +64,9 @@ class DroneSpec:
 class SimConfig:
     fire: str = "eaton"
     n_drones: int = 6
-    #: 7:30 AM PST on Jan 8: the first window most of the area is under the 12 m/s limit (docs/SWARM.md).
-    t_start: str = "2025-01-08T15:30:00Z"
+    #: 4 PM PST on Jan 8: the first 12 h after the Santa Ana winds eased in which most of the area is
+    #: under the 12 m/s gust limit most of the time (docs/SWARM.md has the hourly flyable share).
+    t_start: str = "2025-01-09T00:00:00Z"
     duration_s: float = 12 * 3600
     decision_s: float = 15 * 60
     physics_dt: float = 0.05
@@ -94,6 +99,7 @@ class SwarmSim:
         self.mode = ["base"] * n
         self.battery = np.ones(n)
         self.swap_until = np.zeros(n)
+        self.packs_ready = [[-np.inf] * (cfg.spec.batteries - 1) for _ in range(n)]  # spare packs: when each is ready
         self.plan: list[list[np.ndarray]] = [[] for _ in range(n)]
         self._hold: dict[int, np.ndarray] = {}
         self.flight_s = np.zeros(n)
@@ -174,6 +180,10 @@ class SwarmSim:
         u, v = self.wind_at(x, y)
         return float(np.hypot(u, v))
 
+    def gust_at(self, x, y):
+        """The hour's HRRR gust (10 m, max of the preceding hour) scaled to flight height: what the wind rating is checked against."""
+        return self.world.gust(self.t, x, y) * (self.spec.agl_m / 10.0) ** self.world.wind_shear_exp
+
     def airborne(self, i) -> bool:
         return self.mode[i] in ("fly", "rtb")
 
@@ -215,9 +225,8 @@ class SwarmSim:
             P = d.qpos[qidx].copy()
             V = d.qvel[vidx].copy()
             U, W = self.world.wind(self.t, P[:, 0], P[:, 1], agl=spec.agl_m)
-            wind_speed = np.hypot(U, W)
-            bu, bv = self.wind_at(*self.base)
-            base_wind = float(np.hypot(bu, bv))
+            wind_speed = np.maximum(np.hypot(U, W), self.gust_at(P[:, 0], P[:, 1]))
+            base_wind = float(self.gust_at(np.array([self.base[0]]), np.array([self.base[1]]))[0])
             for i in range(n):
                 self._mode_logic(i, base_wind, P[i], float(wind_speed[i]), U[i], W[i], base_gz)
             fly = np.array([self.airborne(i) for i in range(n)])
@@ -250,6 +259,14 @@ class SwarmSim:
             if self.t >= self.swap_until[i]:
                 self.mode[i], self.battery[i] = "base", 1.0
             return
+        if mode == "base" and self.battery[i] < 0.95:
+            # Back from a flight: swap in the spare pack that is ready first (wait for it if none is).
+            k = int(np.argmin(self.packs_ready[i]))
+            ready = max(self.packs_ready[i][k], self.t)
+            self.packs_ready[i][k] = self.t + spec.recharge_s
+            self.mode[i] = "swap"
+            self.swap_until[i] = ready + spec.swap_s
+            return
         if mode == "base":
             if self.plan[i] and base_wind <= spec.wind_ceiling:
                 self.mode[i] = "fly"
@@ -258,14 +275,13 @@ class SwarmSim:
             return
         if mode == "fly":
             if local_wind > spec.wind_ceiling:
-                self._recall(i, f"wind {local_wind:.0f} m/s over the {spec.wind_ceiling:.0f} m/s ceiling")
+                self._recall(i, f"gust {local_wind:.0f} m/s over the {spec.wind_ceiling:.0f} m/s rating")
             elif self.battery[i] <= self._home_cost(p, u, v) + spec.reserve:
                 self._recall(i, "battery reserve")
             # With no waypoints left a drone holds where it is until the next decision.
         dx, dy = p[0] - self.base[0], p[1] - self.base[1]
         if self.mode[i] == "rtb" and dx * dx + dy * dy < 1600 and p[2] - base_gz < 60:
-            self.mode[i] = "swap"
-            self.swap_until[i] = self.t + spec.swap_s
+            self.mode[i] = "base"
             self.plan[i] = []
 
     def _home_cost(self, p, u, v) -> float:
@@ -309,13 +325,21 @@ class SwarmSim:
         ahead = np.linspace(0, 1, 9)[None, :] * np.minimum(dist, 400.0)[:, None]
         px = P[:, 0:1] + ahead * dirn[:, 0:1]
         py = P[:, 1:2] + ahead * dirn[:, 1:2]
-        gz = self.world.ground(px, py).max(axis=1)
-        alt = spec.agl_m + 12.0 * np.arange(n)  # per-drone height offset keeps paths separated
+        ground = self.world.ground(px, py)
+        here, ahead = ground[:, 0], ground.max(axis=1)
+        alt = spec.agl_m - 10.0 * np.arange(n)  # separated by height, all at or under the 120 m limit
         rtb = np.array([self.mode[i] == "rtb" for i in range(n)])
         landing = rtb & (dist < 300)
         alt = np.where(landing, 20.0 + dist / 8, alt)
-        err_z = gz + alt - P[:, 2]
+        # Hold the survey height over the ground below, climbing early enough to clear the ground ahead by
+        # 40 m, but never above 120 m over the ground below (the legal ceiling).
+        tz = np.minimum(np.maximum(here + alt, ahead + 40.0), here + spec.agl_m)
+        tz = np.where(landing, here + alt, tz)
+        err_z = tz - P[:, 2]
         speed = np.minimum(spec.cruise_speed, 0.25 * dist)
+        # Short of the clearance needed ahead: slow down and climb first.
+        short = ahead + 40.0 - P[:, 2]
+        speed = speed * np.clip(1 - short / 60.0, 0.15, 1.0)
         v_cmd = np.column_stack([dirn * speed[:, None], np.clip(0.5 * err_z, -spec.climb_rate, spec.climb_rate)])
         a_cmd = 1.2 * (v_cmd - V)
         # Drag against the local wind plus turbulence scaled by the hour's gust excess.
@@ -423,10 +447,11 @@ class SwarmSim:
         drones = []
         for i in range(self.cfg.n_drones):
             p = self.pos(i)
-            ws = self.wind_speed_at(p[0], p[1])
+            ws = float(self.gust_at(np.array([p[0]]), np.array([p[1]]))[0])
             drones.append({
                 "id": i, "mode": self.mode[i], "x_km": round(p[0] / 1000, 2), "y_km": round(p[1] / 1000, 2),
-                "battery": round(float(self.battery[i]), 2), "wind_ms": round(ws, 1),
+                "battery": round(float(self.battery[i]), 2), "gust_ms": round(ws, 1),
+                "spare_packs_ready": int(sum(r <= self.t for r in self.packs_ready[i])),
                 "waypoints_left": len(self.plan[i]),
             })
         u, v = self.wind_at(*self.base)
@@ -438,7 +463,8 @@ class SwarmSim:
             "area_km": [round(w.size_m[0] / 1000, 2), round(w.size_m[1] / 1000, 2)],
             "base_km": [round(self.base[0] / 1000, 2), round(self.base[1] / 1000, 2)],
             "wind_at_base": {"speed_ms": round(float(np.hypot(u, v)), 1), "toward_deg": round(float(np.degrees(np.arctan2(u, v)) % 360)),
-                             "ceiling_ms": self.spec.wind_ceiling},
+                             "gust_ms": round(float(self.gust_at(np.array([self.base[0]]), np.array([self.base[1]]))[0]), 1),
+                             "gust_limit_ms": self.spec.wind_ceiling},
             "wind_grid": self._wind_grid(),
             "drones": drones,
             "fire_clusters": self._clusters(),
@@ -456,8 +482,10 @@ class SwarmSim:
         for fy in (0.17, 0.5, 0.83):
             for fx in (0.17, 0.5, 0.83):
                 u, v = self.wind_at(fx * sx, fy * sy)
+                g = float(self.gust_at(np.array([fx * sx]), np.array([fy * sy]))[0])
                 out.append({"x_km": round(fx * sx / 1000, 1), "y_km": round(fy * sy / 1000, 1),
-                            "speed_ms": round(float(np.hypot(u, v)), 1), "toward_deg": round(float(np.degrees(np.arctan2(u, v)) % 360))})
+                            "speed_ms": round(float(np.hypot(u, v)), 1), "gust_ms": round(g, 1), "flyable": g <= self.spec.wind_ceiling,
+                            "toward_deg": round(float(np.degrees(np.arctan2(u, v)) % 360))})
         return out
 
     def _clusters(self, k: int = 6) -> list[dict]:

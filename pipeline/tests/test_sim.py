@@ -13,8 +13,8 @@ from sim.policies import Greedy, Lawnmower  # noqa: E402
 from sim.run import main as run_main  # noqa: E402
 from sim.world import DATA_DIR, World, parse_t  # noqa: E402
 
-# A calm, post-wind hour on Eaton so a short test flight is not recalled for wind.
-CALM = "2025-01-08T15:30:00Z"
+# A calm hour on Eaton (gusts under the 12 m/s rating) so a short test flight is not recalled for wind.
+CALM = "2025-01-09T04:30:00Z"
 
 
 @pytest.fixture(scope="module")
@@ -170,3 +170,20 @@ def test_muse_commander_with_greedy_squads_makes_one_call(world):
     out = MuseCommanderGreedy(client, model="mock").decide(sim.observe())
     assert len(client.requests) == 1 and out["calls"] == 1
     assert sorted(out["waypoints_km"]) == list(range(6)) and not out["errors"]
+
+
+def test_gusts_ground_the_swarm_at_the_santa_ana_peak(world):
+    sim = SwarmSim(SimConfig(t_start="2025-01-08T06:00:00Z", duration_s=900), world)
+    sim.set_plan({i: [sim.base + np.array([0.0, 3000.0])] for i in range(6)})
+    sim.advance(sim.t + 300)
+    assert all(m == "base" for m in sim.mode) and sim.grounded_wind_s > 0
+
+
+def test_every_drone_stays_at_or_under_120_m(world):
+    sim = SwarmSim(SimConfig(t_start=CALM, duration_s=900), world)
+    sim.run(Greedy())
+    for track in sim.tracks:
+        for t_s, lon, lat, alt, mode, _ in track:
+            if mode == 1:  # flying a survey leg
+                x, y = world.to_local(lon, lat)
+                assert alt - world.ground(x, y) < 135  # 120 m plus controller overshoot over steep ground
