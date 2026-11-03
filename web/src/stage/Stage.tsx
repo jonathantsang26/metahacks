@@ -22,6 +22,8 @@ import {useHighlightPart} from './highlight';
 import {useDebrisPart} from './debris-layer';
 import {useSwarmPart} from './swarm-layer';
 import {useRollout, useSwarmUi} from '../swarm/data';
+import {useForecastPart} from './forecast-layer';
+import {useLiveHitsPart} from './live-layer';
 import {Compass, HoverInspector, MapControls, MapNotes, SyntheticChip, type StageNote} from './overlays';
 
 const PITCH_3D = 58;
@@ -171,11 +173,21 @@ export function Stage({fire}: {fire: FireData}) {
   const swarmUi = useSwarmUi();
   const {data: swarmRollout} = useRollout(fire, swarmUi.policy);
   const swarmPart = useSwarmPart(fire, dem, t, swarmRollout, swarmUi.show);
+  const forecastPart = useForecastPart(fire, dem, t, layers.forecast.visible && layers.forecast.ready);
+  const livePart = useLiveHitsPart(dem, layers.liveHits.visible);
 
   // Labels from every layer compete for space; the survivors depend on the camera.
   const labels = useMemo<MapLabel[]>(
-    () => [...highlightPart.labels, ...ignitionPart.labels, ...perimeterPart.labels, ...spinePart.labels, ...placeLabels],
-    [highlightPart.labels, ignitionPart.labels, perimeterPart.labels, spinePart.labels, placeLabels]
+    () => [
+      ...highlightPart.labels,
+      ...livePart.labels,
+      ...forecastPart.labels,
+      ...ignitionPart.labels,
+      ...perimeterPart.labels,
+      ...spinePart.labels,
+      ...placeLabels
+    ],
+    [highlightPart.labels, livePart.labels, forecastPart.labels, ignitionPart.labels, perimeterPart.labels, spinePart.labels, placeLabels]
   );
   // The surviving ids and their placements, as a string so the text layers rebuild only when they change.
   const keepKey = [...declutter(labels, viewState, size.width, size.height)]
@@ -283,6 +295,8 @@ export function Stage({fire}: {fire: FireData}) {
       swatches: [{color: '#ffffff', label: 'Final perimeter', shape: 'dash'}]
     });
   notes.push(
+    ...livePart.notes,
+    ...forecastPart.notes,
     ...ignitionPart.notes,
     ...spinePart.notes,
     ...windPart.notes,
@@ -349,6 +363,8 @@ export function Stage({fire}: {fire: FireData}) {
     ...windPart.layers,
     ...ignitionPart.layers,
     ...swarmPart.layers,
+    ...forecastPart.layers,
+    ...livePart.layers,
     ...highlightPart.layers,
     ...textLayers
   ];

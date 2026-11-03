@@ -18,7 +18,9 @@ export type LayerId =
   | 'structures'
   | 'roads'
   | 'labels'
-  | 'debrisFlow';
+  | 'debrisFlow'
+  | 'forecast'
+  | 'liveHits';
 
 export type LayerDef = {
   id: LayerId;
@@ -41,7 +43,9 @@ export const LAYERS: LayerDef[] = [
   {id: 'structures', label: 'Structures', visible: false, opacity: null, ready: true},
   {id: 'roads', label: 'Roads & Trails', visible: false, opacity: null, ready: true},
   {id: 'labels', label: 'Place Labels', visible: true, opacity: null, ready: true},
-  {id: 'debrisFlow', label: 'Debris-Flow Likelihood', visible: false, opacity: 1, ready: true}
+  {id: 'debrisFlow', label: 'Debris-Flow Likelihood', visible: false, opacity: 1, ready: true},
+  {id: 'forecast', label: 'Spread Forecast (+1 h)', visible: true, opacity: null, ready: true},
+  {id: 'liveHits', label: 'Live Drone Hits', visible: true, opacity: null, ready: true}
 ];
 
 /** Debris-flow models shown on the Risk tab (debris_flow.geojson: `<model>_p_<I15>`). */

@@ -1,6 +1,8 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import type {FireData} from '../data/fire';
 import {ChartEmpty, ChartFrame} from '../dock/charts';
+import {LiveCharts, LiveSide} from './live/LiveDock';
+import {useLive} from './live/live';
 import {buildTracks, CLASS_LABEL, fmtClock, useClipOverlays, useFootage, useSelectedClip, type Clip, type Detection, type Mask} from './footage';
 
 /** Per-second bins over the clip: boxes per second, Sentinel's max confidence, SAM mask cover. */
@@ -48,7 +50,7 @@ function useSize<T extends HTMLElement>() {
 }
 
 /** A per-second step series with the playhead; past solid, future faded (DESIGN.md §6.2). */
-function SeriesPlot({values, max, color, time, unit}: {values: number[]; max: number; color: string; time: number; unit: string}) {
+export function SeriesPlot({values, max, color, time, unit, id = unit}: {values: number[]; max: number; color: string; time: number; unit: string; id?: string}) {
   const [ref, {w, h}] = useSize<HTMLDivElement>();
   const L = 30;
   const B = 14;
@@ -56,13 +58,13 @@ function SeriesPlot({values, max, color, time, unit}: {values: number[]; max: nu
   const y = (v: number) => 4 + (1 - Math.min(v, max) / max) * (h - B - 4);
   const d = values.map((v, i) => `${i === 0 ? 'M' : 'L'}${x(i)} ${y(v)}H${x(i + 1)}`).join('');
   const area = `${d}V${y(0)}H${x(0)}Z`;
-  const ticks = [0, Math.floor(values.length / 2), values.length];
+  const ticks = [...new Set([0, Math.floor(values.length / 2), values.length])];
   return (
     <div ref={ref} className="absolute inset-0">
       {w > 0 && (
         <svg width={w} height={h} className="block overflow-visible">
           <defs>
-            <clipPath id={`past-${unit}`}>
+            <clipPath id={`past-${id}`}>
               <rect x={0} y={0} width={x(time)} height={h} />
             </clipPath>
           </defs>
@@ -82,7 +84,7 @@ function SeriesPlot({values, max, color, time, unit}: {values: number[]; max: nu
           ))}
           <path d={area} fill={color} fillOpacity={0.12} />
           <path d={d} fill="none" stroke={color} strokeOpacity={0.35} strokeWidth={1.25} />
-          <g clipPath={`url(#past-${unit})`}>
+          <g clipPath={`url(#past-${id})`}>
             <path d={area} fill={color} fillOpacity={0.3} />
             <path d={d} fill="none" stroke={color} strokeWidth={1.75} />
           </g>
@@ -95,6 +97,11 @@ function SeriesPlot({values, max, color, time, unit}: {values: number[]; max: nu
 
 /** Drones tab charts: all three run on the selected clip's own clock, not the incident timeline. */
 export function DronesCharts({fire}: {fire: FireData}) {
+  const live = useLive(s => s.source !== null);
+  return live ? <LiveCharts /> : <RecordedCharts fire={fire} />;
+}
+
+function RecordedCharts({fire}: {fire: FireData}) {
   const clip = useSelectedClip(fire);
   const {detections, masks} = useClipOverlays(fire, clip);
   const bins = useBins(clip, detections, masks);
@@ -137,6 +144,11 @@ export function DronesCharts({fire}: {fire: FireData}) {
 
 /** Dock side list: Sentinel detection runs and SAM 3.1 objects; click a row to jump the clip there. */
 export function DronesSide({fire}: {fire: FireData}) {
+  const live = useLive(s => s.source !== null);
+  return live ? <LiveSide /> : <RecordedSide fire={fire} />;
+}
+
+function RecordedSide({fire}: {fire: FireData}) {
   const clip = useSelectedClip(fire);
   const {detections, masks} = useClipOverlays(fire, clip);
   const {time, requestSeek} = useFootage();

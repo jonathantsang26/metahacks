@@ -1,0 +1,375 @@
+{
+  "model": "Sentinel YOLOv8n fine-tuned on FireNET (fire, smoke)",
+  "file": "sentinel_fire.onnx",
+  "bytes": 12677118,
+  "sha256": "6c1369844f8621aefcfe5beecc0542c19344b7ef9467f0e7cc1ac7cdf8be21f1",
+  "source_weights": {
+    "file": "pipeline/models/sentinel_fire.pt",
+    "sha256": "f4c860f27df4daefe3b31d9943d3b92db5759a25f4fcf220d5b22e384b1a84a8",
+    "training": {
+      "base": {
+        "file": "fire_yolov8n.pt",
+        "sha256": "31e20dde3def09e2cf938c7be6fe23d9150bbbe503982af13345706515f2ef95",
+        "note": "Sentinel's shipped weights (stock COCO YOLOv8n)"
+      },
+      "data": {
+        "firenet": {
+          "train": 412,
+          "val": 90
+        }
+      },
+      "classes": [
+        "fire",
+        "smoke"
+      ],
+      "epochs": 30,
+      "imgsz": 416,
+      "val": {
+        "map50": 0.72,
+        "map50_95": 0.342,
+        "precision": 0.738,
+        "recall": 0.714
+      },
+      "date": "2026-10-31"
+    }
+  },
+  "export": {
+    "tool": "ultralytics 8.4.199",
+    "torch": "2.15.0+cu132",
+    "onnx": "1.23.2",
+    "opset": 12,
+    "ir_version": 7,
+    "dynamic": false,
+    "simplify": true,
+    "half": false,
+    "nms": false,
+    "ops": [
+      "Add",
+      "Concat",
+      "Conv",
+      "Div",
+      "MaxPool",
+      "Mul",
+      "Reshape",
+      "Resize",
+      "Sigmoid",
+      "Slice",
+      "Softmax",
+      "Split",
+      "Sub",
+      "Transpose"
+    ],
+    "script": "pipeline/tools/export_sentinel_onnx.py",
+    "date": "2026-11-03"
+  },
+  "classes": [
+    "fire",
+    "smoke"
+  ],
+  "imgsz": 416,
+  "input": {
+    "name": "images",
+    "shape": [
+      1,
+      3,
+      416,
+      416
+    ],
+    "dtype": "float32",
+    "layout": "NCHW",
+    "colour": "RGB",
+    "range": "0..1 (uint8 / 255)"
+  },
+  "output": {
+    "name": "output0",
+    "shape": [
+      1,
+      6,
+      3549
+    ],
+    "dtype": "float32",
+    "layout": "[batch, 4 + nc, anchors]: row 0..3 = cx, cy, w, h in input pixels (0..416); row 4 = fire score, row 5 = smoke score (already sigmoid, 0..1; no objectness); 3549 anchors = 52\u00b2 + 26\u00b2 + 13\u00b2 (strides 8, 16, 32)",
+    "nms_included": false
+  },
+  "preprocessing": {
+    "letterbox": "r = min(416/h, 416/w); resize to (round(w*r), round(h*r)) bilinear; pad left = round((416-nw)/2 - 0.1), top = round((416-nh)/2 - 0.1) to 416x416",
+    "pad_value": 114,
+    "pad_colour_rgb": [
+      114,
+      114,
+      114
+    ],
+    "colour": "RGB",
+    "scale": "1/255",
+    "layout": "CHW, batch 1",
+    "resize_interpolation": "bilinear (cv2.INTER_LINEAR)"
+  },
+  "postprocessing": {
+    "score": "per anchor, max over class rows; class = argmax",
+    "conf": 0.25,
+    "nms_iou": 0.7,
+    "nms": "greedy, per class (class-aware), sorted by score",
+    "max_det": 300,
+    "unletterbox": "x = (x - padLeft) / r, y = (y - padTop) / r, then clip to the frame",
+    "note": "conf 0.25 is what step 12 used for footage/detections. NMS IoU 0.7 is ultralytics' predict default, which step 12 used (it never passed iou=); 0.45 is ultralytics' older/val value and suppresses a little more."
+  },
+  "parity": {
+    "frames": 60,
+    "frame_sample": {
+      "blm-north-bank": [
+        0,
+        30,
+        60,
+        90,
+        126,
+        156,
+        186,
+        216,
+        246,
+        276,
+        306,
+        342,
+        372,
+        402,
+        432,
+        462,
+        492,
+        522,
+        552,
+        588,
+        618,
+        648,
+        678,
+        708,
+        738,
+        768,
+        804,
+        834,
+        864,
+        894
+      ],
+      "blm-north-umpqua-ir": [
+        0,
+        30,
+        54,
+        84,
+        108,
+        138,
+        162,
+        192,
+        216,
+        246,
+        270,
+        300,
+        324,
+        354,
+        378,
+        408,
+        432,
+        462,
+        486,
+        516,
+        540,
+        570,
+        594,
+        624,
+        648,
+        678,
+        702,
+        732,
+        756,
+        786
+      ]
+    },
+    "clips": [
+      "web/public/data/eaton/footage/clips/blm-north-bank.mp4",
+      "web/public/data/eaton/footage/clips/blm-north-umpqua-ir.mp4"
+    ],
+    "published_detections_reproduced_by_imgsz": 640,
+    "published_vs_rerun": {
+      "416": {
+        "detections_pt": 94,
+        "detections_onnx": 68,
+        "matched": 35,
+        "only_pt": 59,
+        "only_onnx": 33,
+        "abs_conf_diff_max": 0.307673
+      },
+      "640": {
+        "detections_pt": 94,
+        "detections_onnx": 91,
+        "matched": 89,
+        "only_pt": 5,
+        "only_onnx": 2,
+        "abs_conf_diff_max": 0.058754
+      }
+    },
+    "tensor": {
+      "max_abs_diff_box_rows_px": {
+        "n": 60,
+        "max": 0.003433,
+        "median": 0.001602,
+        "mean": 0.001753,
+        "min": 0.000595
+      },
+      "max_abs_diff_score_rows": {
+        "n": 60,
+        "max": 2e-06,
+        "median": 1e-06,
+        "mean": 1e-06,
+        "min": 0.0
+      }
+    },
+    "end_to_end": {
+      "pt_square416": {
+        "detections_pt": 76,
+        "detections_onnx": 76,
+        "matched": 76,
+        "abs_conf_diff": {
+          "n": 76,
+          "max": 1e-06,
+          "median": 0.0,
+          "mean": 0.0,
+          "min": 0.0
+        },
+        "matched_box_iou": {
+          "n": 76,
+          "max": 1.0,
+          "median": 1.0,
+          "mean": 0.999999,
+          "min": 0.999998
+        },
+        "only_pt": 0,
+        "only_onnx": 0,
+        "reference": "ultralytics .pt predict, imgsz 416, rect=False (square 416x416 letterbox, same input geometry as the ONNX)"
+      },
+      "pt_raw_ultralytics_nms": {
+        "detections_pt": 76,
+        "detections_onnx": 76,
+        "matched": 76,
+        "abs_conf_diff": {
+          "n": 76,
+          "max": 1e-06,
+          "median": 0.0,
+          "mean": 0.0,
+          "min": 0.0
+        },
+        "matched_box_iou": {
+          "n": 76,
+          "max": 1.0,
+          "median": 1.0,
+          "mean": 1.0,
+          "min": 0.999996
+        },
+        "only_pt": 0,
+        "only_onnx": 0,
+        "reference": "PyTorch raw output on the identical NumPy tensor + ultralytics non_max_suppression/scale_boxes (checks decode/NMS only)"
+      },
+      "pt_rect416": {
+        "detections_pt": 68,
+        "detections_onnx": 76,
+        "matched": 57,
+        "abs_conf_diff": {
+          "n": 57,
+          "max": 0.207257,
+          "median": 0.046061,
+          "mean": 0.055237,
+          "min": 0.002455
+        },
+        "matched_box_iou": {
+          "n": 57,
+          "max": 0.997828,
+          "median": 0.956337,
+          "mean": 0.947605,
+          "min": 0.785727
+        },
+        "only_pt": 11,
+        "only_onnx": 19,
+        "reference": "ultralytics .pt predict, imgsz 416, default rect letterbox (416x256 for 1280x720)"
+      },
+      "pt_rect640": {
+        "detections_pt": 91,
+        "detections_onnx": 76,
+        "matched": 40,
+        "abs_conf_diff": {
+          "n": 40,
+          "max": 0.375397,
+          "median": 0.080382,
+          "mean": 0.112911,
+          "min": 0.005575
+        },
+        "matched_box_iou": {
+          "n": 40,
+          "max": 0.943889,
+          "median": 0.808818,
+          "mean": 0.803508,
+          "min": 0.595792
+        },
+        "only_pt": 51,
+        "only_onnx": 36,
+        "reference": "ultralytics .pt predict, imgsz 640, default rect letterbox (640x384): how step 12 ran"
+      },
+      "published_detections": {
+        "detections_pt": 94,
+        "detections_onnx": 76,
+        "matched": 40,
+        "abs_conf_diff": {
+          "n": 40,
+          "max": 0.374969,
+          "median": 0.100435,
+          "mean": 0.115004,
+          "min": 0.003152
+        },
+        "matched_box_iou": {
+          "n": 40,
+          "max": 0.946422,
+          "median": 0.813137,
+          "mean": 0.80459,
+          "min": 0.599854
+        },
+        "only_pt": 54,
+        "only_onnx": 36,
+        "reference": "the committed footage/detections/*.json at these frames (conf rounded to 3 dp, box to 0.1 px)"
+      }
+    },
+    "method": "ONNX side: onnxruntime CPU on this script's NumPy square letterbox + decode + per-class NMS (the browser algorithm). Each end_to_end entry compares one reference against it; 'pt' fields mean the reference. Matching: same class, IoU >= 0.5, greedy by IoU."
+  },
+  "timing_onnxruntime_cpu": {
+    "machine": "x86_64, 4 logical CPUs",
+    "onnxruntime": "1.31.1",
+    "single_thread": {
+      "intra_op_threads": 1,
+      "runs": 100,
+      "median_ms": 27.32,
+      "mean_ms": 27.38,
+      "p90_ms": 27.76,
+      "min_ms": 26.82
+    },
+    "default": {
+      "intra_op_threads": "default",
+      "runs": 100,
+      "median_ms": 13.83,
+      "mean_ms": 14.9,
+      "p90_ms": 16.05,
+      "min_ms": 12.08
+    },
+    "end_to_end_ms_per_frame": 16.38
+  },
+  "metadata_props": {
+    "description": "Ultralytics sentinel_fire model trained on /home/claude/metahacks/footage/train/_yolo/data.yaml",
+    "author": "Ultralytics",
+    "date": "2026-11-03T07:40:54.785759+00:00",
+    "version": "8.4.199",
+    "license": "AGPL-3.0 License (https://ultralytics.com/license)",
+    "docs": "https://docs.ultralytics.com",
+    "stride": "32",
+    "task": "detect",
+    "head": "Detect",
+    "batch": "1",
+    "imgsz": "[416, 416]",
+    "names": "{0: 'fire', 1: 'smoke'}",
+    "args": "{'data': None, 'batch': 1, 'fraction': 1.0, 'quantize': None, 'nms': False, 'dynamic': False, 'simplify': True, 'opset': 12}",
+    "channels": "3",
+    "end2end": "False"
+  }
+}
