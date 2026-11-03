@@ -4,6 +4,9 @@
     "api/analyst.ts": {
       "includeFiles": "public/data/**",
       "maxDuration": 60
+    },
+    "api/sam.ts": {
+      "maxDuration": 30
     }
   }
 }
