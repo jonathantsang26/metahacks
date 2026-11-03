@@ -7,6 +7,7 @@ import {fmtPct, type DetectorEval} from '../footage';
 import {fmtStreamClock} from './decode';
 import {createDetector, type Backend, type Detector} from './detector';
 import {runLive, useLive, type LiveSource} from './live';
+import {SamOverlay, SamToggle} from './SamOverlay';
 
 /** One detector per backend, loaded on first use and kept for the session. */
 const detectors = new Map<Backend, Promise<Detector>>();
@@ -110,6 +111,7 @@ export function LivePlayer({fire}: {fire: FireData}) {
           <div className="relative h-full max-w-full" style={{aspectRatio: aspect}}>
             <video ref={video} className="absolute inset-0 h-full w-full" muted playsInline autoPlay loop={source.kind === 'file'} />
             <canvas ref={overlay} className={`pointer-events-none absolute inset-0 h-full w-full ${showBoxes ? '' : 'hidden'}`} />
+            <SamOverlay fire={fire} video={video} />
           </div>
         </div>
         {(statusText || error) && (
@@ -177,6 +179,7 @@ export function LivePlayer({fire}: {fire: FireData}) {
         >
           Boxes: Sentinel
         </button>
+        <SamToggle fire={fire} />
         <button onClick={() => set({expanded: !expanded})} title={expanded ? 'Back to PiP' : 'Full camera view'} className="flex h-6 w-6 items-center justify-center">
           <Icon name="expand" size={13} />
         </button>

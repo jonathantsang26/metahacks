@@ -60,7 +60,7 @@ export function memoryStore(): BudgetStore {
 const RESERVE = "local c=tonumber(redis.call('GET',KEYS[1]) or '0'); local a=tonumber(ARGV[1]); if c+a>tonumber(ARGV[2]) then return -1 end; return redis.call('INCRBY',KEYS[1],a)";
 
 /** Upstash Redis over its REST API with plain fetch. Any failure throws, so callers fail closed. */
-export function upstashStore(url: string, token: string, fetchImpl: typeof fetch = fetch): BudgetStore {
+export function upstashStore(url: string, token: string, fetchImpl: typeof fetch = fetch, key: string = KEY): BudgetStore {
   async function send(command: (string | number)[]): Promise<unknown> {
     const r = await fetchImpl(url, {
       method: 'POST',
@@ -75,15 +75,15 @@ export function upstashStore(url: string, token: string, fetchImpl: typeof fetch
   return {
     async reserve(amount, cap) {
       // The script returns -1 or the new total; anything else is not a reservation.
-      const r = await send(['EVAL', RESERVE, 1, KEY, amount, cap]);
+      const r = await send(['EVAL', RESERVE, 1, key, amount, cap]);
       if (typeof r !== 'number') throw new Error(`budget store: unexpected reply ${JSON.stringify(r)}`);
       return r !== -1;
     },
     async adjust(amount) {
-      if (amount) await send(['INCRBY', KEY, amount]);
+      if (amount) await send(['INCRBY', key, amount]);
     },
     async spent() {
-      return Number((await send(['GET', KEY])) ?? 0);
+      return Number((await send(['GET', key])) ?? 0);
     }
   };
 }
@@ -118,9 +118,9 @@ export function storeConfig(env: BudgetEnv): {url: string; token: string} | null
 }
 
 /** The shared store when its variables are set. */
-export function storeFromEnv(env: BudgetEnv): BudgetStore | null {
+export function storeFromEnv(env: BudgetEnv, key?: string): BudgetStore | null {
   const c = storeConfig(env);
-  return c ? upstashStore(c.url, c.token) : null;
+  return c ? upstashStore(c.url, c.token, fetch, key) : null;
 }
 
 export function capUsd(env: BudgetEnv): number {
