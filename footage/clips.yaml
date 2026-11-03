@@ -1,0 +1,19 @@
+# footage/clips.yaml: one entry per clip the Drones tab shows. Raw files are not committed;
+# re-fetch them from each clip's source_url, then scale to 1280 wide H.264 (see the PR #5 notes).
+clips:
+  - id: blm-north-bank
+    title: BLM aerial · North Bank, Oregon (colour)
+    file: raw/commons/blm-north-bank-prescribed.mp4
+    source: BLM Oregon & Washington, via Wikimedia Commons
+    source_url: https://commons.wikimedia.org/wiki/File:Prescribed_fire,_North_Bank_Habitat_Management_Area_(55449061575).webm
+    license: Public domain (US government work)
+    note: BLM aerial · Oregon · not this fire
+    publish: true
+  - id: blm-north-umpqua-ir
+    title: BLM drone · North Umpqua Fire, Oregon (infrared)
+    file: raw/commons/blm-north-umpqua-ir.mp4
+    source: BLM Oregon & Washington (Marcus Tobey), via Wikimedia Commons
+    source_url: https://commons.wikimedia.org/wiki/File:Drone_reconnaissance_during_wildfire_season_(39411577714).webm
+    license: Public domain (US government work)
+    note: BLM drone · infrared · not this fire
+    publish: true

@@ -43,6 +43,7 @@ from ember.config import load_fire
 
 SAM_MODEL = "sam-3.1"
 RATE_LIMIT_RETRIES = 8
+STREAM_DROP_RETRIES = 3
 
 
 def _hash(path: Path) -> str:
@@ -103,10 +104,13 @@ def segment(media: Path, text: str, tag: str, video: bool, key_fn) -> str:
             raw = asyncio.run(_request(key, text, part, video))
             break
         except Exception as e:
-            if "HTTP 429" not in str(e.__cause__ or e) or attempt == RATE_LIMIT_RETRIES:
+            why = str(e.__cause__ or e)
+            dropped = "Connection broken" in why
+            # A dropped stream may have billed the attempt, so it gets fewer tries than a 429.
+            if not ("HTTP 429" in why or dropped) or attempt == (STREAM_DROP_RETRIES if dropped else RATE_LIMIT_RETRIES):
                 raise
             wait = min(120, 15 * 2**attempt)
-            print(f"  rate limited; waiting {wait}s")
+            print(f"  {'stream dropped' if dropped else 'rate limited'}; waiting {wait}s", flush=True)
             time.sleep(wait)
     cached.write_text(raw)
     return raw

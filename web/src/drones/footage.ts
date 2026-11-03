@@ -13,6 +13,8 @@ export type Clip = {
   width: number;
   height: number;
   source: string;
+  source_url?: string | null;
+  license?: string | null;
   /** Shown in the PiP, e.g. "FLAME 2 · prescribed burn · not this fire". */
   note: string;
   /** False for footage we may not redistribute (FLAME 2): the video is local-only, the overlays are not. */

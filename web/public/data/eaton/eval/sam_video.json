@@ -141,5 +141,31 @@
     }
   ],
   "method": "SAM 3.1 (Meta Model API, image mode) prompted with fire, smoke on the same stratified sample as Sentinel's eval. A frame counts as a detection when any returned box has confidence \u2265 0.25 (no confidence returned counts as 1).",
-  "date": "2026-10-31"
+  "date": "2026-10-31",
+  "clips": {
+    "blm-north-bank": {
+      "masks": 389,
+      "objects": 2,
+      "mode": "text",
+      "prompts": [
+        "fire"
+      ],
+      "sentinel_boxes": 216,
+      "on_sam_frames": 89,
+      "overlapped_by_sam": 22,
+      "share": 0.247
+    },
+    "blm-north-umpqua-ir": {
+      "masks": 234,
+      "objects": 2,
+      "mode": "text",
+      "prompts": [
+        "fire"
+      ],
+      "sentinel_boxes": 236,
+      "on_sam_frames": 97,
+      "overlapped_by_sam": 53,
+      "share": 0.546
+    }
+  }
 }

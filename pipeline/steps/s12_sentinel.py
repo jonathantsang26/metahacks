@@ -194,7 +194,7 @@ def cmd_detect(args) -> None:
             shutil.copyfile(cut, dst)
         clips_json.append({
             "id": clip.id, "title": clip.title, "src": f"clips/{clip.id}.mp4", "fps": round(tfps, 3),
-            "width": w, "height": h, "source": clip.source, "note": clip.note,
+            "width": w, "height": h, "source": clip.source, "source_url": clip.source_url, "license": clip.license, "note": clip.note,
             "publish": clip.publish, "window_s": [round(start, 2), round(start + length, 2)],
             "sentinel": {"weights": weights.name, "fps": args.fps, "conf": args.conf},
         })

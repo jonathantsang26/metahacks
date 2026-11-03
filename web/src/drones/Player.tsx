@@ -183,7 +183,7 @@ export function FootagePlayer({fire}: {fire: FireData}) {
             )}
             {missing && (
               <div className="absolute inset-0 flex items-center justify-center bg-[#15130f] px-6 text-center font-mono text-2xs text-white/60">
-                Video not in this deployment ({clip.source}; not licensed for redistribution).
+                Video not in this deployment ({clip.source}{clip.publish === false ? '; not licensed for redistribution' : ''}).
                 <br />
                 Sentinel and SAM 3.1 overlays play on their recorded frame times.
               </div>

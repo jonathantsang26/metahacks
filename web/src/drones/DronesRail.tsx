@@ -42,6 +42,7 @@ function ClipDetail({fire, clip}: {fire: FireData; clip: Clip}) {
       </div>
       <div className="pb-2">
         <Row k="Source" v={clip.source} />
+        {clip.license && <Row k="License" v={clip.license} />}
         <Row k="Window" v="Busiest 30 s for Sentinel, sent to SAM 3.1" />
       </div>
       <div className="flex gap-2 px-3 pb-3">
@@ -85,7 +86,7 @@ function EvalCard({fire}: {fire: FireData}) {
             <span className="text-right">F1</span>
           </div>
           {s.baseline && <Metric label={`Sentinel as shipped`} e={s.baseline.any} />}
-          <Metric label={s.weights?.training ? 'Sentinel fine-tuned' : 'Sentinel'} e={s.any} />
+          <Metric label={s.weights?.training ? 'Sentinel, fine-tuned on FireNET' : 'Sentinel'} e={s.any} />
           {sam.data?.any && <Metric label="SAM 3.1" e={sam.data.any} />}
           {sam.data?.any && sam.data.dataset.name !== s.dataset.name && (
             <div className="px-3 text-2xs text-muted">SAM 3.1 scored on {sam.data.dataset.name} ({sam.data.n} frames)</div>
@@ -97,7 +98,7 @@ function EvalCard({fire}: {fire: FireData}) {
             )}
             {s.weights?.training && (
               <li>
-                Fine-tuned from those weights for {s.weights.training.epochs} epochs on public fire boxes (val mAP50{' '}
+                Fine-tuned on FireNET during the hackathon, from those weights, for {s.weights.training.epochs} epochs (val mAP50{' '}
                 {s.weights.training.val.map50.toFixed(2)}).
               </li>
             )}

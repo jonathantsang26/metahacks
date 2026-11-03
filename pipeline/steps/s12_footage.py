@@ -1,9 +1,9 @@
 """Shared paths, clip config, labelled-frame loaders and metrics for the vision steps (12, 12a, 12c).
 
-Footage lives in the repo-root `footage/` folder, which is gitignored (FLAME 2 has no stated
-license, BUILD.md §5):
+Footage lives in the repo-root `footage/` folder, which is gitignored apart from clips.yaml (FLAME 2
+has no stated license, BUILD.md §5):
 
-  footage/clips.yaml            which clips to publish (see CLIPS_EXAMPLE)
+  footage/clips.yaml            which clips to publish, with source and license (see CLIPS_EXAMPLE; committed)
   footage/models/               fine-tuned Sentinel weights (step 12a; the committed copy is pipeline/models/)
   footage/sam_cache/            raw SAM 3.1 responses, so no clip is ever billed twice
   footage/trimmed/              ≤ 30 s H.264 cuts sent to SAM and copied to the web app
@@ -47,6 +47,8 @@ clips:
     title: FLAME 2 · video 1 (RGB)
     file: raw/flame2/video1_rgb.mp4      # relative to footage/
     source: FLAME 2 (IEEE DataPort), Northern Arizona University
+    source_url: https://ieee-dataport.org/open-access/flame-2-fire-detection-and-modeling-aerial-multi-spectral-image-dataset
+    license: No stated license
     note: FLAME 2 · prescribed burn · not this fire
     crop: left                           # optional: left/right half of a side-by-side RGB|IR video
     publish: false                       # true only for footage we may redistribute (our own)
@@ -125,6 +127,8 @@ class Clip:
     note: str
     crop: str | None = None
     publish: bool = False
+    source_url: str | None = None
+    license: str | None = None
 
 
 def load_clips() -> list[Clip]:
@@ -138,7 +142,8 @@ def load_clips() -> list[Clip]:
         f = FOOTAGE_DIR / c["file"]
         if not f.exists():
             raise SystemExit(f"clip {c['id']}: {f} not found")
-        clips.append(Clip(c["id"], c["title"], f, c["source"], c["note"], c.get("crop"), bool(c.get("publish", False))))
+        clips.append(Clip(c["id"], c["title"], f, c["source"], c["note"], c.get("crop"), bool(c.get("publish", False)),
+                          c.get("source_url"), c.get("license")))
     return clips
 
 
