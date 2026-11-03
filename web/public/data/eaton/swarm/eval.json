@@ -106,6 +106,108 @@
       "t_end": "2025-01-09T12:00:00Z",
       "events": {}
     },
+    "muse-hybrid": {
+      "runs": 3,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "model": "muse-spark-1.3",
+      "front_seen_within_60min": {
+        "mean": 0.1249,
+        "min": 0.0907,
+        "max": 0.1582
+      },
+      "front_seen_within_30min": {
+        "mean": 0.0902,
+        "min": 0.0696,
+        "max": 0.1096
+      },
+      "front_seen_ever": {
+        "mean": 0.228,
+        "min": 0.1407,
+        "max": 0.2853
+      },
+      "mean_map_awareness": {
+        "mean": 0.2001,
+        "min": 0.1803,
+        "max": 0.2233
+      },
+      "median_latency_min": {
+        "mean": 45.5333,
+        "min": 25.6,
+        "max": 64.9
+      },
+      "flight_hours": {
+        "mean": 43.8333,
+        "min": 43.26,
+        "max": 44.68
+      },
+      "wind_grounded_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-09T00:00:00Z",
+      "t_end": "2025-01-09T12:00:00Z",
+      "spent_usd": 1.85,
+      "model_errors": 4,
+      "model_calls": 144,
+      "events": {}
+    },
+    "muse": {
+      "runs": 3,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "model": "muse-spark-1.3",
+      "front_seen_within_60min": {
+        "mean": 0.1358,
+        "min": 0.0907,
+        "max": 0.17
+      },
+      "front_seen_within_30min": {
+        "mean": 0.1066,
+        "min": 0.0799,
+        "max": 0.1389
+      },
+      "front_seen_ever": {
+        "mean": 0.2313,
+        "min": 0.1565,
+        "max": 0.284
+      },
+      "mean_map_awareness": {
+        "mean": 0.1943,
+        "min": 0.1529,
+        "max": 0.2243
+      },
+      "median_latency_min": {
+        "mean": 31.4,
+        "min": 17.6,
+        "max": 43.8
+      },
+      "flight_hours": {
+        "mean": 52.7867,
+        "min": 52.18,
+        "max": 53.56
+      },
+      "wind_grounded_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-09T00:00:00Z",
+      "t_end": "2025-01-09T12:00:00Z",
+      "spent_usd": 7.15,
+      "model_errors": 6,
+      "model_calls": 573,
+      "events": {}
+    },
     "greedy_night": {
       "runs": 1,
       "seeds": [

@@ -60,7 +60,23 @@ Thermal cameras see through smoke far better than visible ones, so smoke is not 
 
 Eaton, 2025-01-09 00:00 to 12:00 UTC (4 PM Jan 8 to 4 AM Jan 9 PST), 6 drones, 3 seeds per policy. The table is generated from `web/public/data/eaton/swarm/eval.json` (`uv run --extra sim python -m sim.run --summary`).
 
-<!-- RESULTS -->
+| Policy | Front seen within 60 min | Front seen by the end | Area mapped | Median minutes to first sighting | Flight hours | Model calls · cost |
+| --- | --- | --- | --- | --- | --- | --- |
+| Muse Spark swarm (`muse-spark-1.3`) | 13.6% (9.1–17.0) | 23.1% (15.7–28.4) | 19.4% (15.3–22.4) | 31 (18–44) | 53 (52–54) | 573 · $7.15 |
+| Muse Spark commander + rule | 12.5% (9.1–15.8) | 22.8% (14.1–28.5) | 20.0% (18.0–22.3) | 46 (26–65) | 44 (43–45) | 144 · $1.85 |
+| Greedy | 14.0% (13.7–14.7) | 21.6% (19.7–25.3) | 17.0% (16.3–18.2) | 33 (28–42) | 43 (43–43) | – |
+| Lawnmower | 15.2% (15.2–15.2) | 28.5% (28.5–28.5) | 19.6% (19.6–19.6) | 46 (45–46) | 47 (47–47) | – |
+
+The table shows the mean over the 3 seeds, with the range in brackets. No drone was lost in any run, and none was grounded at base by wind. Drones still came back early: gusts over the flight area recalled them, and so did battery reserves.
+
+**What it shows.**
+- **Physics first.** Six drones with realistic cameras see only about 13 to 15% of the front within an hour, whichever policy flies them. The four policies overlap within their seed ranges. In this window the plain lawnmower is best on front coverage, and the hybrid has the best mean on area mapped.
+- **The Muse Spark swarm is now competitive.** In v1 it lost clearly to greedy (14.6% against 25.7% on the old metric). Now it matches the rules on average. It flies the most hours (53, against 43 to 47), because it routes squads around gusty blocks, and it sees burned ground soonest (31 min median). It varies most from seed to seed (9 to 17%), and that is the honest caveat.
+- **The commander alone does almost as well for a quarter of the cost:** 144 calls and $1.85, against 573 calls and $7.15.
+- **Robustness:** 10 of 288 Muse decisions had an error (v1: 26 of 144). Nine of them were the commander returning no usable tasks, and those squads kept their previous tasks. The runaway squad output from v1 is gone.
+- **The commander's own words** (seed 0, 08:00Z): "Confirmed active front at 12.5,3.0 spreading west, main head near 10.5,6.6 unseen for 34 min likely drifting WSW/S. South winds push west and north winds push south, NW corner unflyable."
+
+The bigger result is the headline above. When the fire grew fastest, the wind ruled out drones of this class entirely.
 
 ## Limits
 
