@@ -1,12 +1,22 @@
 import {useEffect} from 'react';
 import type {FireData} from '../data/fire';
 import {useTime} from '../state/time';
-import {decisionAt, dronesAt, POLICY_LABEL, useRollout, useSwarmEval, useSwarmUi, type SwarmEval, type SwarmPolicy} from '../swarm/data';
+import {AgentGraph} from '../swarm/AgentGraph';
+import {decisionAt, dronesAt, POLICY_LABEL, useAgentEvents, useRollout, useSwarmEval, useSwarmUi, type SwarmEval, type SwarmPolicy} from '../swarm/data';
 import {chipTime, pct} from './fmt';
-import {Button, Chip, Missing, SubHead} from './ui';
+import {Button, Missing, SubHead} from './ui';
 
-const POLICIES: SwarmPolicy[] = ['muse', 'muse-hybrid', 'greedy', 'lawnmower'];
-const SHORT: Record<SwarmPolicy, string> = {muse: 'Muse', 'muse-hybrid': 'Muse+rule', greedy: 'Greedy', lawnmower: 'Lawnmower'};
+const POLICIES: SwarmPolicy[] = ['muse-fcst-muse', 'forecast-physics', 'muse', 'muse-hybrid', 'greedy', 'lawnmower'];
+const SHORT: Record<SwarmPolicy, string> = {
+  'muse-fcst-muse': 'Forecast+Muse',
+  'forecast-physics': 'Forecast+rule',
+  muse: 'Muse',
+  'muse-hybrid': 'Muse+rule',
+  greedy: 'Greedy',
+  lawnmower: 'Lawnmower'
+};
+/** Until the live Muse Spark forecast run is published, the panel opens on the physics forecast run. */
+const FALLBACK: Partial<Record<SwarmPolicy, SwarmPolicy>> = {'muse-fcst-muse': 'forecast-physics'};
 const OBJECTIVE: Record<string, string> = {
   track_head: 'Track the head',
   track_flank: 'Track a flank',
@@ -62,7 +72,7 @@ function EvalTable({evalDoc}: {evalDoc: SwarmEval}) {
   );
 }
 
-/** Incident rail → Swarm: the simulated drone swarm (SIM), its latest decision at t, and the eval. */
+/** Incident rail → Swarm: the simulated drone swarm, its agents and latest decision at t, and the eval. */
 export function SwarmPanel({fire}: {fire: FireData}) {
   const {policy, setPolicy, show, setShow} = useSwarmUi();
   const t = useTime(s => s.t);
@@ -70,6 +80,11 @@ export function SwarmPanel({fire}: {fire: FireData}) {
   const tz = fire.aoi.timezone;
   const {data: rollout, error} = useRollout(fire, policy);
   const {data: evalDoc} = useSwarmEval(fire);
+  const events = useAgentEvents(fire, policy);
+  useEffect(() => {
+    const f = FALLBACK[policy];
+    if (error && f) setPolicy(f);
+  }, [error, policy, setPolicy]);
   // Opening the panel shows the swarm on the map.
   useEffect(() => setShow(true), [setShow]);
   const t0 = rollout ? Date.parse(rollout.t0) : 0;
@@ -87,19 +102,18 @@ export function SwarmPanel({fire}: {fire: FireData}) {
             <input type="checkbox" checked={show} onChange={e => setShow(e.target.checked)} className="h-3 w-3 accent-[var(--text)]" />
             On map
           </label>
-          <Chip tone="live">SIM</Chip>
         </span>
       </div>
       <div className="px-3 pt-1 text-xs text-muted">
         Would a drone swarm have kept eyes on the front? Simulated thermal survey drones (DJI Matrice 4TD class: 12 m/s wind limit, 120 m up; MuJoCo physics, HRRR wind) fly over this fire&apos;s real
         terrain and its reconstructed spread, and see only what their cameras see. No drones flew this fire.
       </div>
-      <div className="mx-3 mt-2 flex overflow-hidden rounded-md shadow-[0_0_0_1px_var(--hairline)]">
+      <div className="mx-3 mt-2 grid grid-cols-3 overflow-hidden rounded-md shadow-[0_0_0_1px_var(--hairline)]">
         {POLICIES.map(p => (
           <button
             key={p}
             onClick={() => setPolicy(p)}
-            className={`flex-1 px-1 py-1 text-xs ${policy === p ? 'bg-selected font-medium' : 'bg-tabactive text-muted'}`}
+            className={`px-1 py-1 text-xs ${policy === p ? 'bg-selected font-medium' : 'bg-tabactive text-muted'}`}
           >
             {SHORT[p]}
           </button>
@@ -125,6 +139,12 @@ export function SwarmPanel({fire}: {fire: FireData}) {
               </Button>
             )}
           </div>
+          {inWindow && !!events?.length && (
+            <>
+              <SubHead>Agents</SubHead>
+              <AgentGraph events={events} t={t} />
+            </>
+          )}
           {inWindow && (
             <>
               <SubHead aside={decision ? <span className="font-mono text-2xs text-muted">{chipTime(Date.parse(decision.t), tz)}</span> : null}>
@@ -133,6 +153,15 @@ export function SwarmPanel({fire}: {fire: FireData}) {
               <div className="space-y-1 px-3 py-1.5 text-sm">
                 {!decision && <div className="text-muted">No decision yet.</div>}
                 {decision && !policy.startsWith('muse') && <div className="text-xs text-muted">A fixed rule plans this swarm; no model is involved.</div>}
+                {decision?.forecast && (
+                  <div className="text-xs">
+                    <span className="font-mono text-2xs text-live">FORECAST +1 h</span>{' '}
+                    {decision.forecast.rejected
+                      ? 'rejected by the validator; no growth assumed'
+                      : `${decision.forecast.growth_areas.length} growth areas by ${chipTime(Date.parse(decision.forecast.valid_utc), tz)}, from the ${chipTime(Date.parse(decision.forecast.from_map_utc), tz)} official map`}
+                    <span className="text-muted"> · {decision.forecast.method === 'muse' ? 'Muse Spark forecaster' : 'physics forecaster'}</span>
+                  </div>
+                )}
                 {decision?.assessment && <div>{decision.assessment}</div>}
                 {decision?.tasks?.map(task => (
                   <div key={task.squad} className="text-xs">
@@ -146,7 +175,7 @@ export function SwarmPanel({fire}: {fire: FireData}) {
                     {decision.errors.length} model call{decision.errors.length === 1 ? '' : 's'} failed; those drones kept their previous plan.
                   </div>
                 )}
-                {decision && policy === 'muse' && (
+                {decision && (policy === 'muse' || policy === 'muse-fcst-muse') && (
                   <div className="text-2xs text-muted">
                     {rollout.model} · a commander and {decision.tasks?.length ?? 0} squad agents · the model&apos;s own words
                   </div>

@@ -1,5 +1,5 @@
 /**
- * The drone-swarm replay (SIM) on the map: each simulated drone at time t, its last 20 minutes of
+ * The drone-swarm replay on the map: each simulated drone at time t, its last 20 minutes of
  * track, its camera footprint while airborne, and the squads' tasked areas from the latest decision.
  * Positions come from the precomputed rollout (pipeline/sim); nothing here is live.
  */
@@ -33,8 +33,7 @@ export function useSwarmPart(fire: FireData, dem: Dem | null, t: number, rollout
     const notes = [
       {
         id: 'swarm',
-        tag: 'SIM',
-        title: t < t0 || t > t1 ? 'Drone swarm: outside the simulated window' : 'Drone swarm (simulated)',
+        title: t < t0 || t > t1 ? 'Drone swarm: outside the replay window' : 'Drone swarm',
         detail: rollout.disclaimer
       }
     ];

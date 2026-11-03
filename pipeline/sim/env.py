@@ -543,7 +543,9 @@ class SwarmSim:
     # ----------------------------------------------------------------- run + metrics
     def run(self, policy, log=None) -> dict:
         """Run the whole episode, asking `policy.decide(obs)` every decision interval."""
-        decisions = []
+        decisions = self.decisions = []  # kept on the sim so a run cut short by the spend cap keeps its log
+        if hasattr(policy, "bind"):  # forecast policies read the swarm's own sightings (seen_t)
+            policy.bind(self)
         while self.t < self.t_end - 1e-9:
             obs = self.observe()
             out = policy.decide(obs)
