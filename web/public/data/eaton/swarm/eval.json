@@ -1,0 +1,167 @@
+{
+  "label": "SIM",
+  "disclaimer": "Simulated drones flown over a replay of the real fire: real terrain, the reconstructed spread (interpolated between mapped perimeters) and HRRR wind. No drones flew this fire.",
+  "metric_notes": {
+    "front_seen_within_60min": "Share of cells the fire reached during the episode that a drone camera saw within 60 min of the interpolated arrival time.",
+    "front_seen_within_30min": "The same within 30 min; arrival times move in about 28 min steps, so this one is coarse.",
+    "front_seen_ever": "Share of those cells seen at any time before the episode ended.",
+    "mean_map_awareness": "Hourly mean of the share of the burned area the swarm had seen by then.",
+    "median_latency_min": "Median minutes from interpolated arrival to first sighting, over cells that were seen.",
+    "events": "Minutes from each mapped event's time to the first sighting of burned ground within 500 m (negative = seen before the mapped time; null = never seen)."
+  },
+  "policies": {
+    "greedy": {
+      "runs": 3,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "model": null,
+      "front_seen_within_60min": {
+        "mean": 0.1401,
+        "min": 0.1367,
+        "max": 0.1469
+      },
+      "front_seen_within_30min": {
+        "mean": 0.1009,
+        "min": 0.098,
+        "max": 0.1065
+      },
+      "front_seen_ever": {
+        "mean": 0.2156,
+        "min": 0.1967,
+        "max": 0.2533
+      },
+      "mean_map_awareness": {
+        "mean": 0.1695,
+        "min": 0.1632,
+        "max": 0.182
+      },
+      "median_latency_min": {
+        "mean": 32.6333,
+        "min": 28.1,
+        "max": 41.7
+      },
+      "flight_hours": {
+        "mean": 42.77,
+        "min": 42.71,
+        "max": 42.89
+      },
+      "wind_grounded_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-09T00:00:00Z",
+      "t_end": "2025-01-09T12:00:00Z",
+      "events": {}
+    },
+    "lawnmower": {
+      "runs": 3,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "model": null,
+      "front_seen_within_60min": {
+        "mean": 0.1522,
+        "min": 0.1519,
+        "max": 0.1525
+      },
+      "front_seen_within_30min": {
+        "mean": 0.1138,
+        "min": 0.1137,
+        "max": 0.1139
+      },
+      "front_seen_ever": {
+        "mean": 0.2847,
+        "min": 0.2846,
+        "max": 0.2848
+      },
+      "mean_map_awareness": {
+        "mean": 0.1963,
+        "min": 0.1962,
+        "max": 0.1963
+      },
+      "median_latency_min": {
+        "mean": 45.5667,
+        "min": 45.0,
+        "max": 45.9
+      },
+      "flight_hours": {
+        "mean": 47.48,
+        "min": 47.48,
+        "max": 47.48
+      },
+      "wind_grounded_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-09T00:00:00Z",
+      "t_end": "2025-01-09T12:00:00Z",
+      "events": {}
+    },
+    "greedy_night": {
+      "runs": 1,
+      "seeds": [
+        0
+      ],
+      "model": null,
+      "front_seen_within_60min": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "front_seen_within_30min": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "front_seen_ever": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "mean_map_awareness": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "median_latency_min": null,
+      "flight_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "wind_grounded_hours": {
+        "mean": 12.0,
+        "min": 12.0,
+        "max": 12.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-08T02:30:00Z",
+      "t_end": "2025-01-08T14:30:00Z",
+      "events": {
+        "e3": {
+          "label": "Ridge crossing (860 m)",
+          "t": "2025-01-08T07:05:02Z",
+          "first_seen_min": [
+            null
+          ]
+        },
+        "e4": {
+          "label": "Fastest mapped growth (+488 acres/h, averaged over the 4.9 h before this perimeter)",
+          "t": "2025-01-08T07:12:13Z",
+          "first_seen_min": [
+            null
+          ]
+        }
+      }
+    }
+  }
+}
