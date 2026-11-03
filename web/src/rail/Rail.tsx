@@ -6,6 +6,7 @@ import {Analysis} from './analysis';
 import {Analyst} from './analyst';
 import {IncidentOverview} from './overview';
 import {RiskRail} from './risk';
+import {SwarmPanel} from './swarm';
 import {POSTERIOR_THUMB, SCAR_THUMB} from './ramps';
 import {WeatherCard} from './weather';
 
@@ -102,7 +103,7 @@ function Evidence({fire}: {fire: FireData}) {
   );
 }
 
-const SUBTABS = ['Layers', 'Analysis', 'Evidence', 'Analyst'] as const;
+const SUBTABS = ['Layers', 'Analysis', 'Evidence', 'Analyst', 'Swarm'] as const;
 
 function IncidentRail({fire}: {fire: FireData}) {
   const [sub, setSub] = useState<(typeof SUBTABS)[number]>('Layers');
@@ -119,7 +120,7 @@ function IncidentRail({fire}: {fire: FireData}) {
             <button
               key={s}
               onClick={() => setSub(s)}
-              className={`px-3 py-2 text-sm ${sub === s ? 'border-b-2 border-ink font-medium' : 'text-muted'}`}
+              className={`px-2 py-2 text-sm ${sub === s ? 'border-b-2 border-ink font-medium' : 'text-muted'}`}
             >
               {s}
             </button>
@@ -129,6 +130,7 @@ function IncidentRail({fire}: {fire: FireData}) {
         {sub === 'Analysis' && <Analysis fire={fire} />}
         {sub === 'Evidence' && <Evidence fire={fire} />}
         {sub === 'Analyst' && <Analyst fire={fire} />}
+        {sub === 'Swarm' && <SwarmPanel fire={fire} />}
       </section>
       <IncidentOverview fire={fire} />
       <WeatherCard fire={fire} />

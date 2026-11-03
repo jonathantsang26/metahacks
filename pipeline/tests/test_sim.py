@@ -128,3 +128,19 @@ def test_gym_env(world):
     assert np.isfinite(reward) and not done
     obs, reward, done, trunc, info = env.step(np.zeros((2, 2)))
     assert done and info["metrics"]["front_cells"] >= 0
+
+
+def test_degenerate_commander_output_is_bounded(world):
+    class Looping(MockClient):
+        def create(self, **req):
+            r = super().create(**req)
+            if req["tools"][0]["function"]["name"] == "task_squads":
+                r.choices[0].message.tool_calls[0].function.arguments = json.dumps({"tasks": [{"objective": "search"}] * 796})
+            return r
+
+    sim = SwarmSim(SimConfig(t_start=CALM, duration_s=60), world)
+    swarm = MuseSwarm(Looping(), model="mock")
+    swarm.last_tasks = [{"squad": 0, "center_km": [5.0, 5.0], "radius_km": 1.0, "objective": "search", "why": ""}]
+    out = swarm.decide(sim.observe())
+    assert len(out["errors"]) == 2 and "796 tasks" in out["errors"][0]
+    assert out["tasks"][0]["reused"] and sorted(out["waypoints_km"]) == [0, 1]

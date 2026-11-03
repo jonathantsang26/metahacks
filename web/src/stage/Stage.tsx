@@ -20,6 +20,8 @@ import {distanceM} from './drape';
 import {usePlaceLabels, useRoadPart, useStructurePart, useTreePart, useWindPart} from './context-layers';
 import {useHighlightPart} from './highlight';
 import {useDebrisPart} from './debris-layer';
+import {useSwarmPart} from './swarm-layer';
+import {useRollout, useSwarmUi} from '../swarm/data';
 import {Compass, HoverInspector, MapControls, MapNotes, SyntheticChip, type StageNote} from './overlays';
 
 const PITCH_3D = 58;
@@ -166,6 +168,9 @@ export function Stage({fire}: {fire: FireData}) {
   const treePart = useTreePart(fire, dem, t, terrain.visible, arrivalRaster, arrivalWindow);
   const highlightPart = useHighlightPart(dem, highlight);
   const debrisPart = useDebrisPart(fire, dem, layers.debrisFlow, risk, setRisk);
+  const swarmUi = useSwarmUi();
+  const {data: swarmRollout} = useRollout(fire, swarmUi.policy);
+  const swarmPart = useSwarmPart(fire, dem, t, swarmRollout, swarmUi.show);
 
   // Labels from every layer compete for space; the survivors depend on the camera.
   const labels = useMemo<MapLabel[]>(
@@ -283,7 +288,8 @@ export function Stage({fire}: {fire: FireData}) {
     ...windPart.notes,
     ...structurePart.notes,
     ...roadPart.notes,
-    ...debrisPart.notes
+    ...debrisPart.notes,
+    ...swarmPart.notes
   );
   const osmRow = manifestRow(fire, 'Roads, peaks & places');
   if (osmRow && (layers.roads.visible || layers.labels.visible))
@@ -342,6 +348,7 @@ export function Stage({fire}: {fire: FireData}) {
     ...spinePart.layers,
     ...windPart.layers,
     ...ignitionPart.layers,
+    ...swarmPart.layers,
     ...highlightPart.layers,
     ...textLayers
   ];

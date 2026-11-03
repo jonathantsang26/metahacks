@@ -144,7 +144,7 @@ def summarize(out: Path) -> dict:
         "front_seen_ever": "Share of those cells seen at any time before the episode ended.",
         "mean_map_awareness": "Hourly mean of the share of the burned area the swarm had seen by then.",
         "median_latency_min": "Median minutes from interpolated arrival to first sighting, over cells that were seen.",
-        "events": "Minutes from each mapped event's time to the first sighting of burned ground within 500 m (null = never seen).",
+        "events": "Minutes from each mapped event's time to the first sighting of burned ground within 500 m (negative = seen before the mapped time; null = never seen).",
     }, "policies": table}
     (out / "eval.json").write_text(json.dumps(doc, indent=2) + "\n")
     return doc

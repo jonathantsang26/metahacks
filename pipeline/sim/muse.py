@@ -179,8 +179,11 @@ class MuseSwarm:
             usage = getattr(r, "usage", None)
             msg = r.choices[0].message
             calls = [c for c in (msg.tool_calls or []) if c.function.name == name]
+            finish = r.choices[0].finish_reason
             if not calls:
-                return None, f"{role}: no {name} call (finish_reason {r.choices[0].finish_reason})"
+                return None, f"{role}: no {name} call (finish_reason {finish})"
+            if finish == "length":
+                return None, f"{role}: reply cut off at the {MAX_COMPLETION_TOKENS}-token output cap"
             try:
                 return json.loads(calls[0].function.arguments or "{}"), None
             except json.JSONDecodeError as e:
@@ -211,18 +214,28 @@ class MuseSwarm:
                                              {"role": "user", "content": cmd_user}], COMMANDER_TOOL)
         errors = [err] if err else []
         tasks = {}
-        if args:
-            for t in args.get("tasks", []) or []:
-                try:
-                    s = int(t["squad"])
-                    c = [float(t["center_km"][0]), float(t["center_km"][1])]
-                except (KeyError, TypeError, ValueError, IndexError):
-                    errors.append("commander: a task without a squad or center")
-                    continue
-                if 0 <= s < self.n_squads:
-                    tasks[s] = {"squad": s, "center_km": c, "radius_km": float(t.get("radius_km") or 1.5),
-                                "objective": t.get("objective", "search"), "why": scrub(t.get("why", ""))}
+        raw = (args or {}).get("tasks", []) or []
+        if not isinstance(raw, list):
+            raw = []
+        bad = 0
+        for t in raw[: 4 * self.n_squads]:
+            try:
+                s = int(t["squad"])
+                c = [float(t["center_km"][0]), float(t["center_km"][1])]
+            except (KeyError, TypeError, ValueError, IndexError):
+                bad += 1
+                continue
+            if 0 <= s < self.n_squads and s not in tasks:
+                tasks[s] = {"squad": s, "center_km": c, "radius_km": float(t.get("radius_km") or 1.5),
+                            "objective": t.get("objective", "search"), "why": scrub(t.get("why", ""))}
+        if bad or len(raw) > 4 * self.n_squads:
+            errors.append(f"commander: {len(raw)} tasks returned, {bad + max(len(raw) - 4 * self.n_squads, 0)} malformed or extra, ignored")
+        if tasks:
             self.last_tasks = list(tasks.values())
+        elif self.last_tasks:
+            # The commander's call failed: squads keep working their previous tasks, marked as such.
+            tasks = {t["squad"]: {**t, "reused": True} for t in self.last_tasks}
+            errors.append("commander: no usable tasks; squads kept their previous tasks")
         assessment = scrub((args or {}).get("assessment", ""))
 
         def run_squad(s):
