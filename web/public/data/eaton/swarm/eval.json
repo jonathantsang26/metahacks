@@ -10,6 +10,102 @@
     "events": "Minutes from each mapped event's time to the first sighting of burned ground within 500 m (negative = seen before the mapped time; null = never seen)."
   },
   "policies": {
+    "forecast-map-edge": {
+      "runs": 3,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "model": null,
+      "front_seen_within_60min": {
+        "mean": 0.2115,
+        "min": 0.2112,
+        "max": 0.2118
+      },
+      "front_seen_within_30min": {
+        "mean": 0.1218,
+        "min": 0.1217,
+        "max": 0.1219
+      },
+      "front_seen_ever": {
+        "mean": 0.439,
+        "min": 0.4389,
+        "max": 0.4391
+      },
+      "mean_map_awareness": {
+        "mean": 0.3373,
+        "min": 0.3371,
+        "max": 0.3376
+      },
+      "median_latency_min": {
+        "mean": 61.3333,
+        "min": 61.3,
+        "max": 61.4
+      },
+      "flight_hours": {
+        "mean": 46.13,
+        "min": 46.12,
+        "max": 46.14
+      },
+      "wind_grounded_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-09T00:00:00Z",
+      "t_end": "2025-01-09T12:00:00Z",
+      "events": {}
+    },
+    "forecast-physics": {
+      "runs": 3,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "model": null,
+      "front_seen_within_60min": {
+        "mean": 0.1799,
+        "min": 0.1798,
+        "max": 0.18
+      },
+      "front_seen_within_30min": {
+        "mean": 0.1027,
+        "min": 0.1026,
+        "max": 0.1027
+      },
+      "front_seen_ever": {
+        "mean": 0.4265,
+        "min": 0.4265,
+        "max": 0.4266
+      },
+      "mean_map_awareness": {
+        "mean": 0.279,
+        "min": 0.279,
+        "max": 0.2791
+      },
+      "median_latency_min": {
+        "mean": 72.0,
+        "min": 72.0,
+        "max": 72.0
+      },
+      "flight_hours": {
+        "mean": 42.85,
+        "min": 42.85,
+        "max": 42.85
+      },
+      "wind_grounded_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-09T00:00:00Z",
+      "t_end": "2025-01-09T12:00:00Z",
+      "events": {}
+    },
     "greedy": {
       "runs": 3,
       "seeds": [
