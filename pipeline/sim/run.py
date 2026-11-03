@@ -44,13 +44,14 @@ def load_env_file():
 def make_policy(name: str, mock: bool, cap_usd: float):
     if name in POLICIES:
         return POLICIES[name](), None
-    if name == "muse":
-        from .muse import MODEL, MockClient, MuseSwarm, make_client
+    if name in ("muse", "muse-hybrid"):
+        from .muse import MODEL, MockClient, MuseCommanderGreedy, MuseSwarm, make_client
 
+        cls = MuseSwarm if name == "muse" else MuseCommanderGreedy
         if mock:
-            return MuseSwarm(MockClient(), model="mock", cap_usd=cap_usd), "mock"
+            return cls(MockClient(), model="mock", cap_usd=cap_usd), "mock"
         load_env_file()
-        return MuseSwarm(make_client(), cap_usd=cap_usd), MODEL
+        return cls(make_client(), cap_usd=cap_usd), MODEL
     raise SystemExit(f"unknown policy {name!r}")
 
 
@@ -65,8 +66,9 @@ def seen_png(sim: SwarmSim, path: Path):
     Image.fromarray(rgb, "RGB").save(path, optimize=True)
 
 
-def rollout(fire: str, policy_name: str, seed: int, hours: float, out: Path, mock: bool, cap_usd: float, quiet: bool = False) -> dict:
-    cfg = SimConfig(fire=fire, seed=seed, duration_s=hours * 3600)
+def rollout(fire: str, policy_name: str, seed: int, hours: float, out: Path, mock: bool, cap_usd: float, quiet: bool = False,
+            t_start: str | None = None, tag: str = "") -> dict:
+    cfg = SimConfig(fire=fire, seed=seed, duration_s=hours * 3600, **({"t_start": t_start} if t_start else {}))
     sim = SwarmSim(cfg)
     policy, model = make_policy(policy_name, mock, cap_usd)
     t = time.time()
@@ -88,6 +90,7 @@ def rollout(fire: str, policy_name: str, seed: int, hours: float, out: Path, moc
         "policy": policy_name,
         "model": model,
         "seed": seed,
+        "tag": tag or None,
         "t0": iso(sim.t0),
         "t_end": iso(sim.t_end),
         "generated_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -103,12 +106,12 @@ def rollout(fire: str, policy_name: str, seed: int, hours: float, out: Path, moc
         "metrics": result["metrics"],
         "truncated": truncated,
     }
-    if policy_name == "muse":
+    if policy_name.startswith("muse"):
         led = policy.ledger
         doc["usage"] = {"calls": led.calls, "input_tokens": led.input_tokens, "output_tokens": led.output_tokens,
                         "spent_usd": round(led.spent_usd, 4), "cap_usd": cap_usd}
     out.mkdir(parents=True, exist_ok=True)
-    stem = f"{policy_name}_s{seed}"
+    stem = f"{policy_name}{'_' + tag if tag else ''}_s{seed}"
     (out / f"{stem}.json").write_text(json.dumps(doc, separators=(",", ":")) + "\n")
     seen_png(sim, out / f"{stem}_seen.png")
     return doc
@@ -117,11 +120,14 @@ def rollout(fire: str, policy_name: str, seed: int, hours: float, out: Path, moc
 def summarize(out: Path) -> dict:
     runs = [json.loads(p.read_text()) for p in sorted(out.glob("*_s*.json"))]
     by: dict[str, list] = {}
+    extra: dict[str, list] = {}
     for r in runs:
         if r.get("model") == "mock":
             continue
-        by.setdefault(r["policy"], []).append(r)
-    keys = ["front_seen_within_30min", "front_seen_ever", "mean_map_awareness", "median_latency_min", "flight_hours", "wind_grounded_hours"]
+        # Tagged runs (e.g. the night window) are reported apart from the main comparison.
+        (extra.setdefault(f"{r['policy']}_{r['tag']}", []) if r.get("tag") else by.setdefault(r["policy"], [])).append(r)
+    by.update(extra)
+    keys = ["front_seen_within_60min", "front_seen_within_30min", "front_seen_ever", "mean_map_awareness", "median_latency_min", "flight_hours", "wind_grounded_hours"]
     table = {}
     for pol, rs in by.items():
         row = {"runs": len(rs), "seeds": [r["seed"] for r in rs], "model": rs[0]["model"]}
@@ -129,7 +135,8 @@ def summarize(out: Path) -> dict:
             vals = [r["metrics"][k] for r in rs if r["metrics"].get(k) is not None]
             row[k] = None if not vals else {"mean": round(float(np.mean(vals)), 4), "min": min(vals), "max": max(vals)}
         row["crashes"] = sum(len(r["metrics"]["crashes"]) for r in rs)
-        if pol == "muse":
+        row["t0"], row["t_end"] = rs[0]["t0"], rs[0]["t_end"]
+        if pol.startswith("muse"):
             row["spent_usd"] = round(sum(r.get("usage", {}).get("spent_usd", 0) for r in rs), 2)
             row["model_errors"] = sum(len(d.get("errors", [])) for r in rs for d in r["decisions"])
             row["model_calls"] = sum(r.get("usage", {}).get("calls", 0) for r in rs)
@@ -140,7 +147,8 @@ def summarize(out: Path) -> dict:
         row["events"] = events
         table[pol] = row
     doc = {"label": LABEL, "disclaimer": DISCLAIMER, "metric_notes": {
-        "front_seen_within_30min": "Share of cells the fire reached during the episode that a drone camera saw within 30 min of the interpolated arrival time (arrival times have about half-hour resolution).",
+        "front_seen_within_60min": "Share of cells the fire reached during the episode that a drone camera saw within 60 min of the interpolated arrival time.",
+        "front_seen_within_30min": "The same within 30 min; arrival times move in about 28 min steps, so this one is coarse.",
         "front_seen_ever": "Share of those cells seen at any time before the episode ended.",
         "mean_map_awareness": "Hourly mean of the share of the burned area the swarm had seen by then.",
         "median_latency_min": "Median minutes from interpolated arrival to first sighting, over cells that were seen.",
@@ -153,7 +161,9 @@ def summarize(out: Path) -> dict:
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--fire", default=os.environ.get("FIRE", "eaton"))
-    ap.add_argument("--policy", choices=[*POLICIES, "muse"], default="greedy")
+    ap.add_argument("--policy", choices=[*POLICIES, "muse", "muse-hybrid"], default="greedy")
+    ap.add_argument("--t-start", default=None, help="episode start (UTC ISO); default SimConfig.t_start")
+    ap.add_argument("--tag", default="", help="suffix for a run outside the main comparison, e.g. night")
     ap.add_argument("--seeds", type=int, nargs="+", default=[0])
     ap.add_argument("--hours", type=float, default=12.0)
     ap.add_argument("--cap-usd", type=float, default=10.0, help="hard cap on Muse Spark spend per rollout")
@@ -168,7 +178,7 @@ def main(argv=None):
     if a.mock and out.resolve().is_relative_to((REPO_DIR / "web").resolve()):
         raise SystemExit("--mock output can't go under web/: pass --out to a scratch directory.")
     for s in a.seeds:
-        doc = rollout(a.fire, a.policy, s, a.hours, out, a.mock, a.cap_usd)
+        doc = rollout(a.fire, a.policy, s, a.hours, out, a.mock, a.cap_usd, t_start=a.t_start, tag=a.tag)
         m = {k: v for k, v in doc["metrics"].items() if k not in ("events", "crashes")}
         print(f"{a.policy} seed {s}: {json.dumps(m)}" + (f" usage {doc['usage']}" if "usage" in doc else ""))
 

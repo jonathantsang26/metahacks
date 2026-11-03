@@ -44,9 +44,9 @@ def scrub(text: str) -> str:
 
 
 RULES = """You coordinate a simulated survey-drone swarm (SIM) flying over a replay of a real wildfire's spread on real terrain.
-Goal: keep the active fire front observed. Score: the share of newly burning ground a camera sees within 30 minutes of the fire reaching it, then the share of the burned area the swarm has mapped.
+Goal: keep the active fire front observed. Score: the share of newly burning ground a camera sees within 60 minutes of the fire reaching it, then the hourly share of the burned area the swarm has seen.
 You know only what the swarm has observed (fire_clusters: ground seen actively burning in the last 30 min), the coverage age of each 2 km block, the current-hour wind and the publicly reported start point. You cannot see where the fire is unless a drone has looked.
-Coordinates are km east (x) and north (y) of the area's south-west corner. Wind "toward_deg" is the compass direction the air moves toward; fires usually run downwind. A drone's camera sees about 0.6 km around it. Drones fly about 22 m/s; above the wind ceiling they are recalled automatically, and they return to base on their own for battery swaps.
+Coordinates are km east (x) and north (y) of the area's south-west corner. Wind "toward_deg" is the compass direction the air moves toward; fires usually run downwind. A drone's camera sees about 0.3 km around it. Drones fly about 15 m/s at 120 m above ground; the wind ceiling is 12 m/s and above it they are recalled automatically, and they return to base on their own for battery swaps.
 Never discuss what started the fire or who is responsible. Talk only about where to fly and why."""
 
 COMMANDER_TOOL = {
@@ -331,3 +331,65 @@ class MockClient:
         call = NS(id="call_1", type="function", function=NS(name=name, arguments=json.dumps(args)))
         usage = NS(prompt_tokens=len(req["messages"][-1]["content"]) // 4, completion_tokens=200, prompt_tokens_details=None)
         return NS(choices=[NS(message=NS(content=None, tool_calls=[call]), finish_reason="tool_calls")], usage=usage)
+
+
+class MuseCommanderGreedy(MuseSwarm):
+    """Muse Spark allocates, a fixed rule flies: the commander's `task_squads` call as in MuseSwarm, then
+    each squad's free drones orbit the downwind edge of the nearest observed cluster inside their tasked
+    area, or sweep a ring inside the area when it holds none. One model call per decision."""
+
+    name = "muse-hybrid"
+
+    def decide(self, obs: dict) -> dict:
+        import math
+
+        n = len(obs["drones"])
+        squads = {s: [d for d in obs["drones"] if self.squad_of(d["id"], n) == s] for s in range(self.n_squads)}
+        view = _compact(obs)
+        cmd_user = json.dumps({"situation": view, "squads": {str(s): [d["id"] for d in ds] for s, ds in squads.items()},
+                               "your_previous_tasks": self.last_tasks}, separators=(",", ":"))
+        args, err = self._call("commander", [{"role": "system", "content": RULES + "\nYou are the commander. Task every squad."},
+                                             {"role": "user", "content": cmd_user}], COMMANDER_TOOL)
+        errors = [err] if err else []
+        tasks = {}
+        raw = (args or {}).get("tasks", []) or []
+        raw = raw if isinstance(raw, list) else []
+        for t in raw[: 4 * self.n_squads]:
+            try:
+                s, c = int(t["squad"]), [float(t["center_km"][0]), float(t["center_km"][1])]
+            except (KeyError, TypeError, ValueError, IndexError):
+                continue
+            if 0 <= s < self.n_squads and s not in tasks:
+                tasks[s] = {"squad": s, "center_km": c, "radius_km": min(max(float(t.get("radius_km") or 1.5), 0.3), 5.0),
+                            "objective": t.get("objective", "search"), "why": scrub(t.get("why", ""))}
+        if len(tasks) < len(raw[: 4 * self.n_squads]) or len(raw) > 4 * self.n_squads:
+            errors.append(f"commander: {len(raw)} tasks returned, {len(tasks)} usable")
+        if tasks:
+            self.last_tasks = list(tasks.values())
+        elif self.last_tasks:
+            tasks = {t["squad"]: {**t, "reused": True} for t in self.last_tasks}
+            errors.append("commander: no usable tasks; squads kept their previous tasks")
+        W, H = obs["area_km"]
+        th = math.radians(obs["wind_at_base"]["toward_deg"])
+        down = (math.sin(th), math.cos(th))
+        clusters = obs["fire_clusters"][1:]
+        waypoints = {}
+        for s, task in tasks.items():
+            cx, cy = task["center_km"]
+            r = task["radius_km"]
+            inside = [c for c in clusters if math.hypot(c["center_km"][0] - cx, c["center_km"][1] - cy) <= r]
+            if task["objective"] != "hold" and inside:
+                c = max(inside, key=lambda c: c["active_cells_seen"])
+                x0, y0, x1, y1 = c["extent_km"]
+                half = max(x1 - x0, y1 - y0) / 2
+                tx, ty, orbit = c["center_km"][0] + down[0] * (half + 0.2), c["center_km"][1] + down[1] * (half + 0.2), 0.4
+            else:
+                tx, ty, orbit = cx, cy, max(r / 2, 0.3)
+            for k, d in enumerate(squads[s]):
+                if d["mode"] not in ("base", "fly"):
+                    continue
+                ph = k * math.pi
+                waypoints[d["id"]] = [[round(min(max(tx + orbit * math.cos(ph + a), 0), W), 2), round(min(max(ty + orbit * math.sin(ph + a), 0), H), 2)]
+                                      for a in [i * math.pi / 3 for i in range(6)]]
+        return {"waypoints_km": waypoints, "assessment": scrub((args or {}).get("assessment", "")), "tasks": list(tasks.values()),
+                "squad_notes": {}, "errors": errors, "spent_usd": round(self.ledger.spent_usd, 4), "calls": self.ledger.calls}

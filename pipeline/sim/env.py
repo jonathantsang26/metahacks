@@ -29,19 +29,25 @@ RHO = 1.1  # kg/m^3, air density at about 1 km elevation
 
 @dataclass(frozen=True)
 class DroneSpec:
-    """A fixed-wing VTOL survey drone class. Values are round, documented assumptions, not a product."""
+    """A thermal survey multirotor in the DJI Matrice 4TD / 30T class (docs/SWARM.md cites the specs).
 
-    mass_kg: float = 3.0
+    Wind limit 12 m/s and 54 min maximum flight time (M4TD; M30T 41 min); 45 min usable is assumed.
+    120 m is the FAA Part 107 ceiling. The camera reach assumes a 45 deg diagonal-FOV thermal camera
+    tilted 45 deg at 120 m, which sees the ground from about 50 m to 290 m out. Top speed and mass are
+    round assumptions, not a product's figures.
+    """
+
+    mass_kg: float = 1.8
     max_thrust_ratio: float = 2.5
-    max_airspeed: float = 34.0  # m/s at full horizontal thrust; sets the drag area
-    cruise_speed: float = 22.0  # m/s ground-speed command
+    max_airspeed: float = 21.0  # m/s at full horizontal thrust; sets the drag area
+    cruise_speed: float = 15.0  # m/s ground-speed command
     climb_rate: float = 5.0  # m/s
-    agl_m: float = 150.0  # survey height above ground
-    endurance_s: float = 60 * 60  # at hover-equivalent thrust
+    agl_m: float = 120.0  # survey height above ground (FAA Part 107 ceiling)
+    endurance_s: float = 45 * 60  # usable, at hover-equivalent thrust
     reserve: float = 0.15  # battery fraction kept for margin on top of the trip home
     swap_s: float = 5 * 60  # battery swap at base
-    sensor_range_m: float = 600.0  # ground radius a thermal camera resolves at survey height
-    wind_ceiling: float = 26.0  # m/s at flight height; above it a drone may not launch and is recalled
+    sensor_range_m: float = 300.0  # ground reach of the tilted thermal camera
+    wind_ceiling: float = 12.0  # m/s at flight height; above it a drone may not launch and is recalled
 
     @property
     def drag_area(self) -> float:
@@ -54,7 +60,8 @@ class DroneSpec:
 class SimConfig:
     fire: str = "eaton"
     n_drones: int = 6
-    t_start: str = "2025-01-08T02:30:00Z"
+    #: 7:30 AM PST on Jan 8: the first window most of the area is under the 12 m/s limit (docs/SWARM.md).
+    t_start: str = "2025-01-08T15:30:00Z"
     duration_s: float = 12 * 3600
     decision_s: float = 15 * 60
     physics_dt: float = 0.05
@@ -510,12 +517,16 @@ class SwarmSim:
         self._record_tracks()
         return {"decisions": decisions, "metrics": self.metrics()}
 
-    def metrics(self, latency_s: float = 30 * 60, event_radius_m: float = 500.0) -> dict:
+    def metrics(self, event_radius_m: float = 500.0) -> dict:
         w = self.world
         a = w.arrival
-        in_window = (a >= self.t0) & (a <= self.t_end - latency_s)
+        out_lat = {}
+        for mins in (30, 60):
+            win = (a >= self.t0) & (a <= self.t_end - mins * 60)
+            lat_m = self.seen_t[win] - a[win]
+            out_lat[mins] = float(np.mean(lat_m <= mins * 60)) if win.any() else 0.0
+        in_window = (a >= self.t0) & (a <= self.t_end - 3600)
         lat = self.seen_t[in_window] - a[in_window]
-        on_time = float(np.mean(lat <= latency_s)) if in_window.any() else 0.0
         seen = np.isfinite(lat)
         # Map awareness: the share of the burned area the swarm had seen, sampled hourly.
         aware = []
@@ -536,7 +547,8 @@ class SwarmSim:
                            "first_seen_min": None if not np.isfinite(first) else round((first - te) / 60, 1)})
         return {
             "front_cells": int(in_window.sum()),
-            "front_seen_within_30min": round(on_time, 4),
+            "front_seen_within_60min": round(out_lat[60], 4),
+            "front_seen_within_30min": round(out_lat[30], 4),
             "front_seen_ever": round(float(np.mean(seen)) if in_window.any() else 0.0, 4),
             "median_latency_min": round(float(np.median(lat[seen])) / 60, 1) if seen.any() else None,
             "mean_map_awareness": round(float(np.mean(aware)), 4) if aware else 0.0,

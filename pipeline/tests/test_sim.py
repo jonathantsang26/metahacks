@@ -160,3 +160,13 @@ def test_runaway_squad_output_is_one_error_per_squad(world):
     out = MuseSwarm(Runaway(), model="mock").decide(sim.observe())
     assert sorted(out["waypoints_km"]) == list(range(6))
     assert len(out["errors"]) == 3 and all("502 plans returned" in e for e in out["errors"])
+
+
+def test_muse_commander_with_greedy_squads_makes_one_call(world):
+    from sim.muse import MuseCommanderGreedy
+
+    sim = SwarmSim(SimConfig(t_start=CALM, duration_s=60), world)
+    client = MockClient()
+    out = MuseCommanderGreedy(client, model="mock").decide(sim.observe())
+    assert len(client.requests) == 1 and out["calls"] == 1
+    assert sorted(out["waypoints_km"]) == list(range(6)) and not out["errors"]

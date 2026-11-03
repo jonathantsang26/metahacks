@@ -5,8 +5,8 @@ import {decisionAt, dronesAt, POLICY_LABEL, useRollout, useSwarmEval, useSwarmUi
 import {chipTime, pct} from './fmt';
 import {Button, Chip, Missing, SubHead} from './ui';
 
-const POLICIES: SwarmPolicy[] = ['muse', 'greedy', 'lawnmower'];
-const SHORT: Record<SwarmPolicy, string> = {muse: 'Muse Spark', greedy: 'Greedy', lawnmower: 'Lawnmower'};
+const POLICIES: SwarmPolicy[] = ['muse', 'muse-hybrid', 'greedy', 'lawnmower'];
+const SHORT: Record<SwarmPolicy, string> = {muse: 'Muse', 'muse-hybrid': 'Muse+rule', greedy: 'Greedy', lawnmower: 'Lawnmower'};
 const OBJECTIVE: Record<string, string> = {
   track_head: 'Track the head',
   track_flank: 'Track a flank',
@@ -29,8 +29,8 @@ function EvalTable({evalDoc}: {evalDoc: SwarmEval}) {
         <thead className="text-muted">
           <tr>
             <th className="py-0.5 text-left font-normal">Policy</th>
-            <th className="text-right font-normal" title={evalDoc.metric_notes.front_seen_within_30min}>
-              Front seen ≤30 min
+            <th className="text-right font-normal" title={evalDoc.metric_notes.front_seen_within_60min}>
+              Front seen ≤60 min
             </th>
             <th className="text-right font-normal" title={evalDoc.metric_notes.mean_map_awareness}>
               Area mapped
@@ -50,14 +50,14 @@ function EvalTable({evalDoc}: {evalDoc: SwarmEval}) {
                     {r.spent_usd !== undefined ? ` · $${r.spent_usd.toFixed(2)}` : ''}
                   </div>
                 </td>
-                <td className="text-right">{spread(r.front_seen_within_30min, pct)}</td>
+                <td className="text-right">{spread(r.front_seen_within_60min, pct)}</td>
                 <td className="text-right">{spread(r.mean_map_awareness, pct)}</td>
               </tr>
             );
           })}
         </tbody>
       </table>
-      <div className="mt-1 text-2xs text-muted">{evalDoc.metric_notes.front_seen_within_30min}</div>
+      <div className="mt-1 text-2xs text-muted">{evalDoc.metric_notes.front_seen_within_60min}</div>
     </div>
   );
 }
@@ -91,7 +91,7 @@ export function SwarmPanel({fire}: {fire: FireData}) {
         </span>
       </div>
       <div className="px-3 pt-1 text-xs text-muted">
-        Would a drone swarm have kept eyes on the front? Simulated drones (MuJoCo physics, HRRR wind) fly over this fire&apos;s real
+        Would a drone swarm have kept eyes on the front? Simulated thermal survey drones (DJI Matrice 4TD class: 12 m/s wind limit, 120 m up; MuJoCo physics, HRRR wind) fly over this fire&apos;s real
         terrain and its reconstructed spread, and see only what their cameras see. No drones flew this fire.
       </div>
       <div className="mx-3 mt-2 flex overflow-hidden rounded-md shadow-[0_0_0_1px_var(--hairline)]">
@@ -128,11 +128,11 @@ export function SwarmPanel({fire}: {fire: FireData}) {
           {inWindow && (
             <>
               <SubHead aside={decision ? <span className="font-mono text-2xs text-muted">{chipTime(Date.parse(decision.t), tz)}</span> : null}>
-                {policy === 'muse' ? 'Latest orders' : 'Latest plan'}
+                {policy.startsWith('muse') ? 'Latest orders' : 'Latest plan'}
               </SubHead>
               <div className="space-y-1 px-3 py-1.5 text-sm">
                 {!decision && <div className="text-muted">No decision yet.</div>}
-                {decision && policy !== 'muse' && <div className="text-xs text-muted">A fixed rule plans this swarm; no model is involved.</div>}
+                {decision && !policy.startsWith('muse') && <div className="text-xs text-muted">A fixed rule plans this swarm; no model is involved.</div>}
                 {decision?.assessment && <div>{decision.assessment}</div>}
                 {decision?.tasks?.map(task => (
                   <div key={task.squad} className="text-xs">
@@ -149,6 +149,11 @@ export function SwarmPanel({fire}: {fire: FireData}) {
                 {decision && policy === 'muse' && (
                   <div className="text-2xs text-muted">
                     {rollout.model} · a commander and {decision.tasks?.length ?? 0} squad agents · the model&apos;s own words
+                  </div>
+                )}
+                {decision && policy === 'muse-hybrid' && (
+                  <div className="text-2xs text-muted">
+                    {rollout.model} commander assigns the areas (its own words); a fixed rule flies the drones inside them
                   </div>
                 )}
               </div>
@@ -169,8 +174,8 @@ export function SwarmPanel({fire}: {fire: FireData}) {
           )}
           <SubHead>This run</SubHead>
           <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 px-3 py-1.5 text-xs tabular-nums">
-            <span className="text-muted">Front seen ≤30 min</span>
-            <span className="text-right">{pct(rollout.metrics.front_seen_within_30min)}</span>
+            <span className="text-muted">Front seen ≤60 min</span>
+            <span className="text-right">{pct(rollout.metrics.front_seen_within_60min)}</span>
             <span className="text-muted">Burned area mapped</span>
             <span className="text-right">{pct(rollout.metrics.mean_map_awareness)}</span>
             <span className="text-muted">Flight hours</span>

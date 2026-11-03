@@ -9,9 +9,10 @@ import {loadFireJson} from '../data/files';
  * no model calls for them.
  */
 
-export type SwarmPolicy = 'muse' | 'greedy' | 'lawnmower';
+export type SwarmPolicy = 'muse' | 'muse-hybrid' | 'greedy' | 'lawnmower';
 export const POLICY_LABEL: Record<SwarmPolicy, string> = {
   muse: 'Muse Spark swarm',
+  'muse-hybrid': 'Muse Spark commander + greedy squads',
   greedy: 'Greedy baseline',
   lawnmower: 'Lawnmower baseline'
 };
@@ -30,6 +31,7 @@ export type SwarmDecision = {
 };
 export type SwarmMetrics = {
   front_cells: number;
+  front_seen_within_60min: number;
   front_seen_within_30min: number;
   front_seen_ever: number;
   median_latency_min: number | null;
@@ -73,6 +75,7 @@ export type SwarmEval = {
         runs: number;
         seeds: number[];
         model: string | null;
+        front_seen_within_60min: Spread;
         front_seen_within_30min: Spread;
         front_seen_ever: Spread;
         mean_map_awareness: Spread;
