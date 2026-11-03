@@ -86,4 +86,69 @@ class Greedy:
         return {"waypoints_km": out}
 
 
+class ForecastEdge(Greedy):
+    """A rule commander that targets the forecast edge: each free drone orbits one of the areas where
+    the forecaster (physics or Muse Spark, `sim.forecast.SwarmForecast`) expects the fire to spread in
+    the next hour, largest first; with no forecast growth it falls back to the greedy rule. The forecast
+    is built from public information (official maps) and the swarm's own sightings, never the replay."""
+
+    def __init__(self, forecast, orbit_km: float = 0.6):
+        super().__init__(orbit_km)
+        self.forecast = forecast
+        self.name = f"forecast-{forecast.method}"
+        self.sim = None
+
+    def bind(self, sim):
+        self.sim = sim
+
+    def decide(self, obs):
+        f = forecast_for(self, obs)
+        areas = (f or {}).get("growth_areas") or []
+        if not areas:
+            return {**Greedy.decide(self, obs), "forecast": f}
+        W, H = obs["area_km"]
+        free = list(_usable(obs))
+        out = {}
+        k = 0
+        while free:
+            t = areas[k % len(areas)]["center_km"]
+            j = min(range(len(free)), key=lambda q: math.hypot(free[q]["x_km"] - t[0], free[q]["y_km"] - t[1]))
+            d = free.pop(j)
+            phase = d["id"] * math.pi / 3
+            out[d["id"]] = [[round(float(np.clip(t[0] + self.orbit * math.cos(phase + a), 0, W)), 2),
+                             round(float(np.clip(t[1] + self.orbit * math.sin(phase + a), 0, H)), 2)]
+                            for a in np.linspace(0, 2 * math.pi, 6, endpoint=False)]
+            k += 1
+        return {"waypoints_km": out, "forecast": f}
+
+
+def forecast_for(policy, obs) -> dict | None:
+    """The bound swarm's forecast targets at the observation time (its own sightings, official maps)."""
+    from .world import parse_t
+
+    sim = getattr(policy, "sim", None)
+    return policy.forecast.targets(parse_t(obs["t"]), None if sim is None else sim.seen_t)
+
+
+def with_forecast(cls):
+    """A Muse Spark policy whose commander also reads `forecast_next_hour` in its situation."""
+
+    class Forecasting(cls):
+        def __init__(self, *a, forecast=None, **kw):
+            super().__init__(*a, **kw)
+            self.forecast, self.sim = forecast, None
+            self.name = f"{cls.name}-fcst-{forecast.method}"
+
+        def bind(self, sim):
+            self.sim = sim
+
+        def decide(self, obs):
+            f = forecast_for(self, obs)
+            out = super().decide({**obs, "forecast_next_hour": f})
+            return {**out, "forecast": f}
+
+    Forecasting.__name__ = f"{cls.__name__}Forecast"
+    return Forecasting
+
+
 POLICIES = {"lawnmower": Lawnmower, "greedy": Greedy}

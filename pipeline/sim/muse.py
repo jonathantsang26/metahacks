@@ -317,7 +317,11 @@ class MockClient:
         self.requests.append(req)
         name = req["tools"][0]["function"]["name"]
         body = json.loads(req["messages"][-1]["content"])
-        if name == "task_squads":
+        if name == "forecast_spread":
+            k = body["horizon_h"] / max(body["recent_interval_h"], 1e-6)
+            args = {"sectors": [{"sector": s["sector"], "distance_m": s["recent_advance_m"] * k} for s in body["sectors"]],
+                    "note": "Mock: recent advance carried forward."}
+        elif name == "task_squads":
             sit = body["situation"]
             target = (sit["fire_clusters"][1]["center_km"] if len(sit["fire_clusters"]) > 1
                       else sit["reported_start_km"] or [sit["area_km"][0] / 2, sit["area_km"][1] / 2])
