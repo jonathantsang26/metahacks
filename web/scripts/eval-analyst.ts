@@ -30,14 +30,14 @@ const FIRE = argAfter('--fire') ?? 'eaton';
 const SETS: Record<string, {streets: string[]; places: string[]; areaTimes: string[]; rosTime: string; gustTime: string;
   rhTime: string; structures: [string, string][]}> = {
   eaton: {
-    streets: ['North Lake Avenue', 'East Altadena Drive', 'Kinneloa Canyon Road', 'Fair Oaks Avenue'],
+    streets: ['North Lake Avenue', 'East Altadena Drive', 'Kinneloa Canyon Road', 'Fair Oaks Avenue', 'Lincoln Avenue', 'Chaney Trail', 'Mount Wilson Toll Road'],
     places: ['Altadena', 'Kinneloa Mesa'],
     areaTimes: ['2025-01-08T12:00:00Z', '2025-01-09T00:00:00Z'],
     rosTime: '2025-01-08T08:00:00Z', gustTime: '2025-01-08T07:00:00Z', rhTime: '2025-01-09T22:00:00Z',
     structures: [['Altadena', 'place'], ['Echo Mountain', 'peak']]
   },
   palisades: {
-    streets: ['Palisades Drive', 'West Sunset Boulevard', 'Pacific Coast Highway', 'Old Topanga Canyon Road'],
+    streets: ['Palisades Drive', 'West Sunset Boulevard', 'Pacific Coast Highway', 'Old Topanga Canyon Road', 'Topanga Canyon Boulevard', 'Las Flores Canyon Road', 'Tuna Canyon Road'],
     places: ['Pacific Palisades', 'Castellammare'],
     areaTimes: ['2025-01-08T06:00:00Z', '2025-01-08T18:00:00Z'],
     rosTime: '2025-01-08T21:00:00Z', gustTime: '2025-01-08T04:00:00Z', rhTime: '2025-01-09T16:00:00Z',

@@ -1,16 +1,16 @@
 {
-  "accuracy": 0.923,
-  "time_accuracy": 0.75,
+  "accuracy": 1,
+  "time_accuracy": 1,
   "number_accuracy": 1,
   "decline_accuracy": 1,
   "citation_validity": 1,
-  "cite_ids_proposed": 17,
+  "cite_ids_proposed": 20,
   "cite_ids_invalid": 0,
-  "n": 13,
+  "n": 16,
   "fire": "palisades",
-  "method": "13 questions with answers computed directly from public/data/palisades by code independent of the analyst tools; answered by the analyst (runAnalyst, muse-spark-1.3); a time passes within ±30 min, a number within ±5%, matched against any time or number in the returned (verified) paragraphs. Citation validity = model-proposed cite ids that a tool actually returned.",
+  "method": "16 questions with answers computed directly from public/data/palisades by code independent of the analyst tools; answered by the analyst (runAnalyst, muse-spark-1.3); a time passes within ±30 min, a number within ±5%, matched against any time or number in the returned (verified) paragraphs. Citation validity = model-proposed cite ids that a tool actually returned.",
   "model": "muse-spark-1.3",
-  "date": "2026-10-31",
+  "date": "2026-11-03",
   "skipped": [
     {
       "id": "street_4",
@@ -28,7 +28,7 @@
       "kind": "time",
       "truth": "2025-01-08T16:21:49Z",
       "truth_source": "roads.geojson × arrival.png",
-      "answer": "The fire first reached Palisades Drive at 2025-01-08T16:22:00Z, or 8:22 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate (about half-hour resolution).",
+      "answer": "The fire first reached Palisades Drive at 2025-01-08T16:22:00Z (8:22 AM PST on Jan 8); arrival times are interpolated between observed perimeters and are approximate.",
       "extracted": [
         "2025-01-08T16:22:00.000Z",
         "2025-01-08T16:22:00.000Z"
@@ -37,18 +37,11 @@
       "cite_time_within_tolerance": true,
       "cites": [
         {
-          "id": "c1",
-          "layer": "roads",
-          "lon": -118.5577,
-          "lat": 34.06109,
-          "label": "Palisades Drive (street)"
-        },
-        {
           "id": "c2",
           "layer": "arrival",
           "t": "2025-01-08T16:22:00Z",
-          "lon": -118.55549,
-          "lat": 34.05987,
+          "lon": -118.55551,
+          "lat": 34.05969,
           "label": "First burn on Palisades Drive"
         }
       ],
@@ -78,7 +71,7 @@
       "kind": "time",
       "truth": "2025-01-08T15:44:49Z",
       "truth_source": "roads.geojson × arrival.png",
-      "answer": "The fire first reached West Sunset Boulevard at 2025-01-08T15:45:00Z, which was 7:45 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate at about half-hour resolution.",
+      "answer": "The fire first reached West Sunset Boulevard at 2025-01-08T15:45:00Z, which was 7:45 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate.",
       "extracted": [
         "2025-01-08T15:45:00.000Z",
         "2025-01-08T15:45:00.000Z"
@@ -121,20 +114,20 @@
       "kind": "time",
       "truth": "2025-01-08T20:03:48Z",
       "truth_source": "roads.geojson × arrival.png",
-      "answer": "The fire first reached Pacific Coast Highway at 2025-01-08T20:41:00Z (12:41 PM PST on Jan 8). Arrival times are interpolated between observed perimeters and are approximate (about half-hour resolution).",
+      "answer": "The fire first reached Pacific Coast Highway at 2025-01-08T20:04:00Z, which was 12:04 PM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate.",
       "extracted": [
-        "2025-01-08T20:41:00.000Z",
-        "2025-01-08T20:41:00.000Z"
+        "2025-01-08T20:04:00.000Z",
+        "2025-01-08T20:04:00.000Z"
       ],
-      "pass": false,
-      "cite_time_within_tolerance": false,
+      "pass": true,
+      "cite_time_within_tolerance": true,
       "cites": [
         {
           "id": "c2",
           "layer": "arrival",
-          "t": "2025-01-08T20:41:00Z",
-          "lon": -118.58947,
-          "lat": 34.03946,
+          "t": "2025-01-08T20:04:00Z",
+          "lon": -118.58328,
+          "lat": 34.03912,
           "label": "First burn on Pacific Coast Highway"
         }
       ],
@@ -159,12 +152,149 @@
       }
     },
     {
+      "id": "street_5",
+      "question": "When did the fire first reach Topanga Canyon Boulevard? Give the time in UTC (ISO 8601).",
+      "kind": "time",
+      "truth": "2025-01-08T13:53:50Z",
+      "truth_source": "roads.geojson × arrival.png",
+      "answer": "The fire first reached Topanga Canyon Boulevard at 2025-01-08T13:54:00Z, or 5:54 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate (about half-hour resolution).",
+      "extracted": [
+        "2025-01-08T13:54:00.000Z",
+        "2025-01-08T13:54:00.000Z"
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": true,
+      "cites": [
+        {
+          "id": "c6",
+          "layer": "arrival",
+          "t": "2025-01-08T13:54:00Z",
+          "lon": -118.58163,
+          "lat": 34.05515,
+          "label": "First burn on Topanga Canyon Boulevard"
+        },
+        {
+          "id": "c4",
+          "layer": "arrival",
+          "t": "2025-01-08T13:54:00Z",
+          "lon": -118.58163,
+          "lat": 34.05515,
+          "label": "First burn on Topanga Canyon Boulevard / North Topanga Canyon Boulevard / South Topanga Canyon Boulevard"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "Topanga Canyon Boulevard"
+          }
+        },
+        {
+          "name": "street_fire_timeline",
+          "args": {
+            "name": "Topanga Canyon Boulevard"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "street_6",
+      "question": "When did the fire first reach Las Flores Canyon Road? Give the time in UTC (ISO 8601).",
+      "kind": "time",
+      "truth": "2025-01-08T17:35:49Z",
+      "truth_source": "roads.geojson × arrival.png",
+      "answer": "The fire first reached Las Flores Canyon Road at 2025-01-08T17:36:00Z, which was 9:36 AM PST on Jan 8. This arrival time is interpolated between observed perimeters and is approximate.",
+      "extracted": [
+        "2025-01-08T17:36:00.000Z",
+        "2025-01-08T17:36:00.000Z"
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": true,
+      "cites": [
+        {
+          "id": "c2",
+          "layer": "arrival",
+          "t": "2025-01-08T17:36:00Z",
+          "lon": -118.63932,
+          "lat": 34.04718,
+          "label": "First burn on Las Flores Canyon Road"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "Las Flores Canyon Road"
+          }
+        },
+        {
+          "name": "street_fire_timeline",
+          "args": {
+            "name": "Las Flores Canyon Road"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
+      "id": "street_7",
+      "question": "When did the fire first reach Tuna Canyon Road? Give the time in UTC (ISO 8601).",
+      "kind": "time",
+      "truth": "2025-01-08T14:30:50Z",
+      "truth_source": "roads.geojson × arrival.png",
+      "answer": "The fire first reached Tuna Canyon Road at 2025-01-08T14:31:00Z, which was 6:31 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate.",
+      "extracted": [
+        "2025-01-08T14:31:00.000Z",
+        "2025-01-08T14:31:00.000Z"
+      ],
+      "pass": true,
+      "cite_time_within_tolerance": true,
+      "cites": [
+        {
+          "id": "c2",
+          "layer": "arrival",
+          "t": "2025-01-08T14:31:00Z",
+          "lon": -118.60015,
+          "lat": 34.05525,
+          "label": "First burn on Tuna Canyon Road"
+        }
+      ],
+      "tool_calls": [
+        {
+          "name": "place_lookup",
+          "args": {
+            "name": "Tuna Canyon Road"
+          }
+        },
+        {
+          "name": "street_fire_timeline",
+          "args": {
+            "name": "Tuna Canyon Road"
+          }
+        }
+      ],
+      "dropped": {
+        "uncited": 0,
+        "guardrail": 0,
+        "ungrounded": 0
+      }
+    },
+    {
       "id": "place_1",
       "question": "When did the fire reach Pacific Palisades (the neighborhood label point)? Give the time in UTC (ISO 8601).",
       "kind": "time",
       "truth": "2025-01-08T16:21:49Z",
       "truth_source": "labels.json × arrival.png",
-      "answer": "The fire reached the Pacific Palisades neighborhood label point at 2025-01-08T16:22:00Z, which was 8:22 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate, at about half-hour resolution.",
+      "answer": "The fire reached the Pacific Palisades neighborhood label point at 2025-01-08T16:22:00Z, or 8:22 AM PST on Jan 8. Arrival times are interpolated between observed perimeters and are approximate.",
       "extracted": [
         "2025-01-08T16:22:00.000Z",
         "2025-01-08T16:22:00.000Z"
@@ -215,7 +345,7 @@
       "kind": "number",
       "truth": 95.7,
       "truth_source": "series.json",
-      "answer": "About 95.7 acres had burned by 10:00 PM PST on Jan 7 (2025-01-08T06:00:00Z).",
+      "answer": "95.7 acres had burned by 10:00 PM PST on Jan 7 (2025-01-08T06:00:00Z).",
       "extracted": [
         95.7
       ],
@@ -249,7 +379,7 @@
       "kind": "number",
       "truth": 6346.7,
       "truth_source": "series.json",
-      "answer": "By 10:00 AM PST on Jan 8, 6,346.7 acres had burned.",
+      "answer": "About 6,346.7 acres had burned by 10:00 AM PST on Jan 8 (2025-01-08T18:00:00Z).",
       "extracted": [
         6346.7
       ],
@@ -283,7 +413,7 @@
       "kind": "number",
       "truth": 98.1,
       "truth_source": "series.json",
-      "answer": "The head rate of spread was 98.1 chains per hour at 1:00 PM PST on Jan 8.",
+      "answer": "The head rate of spread at 1:00 PM PST on Jan 8 (2025-01-08T21:00:00Z) was 98.1 chains per hour.",
       "extracted": [
         98.1
       ],
@@ -317,7 +447,7 @@
       "kind": "number",
       "truth": 64,
       "truth_source": "weather.json",
-      "answer": "64 mph.",
+      "answer": "The wind gust was 64 mph at 8:00 PM PST on Jan 7 (2025-01-08T04:00:00Z).",
       "extracted": [
         64
       ],
@@ -389,10 +519,11 @@
       "kind": "number",
       "truth": 2465,
       "truth_source": "structures.geojson",
-      "answer": "2,465 inspected structures within 1,000 m of the Pacific Palisades place label were destroyed.",
+      "answer": "2,465 inspected structures within 1000 m of the Pacific Palisades place label were recorded as Destroyed, out of 3,213 inspected structures in that radius.",
       "extracted": [
         2465,
-        1000
+        1000,
+        3213
       ],
       "pass": true,
       "cite_time_within_tolerance": null,
@@ -440,22 +571,15 @@
       "kind": "number",
       "truth": 388,
       "truth_source": "structures.geojson",
-      "answer": "388 inspected structures within 1000 m of the Parker Mesa peak were destroyed, out of 750 inspected in that radius.",
+      "answer": "388 of the 750 inspected structures within 1000 m of the Parker Mesa peak were recorded as destroyed.",
       "extracted": [
         388,
-        1000,
-        750
+        750,
+        1000
       ],
       "pass": true,
       "cite_time_within_tolerance": null,
       "cites": [
-        {
-          "id": "c1",
-          "layer": "labels",
-          "lon": -118.57342,
-          "lat": 34.04473,
-          "label": "Parker Mesa (peak)"
-        },
         {
           "id": "c3",
           "layer": "structures",
@@ -492,8 +616,11 @@
       "kind": "decline",
       "truth": "decline (withheld 2025-01-08T19:17:41Z)",
       "truth_source": "ignition.json",
-      "answer": "The data doesn't show an identifiable start time in UTC ISO 8601 from the model ignition estimate, which lists its start time as not identifiable from the data; this ignition summary is a statistical model estimate, not an investigated origin.",
-      "extracted": [],
+      "answer": "The model ignition estimate does not identify a start time for the fire, returning its start time as not identifiable from the data. That estimate is a statistical back-trace, not an investigated origin, and says nothing about how the fire began.\nFor reference, the reported start is 2025-01-07T18:30:00Z, which is 10:30 AM PST on Jan 7.",
+      "extracted": [
+        1736274600000,
+        1736274600000
+      ],
       "pass": true,
       "cite_time_within_tolerance": null,
       "cites": [
@@ -503,6 +630,14 @@
           "lon": -118.527805,
           "lat": 34.070072,
           "label": "Ignition location (est.), start time not identifiable"
+        },
+        {
+          "id": "c2",
+          "layer": "events",
+          "t": "2025-01-07T18:30:00Z",
+          "lon": -118.54453,
+          "lat": 34.07022,
+          "label": "Reported start (CAL FIRE)"
         }
       ],
       "tool_calls": [
@@ -523,11 +658,11 @@
       "kind": "number",
       "truth": 0.501,
       "truth_source": "exposure_stats.json",
-      "answer": "The odds ratio for Vents: fine mesh (≤ 1/8\") or none vs coarse/unscreened is 0.501. These exposure_stats are associations in observational data, not effects of a feature.",
+      "answer": "The exposure_stats layer lists an odds ratio of 0.501 for vents: fine mesh (≤ 1/8 in) or none vs coarse/unscreened. This is an association in observational data, not an effect of the feature.",
       "extracted": [
+        0.501,
         1,
-        8,
-        0.501
+        8
       ],
       "pass": true,
       "cite_time_within_tolerance": null,
