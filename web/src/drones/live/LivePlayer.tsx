@@ -7,6 +7,7 @@ import {fmtPct, type DetectorEval} from '../footage';
 import {fmtStreamClock} from './decode';
 import {createDetector, type Backend, type Detector} from './detector';
 import {runLive, useLive, type LiveSource} from './live';
+import {useLiveGeo} from './useLiveGeo';
 
 /** One detector per backend, loaded on first use and kept for the session. */
 const detectors = new Map<Backend, Promise<Detector>>();
@@ -48,6 +49,7 @@ export function LivePlayer({fire}: {fire: FireData}) {
   /** performance.now() of the source's first decoded frame: the stream start. */
   const [ready, setReady] = useState<number | null>(null);
   const caveat = useSmokeCaveat(fire);
+  useLiveGeo(fire, video);
 
   // Attach the source to the video element.
   useEffect(() => {

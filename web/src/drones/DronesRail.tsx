@@ -5,6 +5,7 @@ import {Icon} from '../ui/Icon';
 import {fmtClock, fmtPct, useClipOverlays, useClips, useFootage, useSelectedClip, type Clip, type DetectorEval} from './footage';
 import {useLive} from './live/live';
 import {LiveCard} from './live/LiveRail';
+import {LiveGeoCard} from './live/LiveGeoCard';
 
 function ClipRow({clip, active, onClick}: {clip: Clip; active: boolean; onClick: () => void}) {
   const length = clip.window_s ? clip.window_s[1] - clip.window_s[0] : null;
@@ -124,6 +125,7 @@ export function DronesRail({fire}: {fire: FireData}) {
   return (
     <>
       <LiveCard fire={fire} />
+      <LiveGeoCard fire={fire} />
       <Card title="Drone Footage" aside={clips.data && <span className="text-xs text-muted">{clips.data.length} clips</span>}>
         {!clips.data ? (
           clips.error ? (
