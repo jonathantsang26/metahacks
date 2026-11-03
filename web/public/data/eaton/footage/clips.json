@@ -1,0 +1,46 @@
+[
+ {
+  "id": "blm-north-bank",
+  "title": "BLM aerial \u00b7 North Bank, Oregon (colour)",
+  "src": "clips/blm-north-bank.mp4",
+  "fps": 29.97,
+  "width": 1280,
+  "height": 720,
+  "source": "BLM Oregon & Washington, via Wikimedia Commons",
+  "source_url": "https://commons.wikimedia.org/wiki/File:Prescribed_fire,_North_Bank_Habitat_Management_Area_(55449061575).webm",
+  "license": "Public domain (US government work)",
+  "note": "BLM aerial \u00b7 Oregon \u00b7 not this fire",
+  "publish": true,
+  "window_s": [
+   43.0,
+   73.0
+  ],
+  "sentinel": {
+   "weights": "sentinel_fire.pt",
+   "fps": 5.0,
+   "conf": 0.25
+  }
+ },
+ {
+  "id": "blm-north-umpqua-ir",
+  "title": "BLM drone \u00b7 North Umpqua Fire, Oregon (infrared)",
+  "src": "clips/blm-north-umpqua-ir.mp4",
+  "fps": 29.97,
+  "width": 1280,
+  "height": 720,
+  "source": "BLM Oregon & Washington (Marcus Tobey), via Wikimedia Commons",
+  "source_url": "https://commons.wikimedia.org/wiki/File:Drone_reconnaissance_during_wildfire_season_(39411577714).webm",
+  "license": "Public domain (US government work)",
+  "note": "BLM drone \u00b7 infrared \u00b7 not this fire",
+  "publish": true,
+  "window_s": [
+   0.0,
+   26.26
+  ],
+  "sentinel": {
+   "weights": "sentinel_fire.pt",
+   "fps": 5.0,
+   "conf": 0.25
+  }
+ }
+]

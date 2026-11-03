@@ -1,0 +1,26 @@
+{
+  "base": {
+    "file": "fire_yolov8n.pt",
+    "sha256": "31e20dde3def09e2cf938c7be6fe23d9150bbbe503982af13345706515f2ef95",
+    "note": "Sentinel's shipped weights (stock COCO YOLOv8n)"
+  },
+  "data": {
+    "firenet": {
+      "train": 412,
+      "val": 90
+    }
+  },
+  "classes": [
+    "fire",
+    "smoke"
+  ],
+  "epochs": 30,
+  "imgsz": 416,
+  "val": {
+    "map50": 0.72,
+    "map50_95": 0.342,
+    "precision": 0.738,
+    "recall": 0.714
+  },
+  "date": "2026-10-31"
+}

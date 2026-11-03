@@ -1,12 +1,13 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import type {FireData} from '../data/fire';
 import {useFireJson, type Perimeters, type Profile, type Series} from '../data/files';
+import {DronesCharts, DronesSide} from '../drones/DronesDock';
 import {formatDateTime, tickParts, zoneLabel} from '../lib/format';
 import {SPEEDS, useProgress, useTime} from '../state/time';
 import {useUi} from '../state/ui';
 import {Icon} from '../ui/Icon';
 import {arrivalWindow, useBurnedArea} from './area';
-import {ChartEmpty, ChartFrame, ElevationProfileChart, FireAreaChart, RateOfSpreadChart} from './charts';
+import {ElevationProfileChart, FireAreaChart, RateOfSpreadChart} from './charts';
 import {EventGlyph, isMappingArtifact, KeyEventsList, stepLine, useKeyEvents, type KeyEvents} from './events';
 import {rosAxis, type ArrivalIntervals} from './scale';
 import {RiskCharts, RiskSide} from './risk';
@@ -184,36 +185,10 @@ function Scrubber({tz, series, events}: {tz: string; series: Series | null; even
   );
 }
 
-/** A chart slot this build has no data for (its header tab is disabled); the cursor still tracks t. */
-function UnavailableChart({title, unit, note}: {title: string; unit?: string; note: string}) {
-  const progress = useProgress();
-  return (
-    <ChartFrame title={title} unit={unit}>
-      <div className="absolute inset-x-0 bottom-3 border-b border-dashed border-ink opacity-25" />
-      <div className="absolute bottom-3 top-0 w-px bg-ink opacity-60" style={{left: `${progress * 100}%`}} />
-      <ChartEmpty>{note}</ChartEmpty>
-    </ChartFrame>
-  );
-}
-
-const NO_DRONES = 'No drone footage in this build';
-
-const UNAVAILABLE = {
-  drones: [
-    {title: 'Altitude', unit: 'ft AGL', note: NO_DRONES},
-    {title: 'Detections per second', note: NO_DRONES},
-    {title: 'Mask area', unit: '% of frame', note: NO_DRONES}
-  ]
-};
-
 const SIDE = {
   incident: 'Key Events',
   drones: 'Detections',
   risk: 'Debris-Flow Models'
-};
-
-const SIDE_UNAVAILABLE = {
-  drones: 'Drone footage analysis is not part of this build, so there are no detections to list.'
 };
 
 /** DESIGN.md §6: 226px dock under the map; side list on the right. */
@@ -259,7 +234,7 @@ export function Dock({fire}: {fire: FireData}) {
           ) : tab === 'risk' ? (
             <RiskCharts fire={fire} />
           ) : (
-            UNAVAILABLE[tab].map(c => <UnavailableChart key={c.title} {...c} />)
+            <DronesCharts fire={fire} />
           )}
         </div>
       </div>
@@ -275,7 +250,7 @@ export function Dock({fire}: {fire: FireData}) {
         ) : tab === 'risk' ? (
           <RiskSide />
         ) : (
-          <div className="px-3 py-6 text-center text-sm text-muted">{SIDE_UNAVAILABLE[tab]}</div>
+          <DronesSide fire={fire} />
         )}
       </aside>
     </div>
