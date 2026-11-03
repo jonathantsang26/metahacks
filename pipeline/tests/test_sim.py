@@ -144,3 +144,19 @@ def test_degenerate_commander_output_is_bounded(world):
     out = swarm.decide(sim.observe())
     assert len(out["errors"]) == 2 and "796 tasks" in out["errors"][0]
     assert out["tasks"][0]["reused"] and sorted(out["waypoints_km"]) == [0, 1]
+
+
+def test_runaway_squad_output_is_one_error_per_squad(world):
+    class Runaway(MockClient):
+        def create(self, **req):
+            r = super().create(**req)
+            if req["tools"][0]["function"]["name"] == "set_waypoints":
+                args = json.loads(r.choices[0].message.tool_calls[0].function.arguments)
+                args["plans"] += [{"drone": "x"}] * 500
+                r.choices[0].message.tool_calls[0].function.arguments = json.dumps(args)
+            return r
+
+    sim = SwarmSim(SimConfig(t_start=CALM, duration_s=60), world)
+    out = MuseSwarm(Runaway(), model="mock").decide(sim.observe())
+    assert sorted(out["waypoints_km"]) == list(range(6))
+    assert len(out["errors"]) == 3 and all("502 plans returned" in e for e in out["errors"])

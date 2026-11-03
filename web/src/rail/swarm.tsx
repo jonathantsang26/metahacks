@@ -136,7 +136,7 @@ export function SwarmPanel({fire}: {fire: FireData}) {
                 {decision?.assessment && <div>{decision.assessment}</div>}
                 {decision?.tasks?.map(task => (
                   <div key={task.squad} className="text-xs">
-                    <span className="font-medium">Squad {task.squad + 1}</span> · {OBJECTIVE[task.objective] ?? task.objective}
+                    <span className="font-medium">Squad {task.squad}</span> · {OBJECTIVE[task.objective] ?? task.objective}
                     {task.why ? <span className="text-muted"> · {task.why}</span> : null}
                     {squadNote(task.squad) ? <div className="text-muted">↳ {squadNote(task.squad)}</div> : null}
                   </div>
@@ -158,7 +158,7 @@ export function SwarmPanel({fire}: {fire: FireData}) {
                   d ? (
                     <li key={d.id} className="flex justify-between">
                       <span>
-                        D{d.id + 1} · {MODE[d.mode] ?? d.mode}
+                        Drone {d.id} · {MODE[d.mode] ?? d.mode}
                       </span>
                       <span className="tabular-nums text-muted">{Math.round(d.battery * 100)}%</span>
                     </li>

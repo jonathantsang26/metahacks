@@ -257,17 +257,25 @@ class MuseSwarm:
                 continue
             notes[s] = scrub(a.get("note", ""))
             mine = {d["id"] for d in squads[s]}
-            for p in a.get("plans", []) or []:
+            plans = a.get("plans", []) or []
+            if not isinstance(plans, list):
+                plans = []
+            limit = 4 * len(mine)
+            bad, stray = 0, 0
+            for p in plans[:limit]:
                 try:
                     i = int(p["drone"])
-                    wps = [[float(w[0]), float(w[1])] for w in p["waypoints_km"]][:6]
+                    wps = [[float(w[0]), float(w[1])] for w in p["waypoints_km"][:6]]
                 except (KeyError, TypeError, ValueError, IndexError):
-                    errors.append(f"squad {s}: a malformed plan")
+                    bad += 1
                     continue
-                if i in mine:
+                if i not in mine:
+                    stray += 1
+                elif i not in waypoints:
                     waypoints[i] = wps
-                else:
-                    errors.append(f"squad {s}: planned drone {i}, which is not in the squad")
+            if bad or stray or len(plans) > limit:
+                errors.append(f"squad {s}: {len(plans)} plans returned; {bad} malformed, {stray} for other squads' drones, "
+                              f"{max(len(plans) - limit, 0)} past the first {limit} ignored")
         return {"waypoints_km": waypoints, "assessment": assessment, "tasks": list(tasks.values()),
                 "squad_notes": {str(k): v for k, v in notes.items()}, "errors": errors,
                 "spent_usd": round(self.ledger.spent_usd, 4), "calls": self.ledger.calls}
