@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {useFireData} from '../data/fire';
 import {Dock} from '../dock/Dock';
+import {LivePlayer} from '../drones/live/LivePlayer';
 import {FootagePlayer} from '../drones/Player';
 import {Header} from '../header/Header';
 import {Rail} from '../rail/Rail';
@@ -35,6 +36,7 @@ export function AppShell() {
           <div className="relative min-h-0 flex-1">
             <Stage fire={data} />
             <FootagePlayer fire={data} />
+            <LivePlayer fire={data} />
           </div>
           <Dock fire={data} />
         </div>

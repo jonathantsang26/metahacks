@@ -26,7 +26,9 @@ const THUMBS: Partial<Record<LayerId, string>> = {
   wind: 'linear-gradient(135deg,#d6dadb,#eef0ee)',
   structures: 'linear-gradient(135deg,#8d8d86,#b9b7ae)',
   roads: 'linear-gradient(135deg,#d9d6cc,#bcb8ab)',
-  labels: 'linear-gradient(135deg,#ebe8de,#d6d2c6)'
+  labels: 'linear-gradient(135deg,#ebe8de,#d6d2c6)',
+  forecast: `${svgThumb("<path d='M5 18 9 7 19 5 24 14 16 23Z' fill='none' stroke='#7e57ff' stroke-width='1.8' stroke-dasharray='3 2'/>")} #8f8a7c`,
+  liveHits: `${svgThumb("<path d='M6 20 10 9 21 8 22 19Z' fill='none' stroke='#ffd640' stroke-width='1.5'/><circle cx='12' cy='14' r='2.2' fill='#ff4020'/><circle cx='17' cy='12' r='2.2' fill='#ff4020'/><circle cx='15' cy='18' r='2.2' fill='#ff4020' opacity='.5'/>")} #8f8a7c`
 };
 
 function LayersList() {

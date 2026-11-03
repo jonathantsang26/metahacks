@@ -20,6 +20,8 @@ import {distanceM} from './drape';
 import {usePlaceLabels, useRoadPart, useStructurePart, useTreePart, useWindPart} from './context-layers';
 import {useHighlightPart} from './highlight';
 import {useDebrisPart} from './debris-layer';
+import {useForecastPart} from './forecast-layer';
+import {useLiveHitsPart} from './live-layer';
 import {Compass, HoverInspector, MapControls, MapNotes, SyntheticChip, type StageNote} from './overlays';
 
 const PITCH_3D = 58;
@@ -166,11 +168,21 @@ export function Stage({fire}: {fire: FireData}) {
   const treePart = useTreePart(fire, dem, t, terrain.visible, arrivalRaster, arrivalWindow);
   const highlightPart = useHighlightPart(dem, highlight);
   const debrisPart = useDebrisPart(fire, dem, layers.debrisFlow, risk, setRisk);
+  const forecastPart = useForecastPart(fire, dem, t, layers.forecast.visible && layers.forecast.ready);
+  const livePart = useLiveHitsPart(dem, layers.liveHits.visible);
 
   // Labels from every layer compete for space; the survivors depend on the camera.
   const labels = useMemo<MapLabel[]>(
-    () => [...highlightPart.labels, ...ignitionPart.labels, ...perimeterPart.labels, ...spinePart.labels, ...placeLabels],
-    [highlightPart.labels, ignitionPart.labels, perimeterPart.labels, spinePart.labels, placeLabels]
+    () => [
+      ...highlightPart.labels,
+      ...livePart.labels,
+      ...forecastPart.labels,
+      ...ignitionPart.labels,
+      ...perimeterPart.labels,
+      ...spinePart.labels,
+      ...placeLabels
+    ],
+    [highlightPart.labels, livePart.labels, forecastPart.labels, ignitionPart.labels, perimeterPart.labels, spinePart.labels, placeLabels]
   );
   // The surviving ids and their placements, as a string so the text layers rebuild only when they change.
   const keepKey = [...declutter(labels, viewState, size.width, size.height)]
@@ -278,6 +290,8 @@ export function Stage({fire}: {fire: FireData}) {
       swatches: [{color: '#ffffff', label: 'Final perimeter', shape: 'dash'}]
     });
   notes.push(
+    ...livePart.notes,
+    ...forecastPart.notes,
     ...ignitionPart.notes,
     ...spinePart.notes,
     ...windPart.notes,
@@ -342,6 +356,8 @@ export function Stage({fire}: {fire: FireData}) {
     ...spinePart.layers,
     ...windPart.layers,
     ...ignitionPart.layers,
+    ...forecastPart.layers,
+    ...livePart.layers,
     ...highlightPart.layers,
     ...textLayers
   ];

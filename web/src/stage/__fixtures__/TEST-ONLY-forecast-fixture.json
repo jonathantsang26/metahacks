@@ -1,0 +1,22 @@
+{
+  "_comment": "TEST FIXTURE ONLY. Hand-made squares, not a forecast of any fire. Used by forecast.test.ts; never served by the app.",
+  "index": ["TEST-issued-0300Z.geojson", "TEST-issued-0400Z.geojson"],
+  "files": {
+    "TEST-issued-0300Z.geojson": {
+      "type": "FeatureCollection",
+      "features": [
+        {"type": "Feature", "properties": {"issued_utc": "2025-01-08T03:00:00Z", "valid_utc": "2025-01-08T04:00:00Z", "method": "physics", "status": "FORECAST"},
+         "geometry": {"type": "Polygon", "coordinates": [[[-118.10, 34.20], [-118.09, 34.20], [-118.09, 34.21], [-118.10, 34.21], [-118.10, 34.20]]]}},
+        {"type": "Feature", "properties": {"issued_utc": "2025-01-08T03:00:00Z", "valid_utc": "2025-01-08T04:00:00Z", "method": "muse", "status": "FORECAST"},
+         "geometry": {"type": "Polygon", "coordinates": [[[-118.10, 34.20], [-118.08, 34.20], [-118.08, 34.21], [-118.10, 34.21], [-118.10, 34.20]]]}}
+      ]
+    },
+    "TEST-issued-0400Z.geojson": {
+      "type": "FeatureCollection",
+      "features": [
+        {"type": "Feature", "properties": {"issued_utc": "2025-01-08T04:00:00Z", "valid_utc": "2025-01-08T05:00:00Z", "method": "physics", "status": "FORECAST"},
+         "geometry": {"type": "Polygon", "coordinates": [[[-118.11, 34.20], [-118.08, 34.20], [-118.08, 34.22], [-118.11, 34.22], [-118.11, 34.20]]]}}
+      ]
+    }
+  }
+}
