@@ -164,7 +164,5 @@ OR < 1: the first group was destroyed less often than the second within the same
 
 ## Analyst eval
 
-- **Eaton Fire** (`muse-spark-1.3`, live, 2026-10-31): 13 of 14 answers match the data-derived truth (time 4/5, number 8/8, decline 1/1). 20 of 20 cited ids came from a tool result. Paragraphs dropped by the verifier: uncited 0, guardrail 0, ungrounded 0. Skipped (no truth in the data): place_2.
-  - Miss, `street_3`: When did the fire first reach Kinneloa Canyon Road? Truth 2025-01-09T04:27:31Z (roads.geojson × arrival.png); the answer gave no time or number.
-- **Palisades Fire** (`muse-spark-1.3`, live, 2026-10-31): 12 of 13 answers match the data-derived truth (time 3/4, number 8/8, decline 1/1). 17 of 17 cited ids came from a tool result. Paragraphs dropped by the verifier: uncited 0, guardrail 0, ungrounded 0. Skipped (no truth in the data): street_4, place_2.
-  - Miss, `street_3`: When did the fire first reach Pacific Coast Highway? Truth 2025-01-08T20:03:48Z (roads.geojson × arrival.png); the answer gave 2025-01-08T20:41:00.000Z.
+- **Eaton Fire** (`muse-spark-1.3`, live, 2026-11-03): 17 of 17 answers match the data-derived truth (time 8/8, number 8/8, decline 1/1). 23 of 23 cited ids came from a tool result. Paragraphs dropped by the verifier: uncited 0, guardrail 0, ungrounded 0. Skipped (no truth in the data): place_2.
+- **Palisades Fire** (`muse-spark-1.3`, live, 2026-11-03): 16 of 16 answers match the data-derived truth (time 7/7, number 8/8, decline 1/1). 20 of 20 cited ids came from a tool result. Paragraphs dropped by the verifier: uncited 0, guardrail 0, ungrounded 0. Skipped (no truth in the data): street_4, place_2.
