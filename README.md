@@ -2,9 +2,11 @@
 
 **Live wildfire intelligence from AI-piloted drones, for quicker wildfire suppression.**
 
-- **Where the fire is now:** Sentinel's fire detector runs live in the browser on a camera, a shared screen or any video stream (it has not yet run on a real drone feed), with SAM 3.1 outlining the flames through the Meta Model API. With the drone's flight log or pose, each detection is placed on the 3D terrain as a live fire edge.
-- **Where it will be in an hour:** a +1 h spread forecast from Muse Spark and a wind-and-slope model, made in hindsight and scored against the official perimeters.
-- **AI-piloted drones:** Muse Spark commands a six-drone swarm, a commander with three squad agents, to keep eyes on the front. The swarm runs in a MuJoCo simulation flown over the real Eaton Fire's terrain, spread and wind; no drones flew this fire.
+Firefighters work from data that comes hours late. In the Palisades Fire, the first public fire map came 26 hours after it started, when about half the fire had already burned. Fly a drone over the fire, and Sentinel Ember tells firefighters two things: **where the fire is right now**, and **where it will be in an hour**.
+
+- **Where the fire is now:** connect a drone feed (or any camera or video stream). Our fine-tuned YOLOv8 fire detector runs at the edge, in the browser on the ground-station laptop with ONNX and WebAssembly, boxing flames in under a fifth of a second per frame. Meta's SAM 3.1 then traces each fire's outline. Each detection lands on a 3D digital twin of the fire: the real hills, with the real wind.
+- **Where it will be in an hour:** a Muse Spark forecaster reads the fire's edge, the wind and the slope, and draws where the front will be in an hour.
+- **AI-piloted drones:** a Muse Spark commander and three squad agents assign six simulated drones waypoints to watch that advancing edge. We test their decisions in a Gymnasium reinforcement-learning environment powered by MuJoCo, on the real Eaton Fire terrain, with thrust, wind drag, battery, camera coverage and line of sight.
 
 All of it sits on a reconstruction of the January 2025 **Eaton** and **Palisades** fires from public records:
 - **When the fire reached each place:** hover the map for the arrival time of any burned cell, interpolated between mapped perimeters and labelled MODELED. Burn times along a whole street come from the analyst's street-timeline tool, which needs a Meta key (`MODEL_API_KEY`).
@@ -31,7 +33,7 @@ A one-minute tour, one stop per point above:
 4. **Debris flows:** the header's Risk tab colours each stream segment by likelihood; pick the model and the design storm.
 5. **Sources and questions:** the rail's Evidence tab lists every source as real, modeled or simulated. The Analyst tab (needs `MODEL_API_KEY`) answers questions such as "When did the fire reach Lake Avenue?"; its citation chips move the map and the clock.
 6. **Palisades:** switch fires in the header. The same views load; its back-trace sits at the spread-rate ceiling, so its start is withheld too.
-7. **Drones:** the header's Drones tab plays two public-domain BLM wildfire clips (Oregon, not Eaton) with Sentinel's boxes and SAM 3.1's masks. Its Live mode runs Sentinel on your camera, a shared screen or a video URL, with no key; SAM 3.1 outlines on live frames need `MODEL_API_KEY` on the server.
+7. **Drones:** the header's Drones tab plays two public-domain BLM wildfire clips (Oregon, not Eaton) with the fire detector's boxes and SAM 3.1's outlines. Its Live mode runs the detector on your camera, a shared screen or a video URL, with no key; SAM 3.1 outlines on live frames need `MODEL_API_KEY` on the server.
 8. **Forecast and swarm (Eaton):** turn on Spread Forecast (+1 h) under Layers, and open the Incident rail's Swarm tab for the simulated drone swarm and its agent graph.
 
 Every number traces back to a public source or a committed evaluation file. The README's headline table below is generated from those files, and a test fails if it drifts.
@@ -63,10 +65,10 @@ The analyst runs on Meta's Muse Spark (`muse-spark-1.3`), whose tool calling let
 | Feature | What happens when you use it |
 |---|---|
 | Analyst (`muse-spark-1.3`) | **Live.** Each question calls Muse Spark at request time through `POST /api/analyst`, behind a spend cap and rate limits. Needs `MODEL_API_KEY` on the server. |
-| Sentinel detector, Drones → Live | **Live.** The fine-tuned model runs in the browser (onnxruntime-web, WASM) on the newest camera, screen or stream frame; the HUD shows inference time, frame rate and latency measured on your device. A video file played this way is labelled as such, not as live drone footage. |
-| SAM 3.1 outlines, Drones → Live | **Live** on camera, screen and URL feeds: while Sentinel has a box, a frame goes to `POST /api/sam` at most every 2 s and SAM 3.1 is called on the Meta Model API (daily spend cap). Without a server key it says so and draws nothing. |
+| Fire detector, Drones → Live | **Live.** The fine-tuned model runs in the browser (onnxruntime-web, WASM) on the newest camera, screen or stream frame; the HUD shows inference time, frame rate and latency measured on your device. A video file played this way is labelled as such, not as live drone footage. |
+| SAM 3.1 outlines, Drones → Live | **Live** on camera, screen and URL feeds: while the detector has a box, a frame goes to `POST /api/sam` at most every 2 s and SAM 3.1 is called on the Meta Model API (daily spend cap). Without a server key it says so and draws nothing. |
 | Live hits on the 3D map | **Live** projection of each detection onto the terrain from a DJI SRT track or a pose you type in. Tested only with synthetic and typed-in poses; no real flight log exists for the bundled clips. |
-| Bundled drone clips (Sentinel boxes, SAM 3.1 masks) | **Cached.** Sentinel's boxes and SAM 3.1's masks were computed once by pipeline steps 12 and 12c (SAM through the real API) and committed; playing a clip makes no model call. |
+| Bundled drone clips (detector boxes, SAM 3.1 outlines) | **Cached.** The detector's boxes and SAM 3.1's masks were computed once by pipeline steps 12 and 12c (SAM through the real API) and committed; playing a clip makes no model call. |
 | +1 h spread forecast (Muse Spark and physics) | **Cached.** Muse Spark made every forecast live in one run (67 calls, $1.57); the app shows the committed polygons and makes no model call. Made in hindsight and labelled FORECAST. |
 | Drone swarm (Swarm tab) | **Simulated, then replayed.** A MuJoCo simulation over the Eaton Fire: real terrain, the reconstructed spread and HRRR wind, but no drones flew this fire. Muse Spark's commander and squad decisions were live tool calls during the run; the app replays the committed logs. Labelled SIM. |
 | Reconstruction (arrival, back-trace, homes, debris flows) | **Precomputed** by the pipeline from public records and committed; arrival times between perimeters are interpolated and labelled MODELED. |
@@ -83,7 +85,7 @@ The analyst runs on Meta's Muse Spark (`muse-spark-1.3`), whose tool calling let
 | [Post-fire debris flows](#post-fire-debris-flows) (Risk tab): USGS's M1 against models fitted on USGS's inventory | **Working**; compared with USGS's assessment, not validated | [`s14_debris_models.py`](pipeline/steps/s14_debris_models.py), [`s15_debris_fire.py`](pipeline/steps/s15_debris_fire.py), [`rail/risk.tsx`](web/src/rail/risk.tsx) |
 | [Analyst](docs/METHODS.md#analyst) (`muse-spark-1.3`): checked tool calls over the fire data | **Working; runs live**: 33 of 33 eval answers right on the live rerun after the street-tool fix (2026-11-03) | [`web/api/`](web/api), [`rail/analyst.tsx`](web/src/rail/analyst.tsx) |
 | [Web app](docs/METHODS.md#web-app): replays each fire on 3D terrain, on one timeline | **Working** on both fires, with the Drones tab | [`web/src/`](web/src) |
-| Drone footage: Sentinel YOLOv8 (fine-tuned) + SAM 3.1 segmentation | **Working, live in the browser**: Sentinel runs on camera, screen or stream input; SAM 3.1 outlines on live frames through `/api/sam`. Never run on a real live drone feed. Frame-level eval on DeepQuest: Sentinel P 0.73 / R 0.64, SAM 3.1 P 1.00 / R 0.945 | [`drones/live/`](web/src/drones/live), [`api/sam.ts`](web/api/sam.ts), [`s12c_sam_video.py`](pipeline/steps/s12c_sam_video.py) |
+| Drone footage: fine-tuned YOLOv8 fire detector + SAM 3.1 segmentation | **Working, live in the browser**: the detector runs on camera, screen or stream input; SAM 3.1 outlines on live frames through `/api/sam`. Never run on a real live drone feed. Frame-level eval on DeepQuest: detector P 0.73 / R 0.64, SAM 3.1 P 1.00 / R 0.945 | [`drones/live/`](web/src/drones/live), [`api/sam.ts`](web/api/sam.ts), [`s12c_sam_video.py`](pipeline/steps/s12c_sam_video.py) |
 | Live hits and fire edge on the 3D map | **Working** with a DJI SRT track or a typed-in pose; tested only on synthetic poses | [`livemap.ts`](web/src/drones/live/livemap.ts), [`dronegeo.ts`](web/src/lib/dronegeo.ts) |
 | [+1 h spread forecast](docs/FORECAST.md) (Eaton): physics and Muse Spark | **Working**, made in hindsight; Muse forecasts cached from a live run. Neither beats carrying the recent rate forward | [`sim/forecast.py`](pipeline/sim/forecast.py), [`stage/forecast-layer.ts`](web/src/stage/forecast-layer.ts) |
 | [Drone swarm](docs/SWARM.md) (Eaton): MuJoCo simulation, Muse Spark commander and squads | **Working as a simulation** (SIM: no drones flew this fire); runs replayed in the Swarm tab | [`pipeline/sim/`](pipeline/sim), [`rail/swarm.tsx`](web/src/rail/swarm.tsx) |
@@ -175,7 +177,7 @@ What it shows:
 - **Burn severity coverage.** AVIRIS-3 dNBR covers about half of Eaton's perimeter and only a sliver of Palisades (`severity_stats.json`).
 - **Not yet verified:**
   - The live analyst eval is one run per fire, 33 scored questions in all.
-  - Live drone detection has run on cameras, screens and video streams, never on a real live drone feed, and the map placement has never run on a real flight. Sentinel misses smoke-only frames (smoke recall 0 on DeepQuest).
+  - Live drone detection has run on cameras, screens and video streams, never on a real live drone feed, and the map placement has never run on a real flight. The detector misses smoke-only frames (smoke recall 0 on DeepQuest).
   - The bundled drone clips are Oregon BLM footage, not Eaton.
   - The forecast and the swarm cover Eaton only, and the swarm is a simulation.
   - The web app has been checked in desktop Chromium only; it needs WebGL2.
@@ -217,8 +219,8 @@ With a Meta key in `.env` (`cp .env.example .env`):
 
 ## Prior work and credits
 
-- **Prior work: Sentinel** ([`benjaminxie1/sentinel-app`](https://github.com/benjaminxie1/sentinel-app)) is a team member's earlier open-source fire/smoke detector, built before the hackathon. Its shipped model file turned out to be the stock COCO YOLOv8n with no fire class.
-- **Built at the hackathon:** everything else, including fine-tuning Sentinel on FireNET ([`models/sentinel_fire.pt`](pipeline/models/sentinel_fire.pt)), its ONNX export and in-browser Live mode, the SAM 3.1 integration, the forecast, the swarm simulation, the pipeline, the analyst and the web app.
+- **Prior work:** before the hackathon, Ben built [Sentinel](https://github.com/benjaminxie1/sentinel-app), an open-source fire detection app. We started from its YOLOv8 model file, which turned out to have no fire class.
+- **Built at the hackathon:** everything else. That includes training the fire detector on FireNET ([`sentinel_fire.pt`](pipeline/models/sentinel_fire.pt)), running it in the browser, the SAM 3.1 outlines, the 3D map, the forecaster, the drone swarm and its simulation, the analyst and the data pipeline.
 - **Design inspiration:** the layout and interaction model are inspired by Dilum Sanjaya's "FireTrace" wildfire-analysis concept, shared on X. Its name and logo are not used.
 - **Data:** every source, with its licence note and status (REAL, MODELED or SIM), is in each fire's `manifest.json` and the app's Evidence tab. Source details are in [`docs/spec/BUILD.md`](docs/spec/BUILD.md) §5.
 
