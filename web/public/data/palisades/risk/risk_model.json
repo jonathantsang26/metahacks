@@ -1,0 +1,278 @@
+{
+  "status": "PROTOTYPE",
+  "question": "Under this fire's own winds, which ~95 m cells were most likely to burn, scored with models that never saw this fire's burn",
+  "grid": {
+    "bounds": [
+      -118.707563,
+      34.01245208403361,
+      -118.478874,
+      34.147325
+    ],
+    "width": 222,
+    "height": 158,
+    "cell_m": [
+      95.0,
+      95.0
+    ]
+  },
+  "png": {
+    "file": "risk/risk_map.png",
+    "R": "physics_mc \u00d7 255 (Monte Carlo burn probability)",
+    "G": "attn_sim risk \u00d7 255",
+    "non_burnable": "0"
+  },
+  "scenario": {
+    "reported_start": "2025-01-07T18:30:00Z",
+    "wind_window": [
+      "2025-01-07T18:30:00Z",
+      "2025-01-08T18:30:00Z"
+    ],
+    "wind_source": "HRRR 3 km wind field (wind_field.json, step 07)",
+    "fuel_dryness_context": {
+      "date": "2025-01-07",
+      "erc": 55.0,
+      "fm100_pct": 9.6,
+      "fm1000_pct": 11.9,
+      "source": "gridMET (weather.json); not a model input"
+    },
+    "monte_carlo": {
+      "runs": 1000,
+      "horizon_h": 12.0,
+      "start_window_h": [
+        0,
+        12
+      ],
+      "k_range": [
+        0.25,
+        4.0
+      ],
+      "lb_choices": [
+        1.0,
+        1.25,
+        1.5,
+        2.0,
+        3.0,
+        8.0
+      ],
+      "ignitions": "uniform over burnable cells"
+    }
+  },
+  "features": {
+    "local": [
+      "fuel_tree",
+      "fuel_shrub",
+      "fuel_grass",
+      "fuel_built",
+      "fuel_crop",
+      "fuel_other_burnable",
+      "tan_slope",
+      "tpi_100m",
+      "upslope_downwind_cos",
+      "wind_mean_mph",
+      "gust_peak_mph",
+      "veg_frac_500m",
+      "built_frac_500m",
+      "log1p_dist_wildland_m"
+    ],
+    "edge": [
+      "distance_cells",
+      "upwind_cos",
+      "downslope_cos"
+    ],
+    "neighbours": 24,
+    "neighbour_radii_m": [
+      95,
+      190,
+      380
+    ]
+  },
+  "evaluation": {
+    "trained_on": "eaton",
+    "tested_on": "palisades",
+    "cells": 29688,
+    "burned_share": 0.359,
+    "labels": "arrival.png (step 06), model cell > 50% burned; burnable cells only",
+    "regions": {
+      "all": "every burnable cell in the area of interest",
+      "edge_band": "burnable cells within 1000 m of the real burn's edge, either side (which side of the line, given the fire got close)",
+      "edge_cells": 10723
+    },
+    "ci": "95% block bootstrap, 10\u00d710-cell (~1 km) blocks, 200 resamples",
+    "variants": {
+      "baseline_veg": {
+        "all": {
+          "auc": 0.558,
+          "auc_ci95": [
+            0.51,
+            0.604
+          ],
+          "avg_precision": 0.391
+        },
+        "edge_band": {
+          "auc": 0.445,
+          "auc_ci95": [
+            0.388,
+            0.494
+          ],
+          "avg_precision": 0.509
+        }
+      },
+      "physics_mc": {
+        "all": {
+          "auc": 0.352,
+          "auc_ci95": [
+            0.292,
+            0.404
+          ],
+          "avg_precision": 0.271
+        },
+        "edge_band": {
+          "auc": 0.498,
+          "auc_ci95": [
+            0.417,
+            0.563
+          ],
+          "avg_precision": 0.535
+        }
+      },
+      "rf_real": {
+        "all": {
+          "auc": 0.48,
+          "auc_ci95": [
+            0.431,
+            0.527
+          ],
+          "avg_precision": 0.342
+        },
+        "edge_band": {
+          "auc": 0.511,
+          "auc_ci95": [
+            0.451,
+            0.585
+          ],
+          "avg_precision": 0.548
+        }
+      },
+      "mlp_real": {
+        "all": {
+          "auc": 0.271,
+          "auc_ci95": [
+            0.224,
+            0.314
+          ],
+          "avg_precision": 0.248
+        },
+        "edge_band": {
+          "auc": 0.33,
+          "auc_ci95": [
+            0.261,
+            0.407
+          ],
+          "avg_precision": 0.424
+        }
+      },
+      "attn_real": {
+        "all": {
+          "auc": 0.352,
+          "auc_ci95": [
+            0.303,
+            0.406
+          ],
+          "avg_precision": 0.272
+        },
+        "edge_band": {
+          "auc": 0.37,
+          "auc_ci95": [
+            0.295,
+            0.45
+          ],
+          "avg_precision": 0.443
+        }
+      },
+      "attn_sim": {
+        "all": {
+          "auc": 0.428,
+          "auc_ci95": [
+            0.371,
+            0.485
+          ],
+          "avg_precision": 0.322
+        },
+        "edge_band": {
+          "auc": 0.454,
+          "auc_ci95": [
+            0.379,
+            0.529
+          ],
+          "avg_precision": 0.522
+        }
+      },
+      "attn_hybrid": {
+        "all": {
+          "auc": 0.373,
+          "auc_ci95": [
+            0.323,
+            0.42
+          ],
+          "avg_precision": 0.277
+        },
+        "edge_band": {
+          "auc": 0.449,
+          "auc_ci95": [
+            0.38,
+            0.517
+          ],
+          "avg_precision": 0.494
+        }
+      }
+    },
+    "product": "physics_mc",
+    "product_note": "Planned map was attn_hybrid, fixed before scoring. It scored worst on Eaton, so the map shows physics_mc and attn_sim instead; that choice was made after seeing scores."
+  },
+  "attention": {
+    "uniform_weight": 0.0417,
+    "model": "attn_sim",
+    "mean_weight_upwind": 0.0395,
+    "mean_weight_downwind": 0.0451,
+    "by_radius_cells": {
+      "1": 0.285,
+      "2": 0.3179,
+      "4": 0.3971
+    }
+  },
+  "train_loss_first_last": [
+    0.546,
+    0.3202
+  ],
+  "structures": {
+    "population": "Inspected residences exposed to the fire (exposure.json), excluding inaccessible",
+    "n": 9581,
+    "destroyed": 5564,
+    "auc_closer_to_wildland": 0.328,
+    "by_map": {
+      "physics_mc": {
+        "auc": 0.318,
+        "destroyed_rate_by_tercile": [
+          0.78,
+          0.542,
+          0.42
+        ]
+      },
+      "attn_sim": {
+        "auc": 0.315,
+        "destroyed_rate_by_tercile": [
+          0.742,
+          0.63,
+          0.37
+        ]
+      }
+    }
+  },
+  "caveats": [
+    "Two fires: each fire is the other's only training set, so these scores carry large uncertainty.",
+    "The area of interest is the final perimeter plus 2 km, so unburned cells are only those near the fire.",
+    "Risk here is conditional on the January 2025 wind event, not an annual probability.",
+    "Fuel and soil moisture are near-constant across one fire's area at available resolution and are not inputs.",
+    "Ignition likelihood (people, power lines) is not modelled: every burnable cell is equally likely to ignite."
+  ]
+}
