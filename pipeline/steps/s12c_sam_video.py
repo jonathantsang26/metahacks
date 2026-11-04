@@ -8,7 +8,7 @@ prompts, so SAM refines exactly what Sentinel found; the default text mode promp
   eval    labelled frames (image mode) → eval/sam_video.json, scored like eval/sentinel.json
 
 Every raw response is cached in footage/sam_cache/, keyed by the media's hash and the prompt, so a
-re-run (or the demo) never calls the API again. Billing: $0.20 per 1k video frames (50 minimum per
+re-run (or the app) never calls the API again. Billing: $0.20 per 1k video frames (50 minimum per
 request) and $2.50 per 1k images, so a 30 s clip at 30 fps is ~$0.18 per prompt.
 
 Run from pipeline/ (needs MODEL_API_KEY, like tools.smoke_meta):

@@ -2,7 +2,7 @@
 
 Draft text for the hackathon submission form, in the usual Devpost sections. Check the official form's fields and character limits, and trim to fit. Every number here comes from the README (its Evidence table and its Analyst and Post-fire debris flows sections) or `docs/RESULTS.md`; if those change, update this file to match.
 
-The one item left in [brackets] is the demo video URL. Fill it in before submitting.
+The one item left in [brackets] is the video URL. Fill it in before submitting.
 
 ---
 
@@ -100,4 +100,4 @@ Python, numba, scikit-learn, uv, TypeScript, React, Vite, deck.gl, loaders.gl, T
 
 - Code: https://github.com/jonathantsang26/metahacks
 - Live app: https://sentinel-ember.vercel.app
-- Demo video: [video URL]
+- Video: [video URL]
