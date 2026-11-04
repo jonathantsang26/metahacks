@@ -24,6 +24,8 @@ export type SamFrame = {
   prompt: string;
   /** performance.now() when the frame was grabbed. */
   capturedAt: number;
+  /** The video's position when it was grabbed (file sources), for looking up SRT telemetry. */
+  videoTimeS: number | null;
   /** Grab → response, ms (includes encode, upload, SAM and download). */
   rttMs: number;
   /** The server's measured Model API call, ms. */
@@ -33,7 +35,15 @@ export type SamFrame = {
 /** `text`: the prompt "fire". `boxes`: Sentinel's boxes as SAM's object prompts. */
 export type SamMode = 'off' | 'text' | 'boxes';
 
-export type Grab = {image: string; width: number; height: number; boxes?: [number, number, number, number][]; capturedAt: number};
+export type Grab = {
+  image: string;
+  width: number;
+  height: number;
+  boxes?: [number, number, number, number][];
+  capturedAt: number;
+  /** video.currentTime at the grab, for a file source. */
+  videoTimeS?: number | null;
+};
 
 type Reply = {status: number; body: any; retryAfterS?: number};
 export type Post = (g: Grab) => Promise<Reply>;
@@ -79,7 +89,7 @@ export function createSamPoller(post: Post, emit: (e: PollerEvent) => void, now:
         if (r.status === 200) {
           emit({
             kind: 'result',
-            frame: {outlines: b.outlines ?? [], width: b.width ?? g.width, height: b.height ?? g.height, prompt: b.prompt ?? '', capturedAt: g.capturedAt, rttMs: now() - g.capturedAt, apiMs: b.ms ?? null}
+            frame: {outlines: b.outlines ?? [], width: b.width ?? g.width, height: b.height ?? g.height, prompt: b.prompt ?? '', capturedAt: g.capturedAt, videoTimeS: g.videoTimeS ?? null, rttMs: now() - g.capturedAt, apiMs: b.ms ?? null}
           });
         } else if (r.status === 503 || r.status === 404 || r.status === 405) {
           stopped = true;
@@ -132,10 +142,11 @@ export function grabFrame(video: HTMLVideoElement, canvas: HTMLCanvasElement, bo
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
   const capturedAt = performance.now();
+  const videoTimeS = video.currentTime;
   ctx.drawImage(video, 0, 0, width, height);
   const image = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
   const scaled = boxes?.map(b => b.map(v => Math.round(v * scale)) as [number, number, number, number]);
-  return {image, width, height, capturedAt, ...(scaled?.length ? {boxes: scaled} : {})};
+  return {image, width, height, capturedAt, videoTimeS, ...(scaled?.length ? {boxes: scaled} : {})};
 }
 
 /** Polygons as one SVG path (even-odd fill keeps holes open). */

@@ -58,6 +58,12 @@ describe('pose', () => {
 describe('projectDets', () => {
   const nadir = {lat: LAT0, lon: LON0, altMslM: 600, yawDeg: 0, pitchDeg: -90};
 
+  it("carries the frame's timestamp for frame-to-map latency, when given", () => {
+    const det: Det = {box: [W / 2 - 20, H / 2 - 20, W / 2 + 20, H / 2 + 20], cls: 0, score: 0.8};
+    expect(projectDets([det], ['fire'], nadir, cam, {dem: flat(500)}, {...meta(), frameAt: 42})[0].frameAt).toBe(42);
+    expect(projectDets([det], ['fire'], nadir, cam, {dem: flat(500)}, meta())[0]).not.toHaveProperty('frameAt');
+  });
+
   it('nadir camera: a centred box lands under the drone, its corners around it', () => {
     const det: Det = {box: [W / 2 - 20, H / 2 - 20, W / 2 + 20, H / 2 + 20], cls: 0, score: 0.8};
     const [h] = projectDets([det], ['fire'], nadir, cam, {dem: flat(500)}, meta());

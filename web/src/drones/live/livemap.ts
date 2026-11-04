@@ -12,6 +12,7 @@ import {
   type GroundOptions
 } from '../../lib/dronegeo';
 import type {Det} from './decode';
+import {MAX_MASKS, type LiveMask} from './maskmap';
 
 /**
  * LIVE hits on the map: each box the in-browser detector draws, projected onto the terrain with the
@@ -44,6 +45,10 @@ export type LiveHit = {
   onMap: boolean;
   /** Short name of the video source, so a hit can be traced to its clip. */
   sourceName: string;
+  /** performance.now() of the frame the box came from (capture time for a camera, else when it was shown). */
+  frameAt?: number;
+  /** performance.now() when the hit was added to the store. frameAt → mappedAt is the frame-to-map latency. */
+  mappedAt?: number;
 };
 
 /** A hit fades to FADE_MIN over FADE_MS of wall time, and then stays. */
@@ -111,7 +116,15 @@ export function projectDets(
   pose: CameraPose,
   cam: CameraIntrinsics,
   ground: GroundOptions,
-  meta: {tMs: number; videoTimeS: number | null; pose: PoseSource; sourceName: string; nextId: () => number; onMap: (lon: number, lat: number) => boolean}
+  meta: {
+    tMs: number;
+    videoTimeS: number | null;
+    pose: PoseSource;
+    sourceName: string;
+    nextId: () => number;
+    onMap: (lon: number, lat: number) => boolean;
+    frameAt?: number;
+  }
 ): LiveHit[] {
   const out: LiveHit[] = [];
   const anchor = pose.pitchDeg <= -70 ? 'center' : 'bottom-center';
@@ -152,7 +165,8 @@ export function projectDets(
       ground: loc.source,
       pose: meta.pose,
       onMap: meta.onMap(loc.lon, loc.lat),
-      sourceName: meta.sourceName
+      sourceName: meta.sourceName,
+      ...(meta.frameAt !== undefined ? {frameAt: meta.frameAt} : {})
     });
   }
   return out;
@@ -201,6 +215,8 @@ export function fireEdgeNow(hits: LiveHit[], nowMs: number, windowMs = EDGE_WIND
 
 type HitsState = {
   hits: LiveHit[];
+  /** SAM 3.1 masks projected onto the terrain (maskmap.ts). */
+  masks: LiveMask[];
   mode: PoseSource;
   manual: ManualPose | null;
   srt: ParsedSrt | null;
@@ -208,6 +224,7 @@ type HitsState = {
   /** Why the newest frame's boxes were not placed, if they were not. */
   lastError: string | null;
   add: (hits: LiveHit[]) => void;
+  addMasks: (masks: LiveMask[]) => void;
   clear: () => void;
   set: (patch: Partial<Pick<HitsState, 'mode' | 'manual' | 'srt' | 'srtName' | 'lastError'>>) => void;
 };
@@ -217,12 +234,14 @@ export const nextHitId = () => ++seq;
 
 export const useLiveHits = create<HitsState>(set => ({
   hits: [],
+  masks: [],
   mode: 'manual',
   manual: null,
   srt: null,
   srtName: null,
   lastError: null,
   add: hits => set(s => (hits.length ? {hits: s.hits.concat(hits).slice(-MAX_HITS), lastError: null} : s)),
-  clear: () => set({hits: [], lastError: null}),
+  addMasks: masks => set(s => (masks.length ? {masks: s.masks.concat(masks).slice(-MAX_MASKS)} : s)),
+  clear: () => set({hits: [], masks: [], lastError: null}),
   set: patch => set(patch)
 }));

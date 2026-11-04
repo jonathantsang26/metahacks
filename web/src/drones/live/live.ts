@@ -39,6 +39,8 @@ export type LiveStats = {
   /** For a file: position in the file of that frame. */
   firstDetMediaS: number | null;
   dets: Det[];
+  /** performance.now() of the frame `dets` came from (capture time for a camera, else when it was shown). */
+  detsFrameAt: number | null;
   frameW: number;
   frameH: number;
 };
@@ -60,6 +62,7 @@ const EMPTY: LiveStats = {
   firstDetS: null,
   firstDetMediaS: null,
   dets: [],
+  detsFrameAt: null,
   frameW: 0,
   frameH: 0
 };
@@ -184,6 +187,7 @@ export function runLive(video: HTMLVideoElement, overlay: HTMLCanvasElement, det
   let firstDetS: number | null = null;
   let firstDetMediaS: number | null = null;
   let dets: Det[] = [];
+  let detsFrameAt: number | null = null;
   let processed = 0;
   let wake: (() => void) | null = null;
   let cbId = 0;
@@ -248,6 +252,7 @@ export function runLive(video: HTMLVideoElement, overlay: HTMLCanvasElement, det
         firstDetS,
         firstDetMediaS,
         dets,
+        detsFrameAt,
         frameW: video.videoWidth,
         frameH: video.videoHeight
       },
@@ -282,6 +287,7 @@ export function runLive(video: HTMLVideoElement, overlay: HTMLCanvasElement, det
         overlay.height = h;
       }
       dets = r.dets;
+      detsFrameAt = stamp;
       const px = w / Math.max(1, overlay.clientWidth || w);
       if (useLive.getState().showBoxes) drawBoxes(ctx, dets, detector.meta.classes, px);
       else ctx.clearRect(0, 0, w, h);
