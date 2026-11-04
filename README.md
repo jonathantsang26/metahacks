@@ -17,8 +17,7 @@ Built by Jonathan, Dhilen and Ben (CS, UC Berkeley) for the **Meta Global AI Dev
 
 1. **Find the flames.** Our fine-tuned YOLOv8 fire detector runs in the browser (ONNX model, WebAssembly). It draws a box around each flame in a frame in about 0.15 s on one CPU thread.
 2. **Trace each fire.** Meta's **SAM 3.1** turns each fire into a mask from the one-word prompt "fire". No training needed.
-3. **Put it on the map.** Given the drone's position and camera angle (a DJI `.SRT` telemetry track, or typed in), each detection is projected onto a 3D digital twin of the area: real terrain from elevation data and real wind from the HRRR weather model.
-<!-- MASKMAP -->
+3. **Put it on the map.** Given the drone's position and camera angle (a DJI `.SRT` telemetry track, or typed in), each detection is projected onto a 3D digital twin of the area: real terrain from elevation data and real wind from the HRRR weather model. Each live SAM 3.1 mask outline is projected the same way, point by point, and drawn on the map as a fire outline. In our benchmark, a detection reached the map a median 0.21 s after its video frame (p90 0.24 s; [`frame-to-map.json`](web/bench/frame-to-map.json)). That number leaves out drawing the map and SAM's own round trip to Meta. On our GPU-less cloud machine, with the map drawn in software, it took 2.7 s, so on-screen time on a laptop is still to be measured.
 4. **Forecast the next hour.** A **Muse Spark** forecaster looks at the fire's edge, the wind and the slope, and estimates where the front will be in an hour.
 5. **Send the drones.** A Muse Spark commander and three Muse Spark squad agents give six simulated drones waypoints to watch that advancing edge. The drones fly in a MuJoCo physics simulation over the real Eaton Fire terrain, with thrust, wind drag, gust limits, batteries, camera coverage and line of sight. The same simulation is also wrapped as a Gymnasium environment for reinforcement learning.
 
