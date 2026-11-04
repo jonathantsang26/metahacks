@@ -90,9 +90,9 @@ type UiState = {
   setRisk: (patch: Partial<UiState['risk']>) => void;
 };
 
-/** `?tab=risk` opens a tab directly, for shareable links; Drones has no data, so it is never opened. */
+/** `?tab=risk` or `?tab=drones` opens a tab directly, for shareable links. */
 const TAB_PARAM = new URLSearchParams(location.search).get('tab');
-const INITIAL_TAB: Tab = TAB_PARAM === 'risk' ? 'risk' : 'incident';
+const INITIAL_TAB: Tab = TAB_PARAM === 'risk' || TAB_PARAM === 'drones' ? TAB_PARAM : 'incident';
 
 export const useUi = create<UiState>(set => ({
   tab: INITIAL_TAB,
