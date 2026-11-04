@@ -20,7 +20,7 @@ const toForm = (p: ManualPose | null): Record<keyof ManualPose, string> =>
 
 /** Drones rail: where the live boxes land on the map, and the drone pose that puts them there. */
 export function LiveGeoCard({fire}: {fire: FireData}) {
-  const {hits, mode, manual, srt, srtName, lastError, set, clear} = useLiveHits();
+  const {hits, masks, mode, manual, srt, srtName, lastError, set, clear} = useLiveHits();
   const source = useLive(s => s.source);
   const [form, setForm] = useState(() => toForm(manual));
   const [formErr, setFormErr] = useState<string | null>(null);
@@ -134,6 +134,12 @@ export function LiveGeoCard({fire}: {fire: FireData}) {
       <div className="pt-2">
         <Row k="Pose" v={mode === 'srt' ? (srt ? `SRT · ${srtName}` : 'no SRT loaded') : manual ? `manual pose · ${manual.lat.toFixed(4)}, ${manual.lon.toFixed(4)}, ${manual.altAglM} m AGL` : 'not entered'} />
         <Row k="Hits" v={`${hits.length.toLocaleString()} located · ${onMap.toLocaleString()} on this map${hits.length > onMap ? ` · ${(hits.length - onMap).toLocaleString()} outside it` : ''}`} />
+        {masks.length > 0 && (
+          <Row
+            k="SAM masks"
+            v={`${masks.length.toLocaleString()} projected · ${masks.filter(m => m.onMap).length.toLocaleString()} on this map · newest ${masks[masks.length - 1].vertices} vertices${masks[masks.length - 1].dropped ? `, ${masks[masks.length - 1].dropped} above the horizon` : ''}`}
+          />
+        )}
         {lastError && source && <Row k="Not placed" v={<span className="font-mono text-2xs">{lastError}</span>} />}
       </div>
       <div className="px-3 pb-2 pt-1 text-2xs text-muted">
@@ -141,7 +147,7 @@ export function LiveGeoCard({fire}: {fire: FireData}) {
         terrain error, not calibrated. {mode === 'manual' && 'Hits from a typed pose are labelled manual pose.'}
       </div>
       <div className="flex gap-2 px-3 pb-3">
-        <Button onClick={clear} disabled={!hits.length}>
+        <Button onClick={clear} disabled={!hits.length && !masks.length}>
           Clear hits
         </Button>
       </div>
