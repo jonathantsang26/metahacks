@@ -64,9 +64,19 @@ export function LivePlayer({fire}: {fire: FireData}) {
       source.stream.getVideoTracks()[0]?.addEventListener('ended', () => useLive.getState().set({status: 'ended'}));
     } else if (source.url) {
       v.srcObject = null;
+      // A video from another origin taints the canvas unless it is fetched in CORS mode, and the
+      // detector's getImageData then throws. Ask for CORS on http(s) URLs; blob: files need none.
+      const cors = /^https?:/i.test(source.url) && new URL(source.url, location.href).origin !== location.origin;
+      if (cors) v.crossOrigin = 'anonymous';
+      else v.removeAttribute('crossorigin');
       v.src = source.url;
     }
-    v.play().catch(e => set({status: 'error', error: `video would not play: ${e.message ?? e}`}));
+    v.play().catch(e =>
+      set({
+        status: 'error',
+        error: `video would not play: ${e.message ?? e}${v.crossOrigin ? ' (a video from another site must be served with CORS headers, Access-Control-Allow-Origin)' : ''}`
+      })
+    );
     return () => {
       v.removeEventListener('loadeddata', onReady);
       v.pause();

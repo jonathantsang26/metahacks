@@ -2,7 +2,7 @@
 
 Draft text for the hackathon submission form, in the usual Devpost sections. Check the official form's fields and character limits, and trim to fit. Every number here comes from the README (its Evidence table and its Analyst and Post-fire debris flows sections) or `docs/RESULTS.md`; if those change, update this file to match.
 
-The one item left in [brackets] is the demo video URL. Fill it in before submitting.
+The one item left in [brackets] is the video URL. Fill it in before submitting.
 
 ---
 
@@ -53,14 +53,14 @@ Every layer is tagged REAL or MODELED, and every source with its licence is list
 | HRRR vs ERA5, hourly wind against the nearest airport station (r) | 0.90 vs 0.71 | 0.85 vs 0.75 |
 | Odds of destruction, fine-mesh vs coarse vents, at matched exposure (95% CI) | 0.35 (0.31–0.40) | 0.50 (0.45–0.56) |
 | Odds of destruction, tile/metal/concrete vs asphalt/wood roof | 0.59 (0.53–0.66) | 0.58 (0.53–0.64) |
-| Analyst live on `muse-spark-1.3`: answers matching the data-derived truth; cited ids a tool returned | 13/14; 20/20 | 12/13; 17/17 |
+| Analyst live on `muse-spark-1.3`: answers matching the data-derived truth; cited ids a tool returned | 17/17; 23/23 | 16/16; 20/20 |
 
 The back-trace beats the usual baseline on start time for both fires. On location it is mixed: for Eaton the first perimeter's centroid is closer on the median, and the back-trace wins once the early perimeters are held out. The house-level results are associations adjusted for recorded exposure, not effects. On debris flows, machine learning did not clearly beat USGS's model: on records that model was not fitted on, the random forest's median within-storm ROC AUC is +0.015 above it, with a 95% interval (−0.063 to +0.097) that includes zero.
 
 ## Use of Meta models
 
-- **Muse Spark (`muse-spark-1.3`)** is the analyst: a tool-calling loop whose answers are verified on the server before the user sees them. It was run live against the eval on both fires: 13 of 14 Eaton and 12 of 13 Palisades questions correct, with the must-decline start-time questions declined and all 37 cited ids taken from a tool result. Both misses were our street tool's 40 m sampling, not the model; the tool has since been fixed, and a rerun is pending. It also runs live on the public site, behind a hard spend cap and per-visitor rate limits.
-- **SAM 3.1 (`sam-3.1`)** passes a live smoke test against the Meta Model API: it masks the smoke in one public-domain photo (`pipeline/logs/smoke-meta.log`). The drone stream that uses it, SAM 3.1 masks on drone clips seeded by Sentinel's detections, in the app's Drones tab, is in progress ([PR #5](https://github.com/jonathantsang26/metahacks/pull/5)) and not merged.
+- **Muse Spark (`muse-spark-1.3`)** is the analyst: a tool-calling loop whose answers are verified on the server before the user sees them. Its first live eval run got 13 of 14 Eaton and 12 of 13 Palisades questions right; both misses were our street tool's 40 m sampling, not the model. After fixing the tool, the live rerun (2026-11-03) got 17 of 17 and 16 of 16, with the must-decline start-time questions declined and all 43 cited ids taken from a tool result. Muse Spark also made the Eaton +1 h spread forecasts and flew the simulated drone swarm as commander and squad agents; those runs were live and their outputs are cached and replayed in the app. It also runs live on the public site, behind a hard spend cap and per-visitor rate limits.
+- **SAM 3.1 (`sam-3.1`)** outlines fire in the Drones tab. In Live mode, frames from a camera, screen or video stream go to SAM 3.1 through the app's `/api/sam` route while Sentinel has a box. On the bundled clips the masks were computed once through the API and are cached. On the DeepQuest test split it detects fire or smoke frames at precision 1.00 and recall 0.945.
 
 ## Challenges
 
@@ -83,17 +83,16 @@ The hard part of forensic reconstruction isn't the model, it's saying how sure y
 
 - A fuller spotting model and gust variability in the spread model, so it can grow fires like Palisades.
 - Turning the Risk tab's per-storm likelihood into a yearly chance with NOAA Atlas 14 return periods.
-- Rerunning the live analyst eval with the fixed street tool.
-- Finishing the drone stream (in progress in [PR #5](https://github.com/jonathantsang26/metahacks/pull/5)): Sentinel detection and SAM 3.1 segmentation on real drone footage, scored on FLAME 2.
+- Running the live drone detection on a real drone feed with flight telemetry, and scoring it on FLAME 2.
 - More fires: the pipeline takes each fire from one entry in `pipeline/fire.yaml`.
 
 ## Built with
 
-Python, numba, scikit-learn, uv, TypeScript, React, Vite, deck.gl, loaders.gl, Tailwind, Vercel, Upstash Redis, Meta Model API (Muse Spark; SAM 3.1 in a smoke test), NOAA HRRR, Open-Meteo, ERA5-Land, NIFC, CAL FIRE DINS, NASA JPL AVIRIS-3, ESA WorldCover, USGS post-fire debris-flow inventory and hazard assessments.
+Python, numba, scikit-learn, uv, TypeScript, React, Vite, deck.gl, loaders.gl, Tailwind, Vercel, Upstash Redis, Meta Model API (Muse Spark, SAM 3.1), onnxruntime-web, MuJoCo, NOAA HRRR, Open-Meteo, ERA5-Land, NIFC, CAL FIRE DINS, NASA JPL AVIRIS-3, ESA WorldCover, USGS post-fire debris-flow inventory and hazard assessments.
 
 ## Prior work and credits
 
-- **Sentinel** ([`benjaminxie1/sentinel-app`](https://github.com/benjaminxie1/sentinel-app)) is a team member's earlier open-source fire and smoke detector. Its shipped model file, `fire_yolov8n.pt`, turned out to be the stock COCO YOLOv8n with no fire class, so for the drone stream we fine-tuned it on FireNET during the hackathon (in [PR #5](https://github.com/jonathantsang26/metahacks/pull/5), not yet merged). Everything else was built during the hackathon.
+- **Sentinel** ([`benjaminxie1/sentinel-app`](https://github.com/benjaminxie1/sentinel-app)) is a team member's earlier open-source fire and smoke detector. Its shipped model file, `fire_yolov8n.pt`, turned out to be the stock COCO YOLOv8n with no fire class, so for the drone stream we fine-tuned it on FireNET during the hackathon ([PR #5](https://github.com/jonathantsang26/metahacks/pull/5)) and exported it to ONNX to run in the browser. Sentinel itself is prior work; everything else, including that fine-tuning, was built during the hackathon.
 - The layout and interaction model are inspired by Dilum Sanjaya's "FireTrace" wildfire-analysis concept, shared on X. Its name and logo are not used.
 - Data sources and licences are listed in each fire's `manifest.json` and in the app's Evidence tab.
 
@@ -101,4 +100,4 @@ Python, numba, scikit-learn, uv, TypeScript, React, Vite, deck.gl, loaders.gl, T
 
 - Code: https://github.com/jonathantsang26/metahacks
 - Live app: https://sentinel-ember.vercel.app
-- Demo video: [video URL]
+- Video: [video URL]
