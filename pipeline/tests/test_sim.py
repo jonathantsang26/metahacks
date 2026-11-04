@@ -187,3 +187,20 @@ def test_every_drone_stays_at_or_under_120_m(world):
             if mode == 1:  # flying a survey leg
                 x, y = world.to_local(lon, lat)
                 assert alt - world.ground(x, y) < 135  # 120 m plus controller overshoot over steep ground
+
+
+def test_agent_events_mark_failed_commander_calls():
+    """A commander call that failed keeps the previous tasks in the decision; the event log must
+    still show it as failed, and a partly usable reply as done."""
+    from sim.run import agent_events
+
+    tasks = [{"squad": q, "center_km": [1.0, 1.0], "radius_km": 1.0, "objective": "search"} for q in range(3)]
+    dec = lambda t, errs, a="": {"t": t, "assessment": a, "tasks": tasks, "squad_notes": {}, "errors": errs,
+                                 "waypoints_km": {}}
+    doc = {"policy": "muse", "model": "m", "t0": "2025-01-09T00:00:00Z", "tracks": [[] for _ in range(6)],
+           "decisions": [dec("2025-01-09T00:00:00Z", [], "ok"),
+                         dec("2025-01-09T00:15:00Z", ["commander: API error  Connection error.",
+                                                      "commander: no usable tasks; squads kept their previous tasks"]),
+                         dec("2025-01-09T00:30:00Z", ["commander: 5 tasks returned, 1 malformed or extra, ignored"], "part")]}
+    cmd = [e["status"] for e in agent_events(doc) if e["agent"] == "commander"][1:]
+    assert cmd == ["done", "failed", "done"]

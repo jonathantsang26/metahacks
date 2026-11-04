@@ -138,16 +138,21 @@ def agent_events(doc: dict) -> list[dict]:
             if not f:
                 emit(t, by["forecaster"], "failed", "No forecast: fewer than two official maps before this time.")
             elif f.get("rejected"):
-                emit(t, by["forecaster"], "failed", "Forecast rejected by the validator (malformed sectors); no growth assumed.")
+                emit(t, by["forecaster"], "failed", "Forecast call failed or its reply was rejected by the validator; no growth assumed.")
             else:
                 ga = f.get("growth_areas") or []
                 top = ", ".join(f"{g['area_ha']} ha at {g['bearing_deg']}°" for g in ga[:3])
                 emit(t, by["forecaster"], "done", f"From the {f['from_map_utc'][11:16]}Z map: {len(ga)} growth areas by {f['valid_utc'][11:16]}Z" + (f" ({top})" if top else ""))
-        cmd_err = any(e.startswith("commander") for e in errs)
+        # A commander error other than a partly usable reply means the call failed or gave no usable
+        # tasks; the squads then kept their previous tasks, so `tasks` is not this call's output.
+        cmd_failed = any(e.startswith("commander") and "tasks returned" not in e for e in errs)
         if muse_cmd:
             tasks = d.get("tasks") or []
-            txt = scrub(d.get("assessment") or "") or "; ".join(f"squad {x['squad']}: {x['objective']} at {x['center_km']}" for x in tasks)
-            emit(t, by["commander"], "failed" if cmd_err and not tasks else "done", txt or "No usable tasks.")
+            if cmd_failed:
+                emit(t, by["commander"], "failed", "Call failed or gave no usable tasks; squads kept their previous tasks.")
+            else:
+                txt = scrub(d.get("assessment") or "") or "; ".join(f"squad {x['squad']}: {x['objective']} at {x['center_km']}" for x in tasks)
+                emit(t, by["commander"], "done", txt or "No usable tasks.")
         else:
             wp = d.get("waypoints_km") or {}
             emit(t, by["commander"], "done", f"Rule: {len(wp)} drones re-planned" + (" toward the forecast edge" if has_fc else ""))
