@@ -10,8 +10,6 @@ import {SwarmPanel} from './swarm';
 import {POSTERIOR_THUMB, SCAR_THUMB} from './ramps';
 import {WeatherCard} from './weather';
 
-export {Card} from './ui';
-
 /** A 28×28 SVG drawing as a CSS background layer, for thumbnails a gradient cannot draw. */
 const svgThumb = (body: string) =>
   `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'>${body}</svg>`)}") center/100% no-repeat,`;
