@@ -16,7 +16,8 @@
     "ask": "tsx scripts/ask.ts",
     "eval:analyst": "tsx scripts/eval-analyst.ts",
     "sam:latency": "tsx scripts/sam-latency.ts",
-    "bench:detector": "node scripts/bench-detector.mjs"
+    "bench:detector": "node scripts/bench-detector.mjs",
+    "bench:frame-to-map": "node scripts/bench-frame-to-map.mjs"
   },
   "dependencies": {
     "@deck.gl/core": "^9.1.0",
