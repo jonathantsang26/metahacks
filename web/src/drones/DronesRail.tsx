@@ -1,8 +1,12 @@
+import {useEffect} from 'react';
 import type {FireData} from '../data/fire';
 import {useFireJson} from '../data/files';
 import {Button, Card, Chip, Missing, Row, Stat, SubHead} from '../rail/ui';
 import {Icon} from '../ui/Icon';
 import {fmtClock, fmtPct, useClipOverlays, useClips, useFootage, useSelectedClip, type Clip, type DetectorEval} from './footage';
+import {useLive} from './live/live';
+import {LiveCard} from './live/LiveRail';
+import {LiveGeoCard} from './live/LiveGeoCard';
 
 function ClipRow({clip, active, onClick}: {clip: Clip; active: boolean; onClick: () => void}) {
   const length = clip.window_s ? clip.window_s[1] - clip.window_s[0] : null;
@@ -114,13 +118,20 @@ function EvalCard({fire}: {fire: FireData}) {
   );
 }
 
-/** Drones tab rail: the processed clips, the selected clip's detail, and the detector evaluation. */
+/** Drones tab rail: live detection, the processed clips, the selected clip's detail, and the detector evaluation. */
 export function DronesRail({fire}: {fire: FireData}) {
   const clips = useClips(fire);
   const clip = useSelectedClip(fire);
-  const {clipId, select} = useFootage();
+  const {clipId, select, autoOpen} = useFootage();
+  // Open the first clip on arrival, so the tab lands on playing footage instead of the incident map.
+  const first = clips.data?.[0]?.id;
+  useEffect(() => {
+    if (first) autoOpen(first);
+  }, [first, autoOpen]);
   return (
     <>
+      <LiveCard fire={fire} />
+      <LiveGeoCard fire={fire} />
       <Card title="Drone Footage" aside={clips.data && <span className="text-xs text-muted">{clips.data.length} clips</span>}>
         {!clips.data ? (
           clips.error ? (
@@ -140,7 +151,11 @@ export function DronesRail({fire}: {fire: FireData}) {
             )}
             <ul className="py-1">
               {clips.data.map(c => (
-                <ClipRow key={c.id} clip={c} active={c.id === clipId} onClick={() => select(c.id === clipId ? null : c.id)} />
+                <ClipRow key={c.id} clip={c} active={c.id === clipId} onClick={() => {
+                    useLive.getState().close();
+                    select(c.id === clipId ? null : c.id);
+                  }}
+                />
               ))}
             </ul>
           </>

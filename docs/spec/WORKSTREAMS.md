@@ -11,7 +11,7 @@ Sentinel is Ben's detector, so C is the natural stream for him. If Ben is on a 2
 |---|---|---|---|
 | **A: Data & forensics** | 20x | `pipeline/` (except vision steps), `web/api/` | Turn public data into every file the app reads; the ignition back-trace; the analyst's backend |
 | **B: Web app** | 20x | `web/src/` | Everything rendered in the browser: map, fire, panels, charts, analyst chat, footage player |
-| **C: Vision & story** | 5x | `pipeline/steps/s12*.py`, `s09c_*.py`, `pipeline/tools/`, `footage/`, submission text | Sentinel + SAM 3.1 on drone footage with eval numbers; the demo video and submission |
+| **C: Vision & story** | 5x | `pipeline/steps/s12*.py`, `s09c_*.py`, `pipeline/tools/`, `footage/`, submission text | Sentinel + SAM 3.1 on drone footage with eval numbers; the submission video and write-up |
 
 **Start a session** in any stream with: *"Read docs/spec/BUILD.md §0, then docs/spec/WORKSTREAMS.md §<A|B|C>, then do today's row for my stream."*
 
@@ -104,13 +104,13 @@ Steps `s14_debris_models.py` (shared across fires) and `s15_debris_fire.py` (per
 | Sat | Perimeter at time t (contour or isochrones), spine + waypoints + spread arrows, the three Incident charts from `series.json`/`profile.json` with past-solid/future-faded styling, Key Events from `events.json` that highlight as t passes | Scrubbing moves map, charts and events together |
 | Sun | Notes tab: the analyst chat with citation chips that fly the camera and set t (DESIGN §9). Analysis tab: ignition heatmap and hold-out stat, plus the Homes panel. Weather card from `weather.json`. 2D polish. | Click a citation and the camera flies to it |
 | Mon | Drones tab as a footage player: clip list, PiP with HUD, Sentinel boxes + SAM mask paths in sync with video time, the Detections list, Full camera view. **Feature freeze 11 pm.** | 3-minute run-through works end to end |
-| Tue | Polish; help C record the demo | — |
+| Tue | Polish; help C record the video | — |
 
 **Watch for**: `fireTime` is normalized to `aoi.window_utc`, so re-read `aoi.json` whenever A changes it; keep every simulated element labelled `SIM`; times are computed in `America/Los_Angeles` (PST in January).
 
 ## 4. Stream C: Vision & story (5x)
 
-**You own** `pipeline/steps/s12_sentinel.py`, `s12c_sam_video.py`, `s09c_sam_structures.py`, `pipeline/tools/`, `footage/` (gitignored), and the submission text. **You deliver** C → B footage files, the eval numbers, the demo video and the README/submission write-up.
+**You own** `pipeline/steps/s12_sentinel.py`, `s12c_sam_video.py`, `s09c_sam_structures.py`, `pipeline/tools/`, `footage/` (gitignored), and the submission text. **You deliver** C → B footage files, the eval numbers, the submission video and the README/submission write-up.
 
 This stream is light on Claude usage by design. Most of the time goes to downloads, API runs, evals and editing. Keep sessions short and scoped to one step.
 
@@ -119,8 +119,8 @@ This stream is light on Claude usage by design. Most of the time goes to downloa
 | Thu | Get the Meta Model API key, put it in `.env`, and run `make smoke-meta ARGS="--image <fire photo>"`. Request SAM 3 Hugging Face access (fallback only). Start the FLAME 2 download (13.6 GB). | **Both Meta models answered a real request** |
 | Fri | Step 12/12b: Sentinel (`vendor/sentinel-app`, `fire_yolov8n.pt`) on a FLAME 2 sample, scored against its fire/smoke frame labels. Step 12c: SAM 3.1 on the same sample, using the hosted API. Go/no-go on post-fire aerial imagery for 9c. | Two precision/recall numbers in `eval/` |
 | Sat | Trim 3–4 clips to ≤ 30 s (MP4, H.264). Produce `clips.json`, `detections/`, `masks/`. Shoot your own drone b-roll (TRUST/Part 107, B4UFLY, never over people). | B can load the footage files |
-| Sun | Step 9c if it's a go (SAM `destroyed building` vs DINS); otherwise draft the analyst eval questions with A. Write the demo script (BUILD.md §10). | Script and shot list ready |
+| Sun | Step 9c if it's a go (SAM `destroyed building` vs DINS); otherwise draft the analyst eval questions with A. Write the video script (BUILD.md §10). | Script and shot list ready |
 | Mon | Rehearse with B; draft the README's Real-vs-Sim table and eval section, and the submission form text | Draft README reviewed |
-| Tue | Record and edit the demo video; finalize the README and submission; **submit by 6 pm** | Submitted |
+| Tue | Record and edit the submission video; finalize the README and submission; **submit by 6 pm** | Submitted |
 
-**Watch for**: SAM video calls are billed per frame (≥ 50 frames per request), so cache every response and never call it live in the demo. If Sentinel scores poorly on top-down footage, say so, pick clips where it works, and consider a quick fine-tune with Sentinel's `model_trainer.py` on FLAME 2 frames.
+**Watch for**: SAM video calls are billed per frame (≥ 50 frames per request), so cache every response and never call it live in the app. If Sentinel scores poorly on top-down footage, say so, pick clips where it works, and consider a quick fine-tune with Sentinel's `model_trainer.py` on FLAME 2 frames.

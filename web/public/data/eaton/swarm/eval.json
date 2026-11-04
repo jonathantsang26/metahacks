@@ -1,0 +1,414 @@
+{
+  "label": "SIM",
+  "disclaimer": "Simulated drones flown over a replay of the real fire: real terrain, the reconstructed spread (interpolated between mapped perimeters) and HRRR wind. No drones flew this fire.",
+  "metric_notes": {
+    "front_seen_within_60min": "Share of cells the fire reached during the episode that a drone camera saw within 60 min of the interpolated arrival time.",
+    "front_seen_within_30min": "The same within 30 min; arrival times move in about 28 min steps, so this one is coarse.",
+    "front_seen_ever": "Share of those cells seen at any time before the episode ended.",
+    "mean_map_awareness": "Hourly mean of the share of the burned area the swarm had seen by then.",
+    "median_latency_min": "Median minutes from interpolated arrival to first sighting, over cells that were seen.",
+    "events": "Minutes from each mapped event's time to the first sighting of burned ground within 500 m (negative = seen before the mapped time; null = never seen)."
+  },
+  "policies": {
+    "forecast-map-edge": {
+      "runs": 3,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "model": null,
+      "front_seen_within_60min": {
+        "mean": 0.2115,
+        "min": 0.2112,
+        "max": 0.2118
+      },
+      "front_seen_within_30min": {
+        "mean": 0.1218,
+        "min": 0.1217,
+        "max": 0.1219
+      },
+      "front_seen_ever": {
+        "mean": 0.439,
+        "min": 0.4389,
+        "max": 0.4391
+      },
+      "mean_map_awareness": {
+        "mean": 0.3373,
+        "min": 0.3371,
+        "max": 0.3376
+      },
+      "median_latency_min": {
+        "mean": 61.3333,
+        "min": 61.3,
+        "max": 61.4
+      },
+      "flight_hours": {
+        "mean": 46.13,
+        "min": 46.12,
+        "max": 46.14
+      },
+      "wind_grounded_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-09T00:00:00Z",
+      "t_end": "2025-01-09T12:00:00Z",
+      "events": {}
+    },
+    "forecast-physics": {
+      "runs": 3,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "model": null,
+      "front_seen_within_60min": {
+        "mean": 0.1799,
+        "min": 0.1798,
+        "max": 0.18
+      },
+      "front_seen_within_30min": {
+        "mean": 0.1027,
+        "min": 0.1026,
+        "max": 0.1027
+      },
+      "front_seen_ever": {
+        "mean": 0.4265,
+        "min": 0.4265,
+        "max": 0.4266
+      },
+      "mean_map_awareness": {
+        "mean": 0.279,
+        "min": 0.279,
+        "max": 0.2791
+      },
+      "median_latency_min": {
+        "mean": 72.0,
+        "min": 72.0,
+        "max": 72.0
+      },
+      "flight_hours": {
+        "mean": 42.85,
+        "min": 42.85,
+        "max": 42.85
+      },
+      "wind_grounded_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-09T00:00:00Z",
+      "t_end": "2025-01-09T12:00:00Z",
+      "events": {}
+    },
+    "greedy": {
+      "runs": 3,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "model": null,
+      "front_seen_within_60min": {
+        "mean": 0.1401,
+        "min": 0.1367,
+        "max": 0.1469
+      },
+      "front_seen_within_30min": {
+        "mean": 0.1009,
+        "min": 0.098,
+        "max": 0.1065
+      },
+      "front_seen_ever": {
+        "mean": 0.2156,
+        "min": 0.1967,
+        "max": 0.2533
+      },
+      "mean_map_awareness": {
+        "mean": 0.1695,
+        "min": 0.1632,
+        "max": 0.182
+      },
+      "median_latency_min": {
+        "mean": 32.6333,
+        "min": 28.1,
+        "max": 41.7
+      },
+      "flight_hours": {
+        "mean": 42.77,
+        "min": 42.71,
+        "max": 42.89
+      },
+      "wind_grounded_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-09T00:00:00Z",
+      "t_end": "2025-01-09T12:00:00Z",
+      "events": {}
+    },
+    "lawnmower": {
+      "runs": 3,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "model": null,
+      "front_seen_within_60min": {
+        "mean": 0.1522,
+        "min": 0.1519,
+        "max": 0.1525
+      },
+      "front_seen_within_30min": {
+        "mean": 0.1138,
+        "min": 0.1137,
+        "max": 0.1139
+      },
+      "front_seen_ever": {
+        "mean": 0.2847,
+        "min": 0.2846,
+        "max": 0.2848
+      },
+      "mean_map_awareness": {
+        "mean": 0.1963,
+        "min": 0.1962,
+        "max": 0.1963
+      },
+      "median_latency_min": {
+        "mean": 45.5667,
+        "min": 45.0,
+        "max": 45.9
+      },
+      "flight_hours": {
+        "mean": 47.48,
+        "min": 47.48,
+        "max": 47.48
+      },
+      "wind_grounded_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-09T00:00:00Z",
+      "t_end": "2025-01-09T12:00:00Z",
+      "events": {}
+    },
+    "muse-fcst-muse": {
+      "runs": 1,
+      "seeds": [
+        0
+      ],
+      "model": "muse-spark-1.3",
+      "front_seen_within_60min": {
+        "mean": 0.2056,
+        "min": 0.2056,
+        "max": 0.2056
+      },
+      "front_seen_within_30min": {
+        "mean": 0.1104,
+        "min": 0.1104,
+        "max": 0.1104
+      },
+      "front_seen_ever": {
+        "mean": 0.3729,
+        "min": 0.3729,
+        "max": 0.3729
+      },
+      "mean_map_awareness": {
+        "mean": 0.3263,
+        "min": 0.3263,
+        "max": 0.3263
+      },
+      "median_latency_min": {
+        "mean": 52.3,
+        "min": 52.3,
+        "max": 52.3
+      },
+      "flight_hours": {
+        "mean": 39.56,
+        "min": 39.56,
+        "max": 39.56
+      },
+      "wind_grounded_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-09T00:00:00Z",
+      "t_end": "2025-01-09T12:00:00Z",
+      "spent_usd": 3.46,
+      "model_errors": 32,
+      "model_calls": 198,
+      "events": {}
+    },
+    "muse-hybrid": {
+      "runs": 3,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "model": "muse-spark-1.3",
+      "front_seen_within_60min": {
+        "mean": 0.1249,
+        "min": 0.0907,
+        "max": 0.1582
+      },
+      "front_seen_within_30min": {
+        "mean": 0.0902,
+        "min": 0.0696,
+        "max": 0.1096
+      },
+      "front_seen_ever": {
+        "mean": 0.228,
+        "min": 0.1407,
+        "max": 0.2853
+      },
+      "mean_map_awareness": {
+        "mean": 0.2001,
+        "min": 0.1803,
+        "max": 0.2233
+      },
+      "median_latency_min": {
+        "mean": 45.5333,
+        "min": 25.6,
+        "max": 64.9
+      },
+      "flight_hours": {
+        "mean": 43.8333,
+        "min": 43.26,
+        "max": 44.68
+      },
+      "wind_grounded_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-09T00:00:00Z",
+      "t_end": "2025-01-09T12:00:00Z",
+      "spent_usd": 1.85,
+      "model_errors": 4,
+      "model_calls": 144,
+      "events": {}
+    },
+    "muse": {
+      "runs": 3,
+      "seeds": [
+        0,
+        1,
+        2
+      ],
+      "model": "muse-spark-1.3",
+      "front_seen_within_60min": {
+        "mean": 0.1358,
+        "min": 0.0907,
+        "max": 0.17
+      },
+      "front_seen_within_30min": {
+        "mean": 0.1066,
+        "min": 0.0799,
+        "max": 0.1389
+      },
+      "front_seen_ever": {
+        "mean": 0.2313,
+        "min": 0.1565,
+        "max": 0.284
+      },
+      "mean_map_awareness": {
+        "mean": 0.1943,
+        "min": 0.1529,
+        "max": 0.2243
+      },
+      "median_latency_min": {
+        "mean": 31.4,
+        "min": 17.6,
+        "max": 43.8
+      },
+      "flight_hours": {
+        "mean": 52.7867,
+        "min": 52.18,
+        "max": 53.56
+      },
+      "wind_grounded_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-09T00:00:00Z",
+      "t_end": "2025-01-09T12:00:00Z",
+      "spent_usd": 7.15,
+      "model_errors": 6,
+      "model_calls": 573,
+      "events": {}
+    },
+    "greedy_night": {
+      "runs": 1,
+      "seeds": [
+        0
+      ],
+      "model": null,
+      "front_seen_within_60min": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "front_seen_within_30min": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "front_seen_ever": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "mean_map_awareness": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "median_latency_min": null,
+      "flight_hours": {
+        "mean": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "wind_grounded_hours": {
+        "mean": 12.0,
+        "min": 12.0,
+        "max": 12.0
+      },
+      "crashes": 0,
+      "t0": "2025-01-08T02:30:00Z",
+      "t_end": "2025-01-08T14:30:00Z",
+      "events": {
+        "e3": {
+          "label": "Ridge crossing (860 m)",
+          "t": "2025-01-08T07:05:02Z",
+          "first_seen_min": [
+            null
+          ]
+        },
+        "e4": {
+          "label": "Fastest mapped growth (+488 acres/h, averaged over the 4.9 h before this perimeter)",
+          "t": "2025-01-08T07:12:13Z",
+          "first_seen_min": [
+            null
+          ]
+        }
+      }
+    }
+  }
+}

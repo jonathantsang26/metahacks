@@ -1,13 +1,11 @@
 """Step 07 contract + unit tests: offline, against committed weather.json / weather_station.json."""
 
-import json
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import pytest
 
 from steps.s07_weather import (
-    MPH_TO_MPS,
     _get,
     distance_km,
     flag_isolated_drops,

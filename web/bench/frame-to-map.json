@@ -1,0 +1,175 @@
+{
+  "what": "Frame → map latency of Drones → Live in the real app (Vite dev server), headless browser, bundled test clip played as a video file, typed-in pose",
+  "date": "2026-11-04T03:33:09.520Z",
+  "command": "node scripts/bench-frame-to-map.mjs --seconds 60 --warmup 5 --viewport 1440x900 --map drawn,hidden",
+  "browser": "CHROME_PATH=/usr/bin/google-chrome 153.0.8010.12",
+  "machine": {
+    "platform": "linux 6.18.44-fc-v233",
+    "arch": "x64",
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "logical_cpus": 4,
+    "gpu": "none (headless Chrome renders WebGL with SwiftShader, on the CPU)"
+  },
+  "clip": "public/data/eaton/footage/clips/blm-north-bank.mp4",
+  "viewport": [
+    1440,
+    900
+  ],
+  "pose": {
+    "kind": "manual (typed)",
+    "lat_lon": "Eaton map centre (Map centre button)",
+    "alt_agl_m": 120,
+    "heading_deg": 0,
+    "pitch_deg": -45,
+    "hfov_deg": 73
+  },
+  "timing_note": [
+    "hit: frameAt = the video frame's presentation time (requestVideoFrameCallback; capture time for a camera) → mappedAt = the projected hit added to the map store. Includes waiting for the detector to be free, detection (YOLOv8n, onnxruntime-web WASM, on the main thread), drawing the boxes, the live loop's 250 ms publish tick, and the ray cast onto the DEM.",
+    "mask: frameAt = when the frame was grabbed for SAM → mappedAt = the projected polygon added to the map store. /api/sam is MOCKED with a fixed outline answered at once: SAM 3.1 inference and the network to the Meta Model API are EXCLUDED. Included: JPEG encode, the local request/JSON round trip (through Playwright request interception), outline simplification and the ray casts. SAM is sent at most one frame every 2 s.",
+    "*_next_frame (map drawn only): the first requestAnimationFrame callback after the add; deck.gl redraws its layers in that frame, so this approximates on-screen time. Not a pixel readback.",
+    "map_drawn: the 3D map is drawn as users see it. This machine has no GPU, so Chrome renders WebGL in software (SwiftShader) and each deck.gl redraw blocks the main thread for seconds (see main_thread_long_tasks); detection, the publish tick and the SAM request all wait behind it. map_hidden: the same run with the map canvas display:none, so deck.gl draws nothing; this isolates the pipeline (detect → project → store) from software rendering. Neither is a GPU measurement.",
+    "The first 5 s of samples are dropped as warm-up. Dev server (unminified React)."
+  ],
+  "runs": {
+    "map_drawn": {
+      "ms": {
+        "frame_to_map_hit": {
+          "median": 2740.1,
+          "p90": 2871.6,
+          "min": 186.1,
+          "max": 5167.9,
+          "n": 22
+        },
+        "frame_to_map_mask_excl_sam": {
+          "median": 8241.7,
+          "p90": 8526.1,
+          "min": 5618.2,
+          "max": 8526.1,
+          "n": 7
+        },
+        "frame_to_map_hit_next_frame": {
+          "median": 2925.6,
+          "p90": 3139.8,
+          "min": 376.7,
+          "max": 5369.4,
+          "n": 21
+        },
+        "frame_to_map_mask_excl_sam_next_frame": {
+          "median": 8442.4,
+          "p90": 8718.9,
+          "min": 5647.2,
+          "max": 8718.9,
+          "n": 7
+        },
+        "sam_mock_round_trip": {
+          "median": 8239.7,
+          "p90": 8525.1,
+          "min": 5616.8,
+          "max": 8525.1,
+          "n": 7
+        }
+      },
+      "counts": {
+        "hits": 22,
+        "hits_on_map": 22,
+        "masks": 7,
+        "masks_on_map": 7,
+        "sam_requests_mocked": 8
+      },
+      "mask_example": {
+        "vertices_after_simplify": 19,
+        "dropped_above_horizon": 0,
+        "area_m2": 467
+      },
+      "main_thread_long_tasks": {
+        "count": 48,
+        "total_ms": 96172,
+        "ms": {
+          "median": 2700,
+          "p90": 2945,
+          "min": 59,
+          "max": 3647,
+          "n": 48
+        }
+      },
+      "live": {
+        "backend": "wasm",
+        "threads": 1,
+        "frame": [
+          1280,
+          720
+        ],
+        "framesSeen": 2577,
+        "framesProcessed": 39,
+        "procFps": 0.69,
+        "inferMsMedian": 168,
+        "frameToBoxesDrawnMsMedian": 204,
+        "e2eBasis": "presented"
+      },
+      "sam_error": null
+    },
+    "map_hidden": {
+      "ms": {
+        "frame_to_map_hit": {
+          "median": 211.4,
+          "p90": 240.7,
+          "min": 176.9,
+          "max": 419.9,
+          "n": 198
+        },
+        "frame_to_map_mask_excl_sam": {
+          "median": 604.2,
+          "p90": 689,
+          "min": 202.9,
+          "max": 732.9,
+          "n": 25
+        },
+        "sam_mock_round_trip": {
+          "median": 590.7,
+          "p90": 679.3,
+          "min": 202.6,
+          "max": 732.8,
+          "n": 20
+        }
+      },
+      "counts": {
+        "hits": 198,
+        "hits_on_map": 198,
+        "masks": 25,
+        "masks_on_map": 25,
+        "sam_requests_mocked": 28
+      },
+      "mask_example": {
+        "vertices_after_simplify": 19,
+        "dropped_above_horizon": 0,
+        "area_m2": 467
+      },
+      "main_thread_long_tasks": {
+        "count": 321,
+        "total_ms": 63950,
+        "ms": {
+          "median": 191,
+          "p90": 220,
+          "min": 52,
+          "max": 1492,
+          "n": 321
+        }
+      },
+      "live": {
+        "backend": "wasm",
+        "threads": 1,
+        "frame": [
+          1280,
+          720
+        ],
+        "framesSeen": 1912,
+        "framesProcessed": 313,
+        "procFps": 4.73,
+        "inferMsMedian": 178,
+        "frameToBoxesDrawnMsMedian": 204,
+        "e2eBasis": "presented"
+      },
+      "sam_error": null
+    }
+  }
+}

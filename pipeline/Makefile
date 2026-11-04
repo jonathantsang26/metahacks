@@ -33,7 +33,9 @@ dem: aoi
 landcover: dem
 	$(RUN) steps.s03_landcover
 
-# Skips cleanly (and records why in the manifest) when FIRMS_MAP_KEY is not set.
+# Without FIRMS_MAP_KEY it prints a note and skips: no request is made and nothing is written,
+# not even to the manifest. Step 06 then uses the perimeters alone, unless an earlier keyed run
+# left a hotspots.geojson.
 firms: aoi
 	$(RUN) steps.s04_firms
 

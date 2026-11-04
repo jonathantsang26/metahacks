@@ -18,7 +18,9 @@ export type LayerId =
   | 'structures'
   | 'roads'
   | 'labels'
-  | 'debrisFlow';
+  | 'debrisFlow'
+  | 'forecast'
+  | 'liveHits';
 
 export type LayerDef = {
   id: LayerId;
@@ -41,7 +43,9 @@ export const LAYERS: LayerDef[] = [
   {id: 'structures', label: 'Structures', visible: false, opacity: null, ready: true},
   {id: 'roads', label: 'Roads & Trails', visible: false, opacity: null, ready: true},
   {id: 'labels', label: 'Place Labels', visible: true, opacity: null, ready: true},
-  {id: 'debrisFlow', label: 'Debris-Flow Likelihood', visible: false, opacity: 1, ready: true}
+  {id: 'debrisFlow', label: 'Debris-Flow Likelihood', visible: false, opacity: 1, ready: true},
+  {id: 'forecast', label: 'Spread Forecast (+1 h)', visible: true, opacity: null, ready: true},
+  {id: 'liveHits', label: 'Live Drone Hits', visible: true, opacity: null, ready: true}
 ];
 
 /** Debris-flow models shown on the Risk tab (debris_flow.geojson: `<model>_p_<I15>`). */
@@ -86,9 +90,9 @@ type UiState = {
   setRisk: (patch: Partial<UiState['risk']>) => void;
 };
 
-/** `?tab=risk` opens a tab directly, for shareable links; Drones has no data, so it is never opened. */
+/** `?tab=risk` or `?tab=drones` opens a tab directly, for shareable links. */
 const TAB_PARAM = new URLSearchParams(location.search).get('tab');
-const INITIAL_TAB: Tab = TAB_PARAM === 'risk' ? 'risk' : 'incident';
+const INITIAL_TAB: Tab = TAB_PARAM === 'risk' || TAB_PARAM === 'drones' ? TAB_PARAM : 'incident';
 
 export const useUi = create<UiState>(set => ({
   tab: INITIAL_TAB,

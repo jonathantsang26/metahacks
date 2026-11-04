@@ -104,7 +104,7 @@ This produces the **Ignition Probability** layer, the `Ignition (est.)` event, a
 4. Posterior over (point, time). The **heatmap** is the marginal over time, rendered as a red glow. Report the **MAP estimate** with a credible region (the ellipse that holds 90% of the mass).
 5. **Validate with a temporal hold-out, which needs no official origin.** Fit the back-trace only on observations after hour N (e.g. N = 6). Then score how well it predicts the held-out early evidence: the earliest FIRMS cluster (distance in meters, time error in minutes) and the first archived perimeter (IoU). This number always exists. It goes in the Analysis tab and the README.
    - *Only if* an official origin area is published in citable form, also report the distance to it, quoting the source. Don't infer or state a cause. For Eaton the investigation was still open at the time of writing.
-6. Running the same model forward from the MAP ignition gives the **Fire Spread (Modeled)** layer. The UI can show modeled vs observed side by side, which also makes a good demo beat.
+6. Running the same model forward from the MAP ignition gives the **Fire Spread (Modeled)** layer. The UI can show modeled vs observed side by side, which also makes a good video beat.
 
 **As built** (`pipeline/steps/s11_ignition.py`; results in `docs/RESULTS.md`). The plan above is what we started from. What changed:
 - **Candidates:** a lattice inside the first fitted footprint, not a 200 m grid around detections.
@@ -128,7 +128,7 @@ Facts from Meta's developer docs (`dev.meta.ai/docs`, read Oct 29):
 - Run Sentinel first. Its YOLO boxes tell us *which frames and where* to look, and SAM supplies the precise mask. That makes a two-stage detector: fast edge detection, then accurate segmentation.
 - In the PiP's Recorded mode, draw the mask outlines (DESIGN §10). The Detections panel lists one row per tracked object.
 - Measure it on FLAME 2's labelled frames (frame-level fire/smoke precision and recall, step 12b), next to Sentinel's own numbers.
-- Pre-trim clips to ≤ 30 s and cache the results, so the live demo never calls the API for video.
+- Pre-trim clips to ≤ 30 s and cache the results, so the live app never calls the API for video.
 
 **SAM 3.1 on post-fire aerial imagery** (step 9c):
 - Prompt `destroyed building` and `building` on sub-meter post-fire imagery of the burned area. Sentinel-2 at 10 m is too coarse.
@@ -278,7 +278,7 @@ dock/side/                 KeyEvents, Detections, AirOpsLog
 
 **Thermal mode**: the PiP view renders the same layers with a `thermal` prop. The fire layer outputs `heat` instead of color, terrain outputs a low ambient heat from sun-facing aspect, and a final full-screen pass maps heat through a 256-px Ironbow or White-hot LUT texture.
 
-**PiP "Recorded" mode**: plays real footage in the PiP instead of the render. FLAME 2's videos are side-by-side RGB|thermal, so split them, and show the RGB half in EO and the thermal half in IR. Sentinel's boxes from the RGB half are overlaid in sync on both, and the HUD stays the same. A `RECORDED · NOT THIS FIRE` tag sits under the REC line. This is the demo moment where Sentinel visibly does real work.
+**PiP "Recorded" mode**: plays real footage in the PiP instead of the render. FLAME 2's videos are side-by-side RGB|thermal, so split them, and show the RGB half in EO and the thermal half in IR. Sentinel's boxes from the RGB half are overlaid in sync on both, and the HUD stays the same. A `RECORDED · NOT THIS FIRE` tag sits under the REC line. This is the moment where Sentinel visibly does real work.
 
 ## 9. Scope tiers and day plan
 
@@ -301,7 +301,7 @@ dock/side/                 KeyEvents, Detections, AirOpsLog
 | **Sat Oct 31** | Arrival raster (step 6), fire layer (path A, or B by 6 pm), timeline, Incident charts and Key Events. The analyst's tool functions are written in TS over `public/data` and checked against pipeline numbers. | **Scrubbing time burns the terrain.** If this isn't true by Sat night, switch to path B. |
 | **Sun Nov 1** | Forensic back-trace (step 11) with its hold-out score, and the Analysis tab. **Analyst end to end**: `api/analyst` + Notes tab + citation chips + Report. House-level join (§4c). Hover inspector, Weather card, Layers. | Ask the analyst a question in the app, click a citation, and the camera flies to it |
 | **Mon Nov 2** | **Drones tab as a footage player**: PiP + HUD, Sentinel boxes + SAM masks, and Detections. Homes panel. 9c if it was a go. Analyst eval (step 15). Evidence tab. 2D mode if time allows. **Feature freeze at 11 pm.** | A 3-minute run-through works end to end |
-| **Tue Nov 3** | Polish only. Record the demo video; write the README (Real vs Sim, every eval number, which Meta models do what, prior-work disclosure) and the submission form. **Submit by 6 pm.** | Submitted. The official close is Wed Nov 4, 5 pm PST, which leaves buffer. |
+| **Tue Nov 3** | Polish only. Record the submission video; write the README (Real vs Sim, every eval number, which Meta models do what, prior-work disclosure) and the submission form. **Submit by 6 pm.** | Submitted. The official close is Wed Nov 4, 5 pm PST, which leaves buffer. |
 
 **What actually landed (updated Sat Oct 31; the git log is the record):**
 - **Ahead of plan, by Fri Oct 30:** the Sat and Sun rows except where noted below. That covers:
@@ -318,7 +318,7 @@ dock/side/                 KeyEvents, Detections, AirOpsLog
 - **B: Web app** (20x)
 - **C: Vision & story** (5x)
 
-## 10. Demo video beats (about 2.5–3 min)
+## 10. Video beats (about 2.5–3 min)
 
 1. **Personal open (15 s)**: "We're from SoCal. We evacuated, and homes in our neighborhood burned." Our own drone b-roll.
 2. **The problem (15 s)**: after a fire, investigators and residents reconstruct what happened from scattered satellite passes, perimeters and reports.
@@ -336,10 +336,10 @@ Check the official video-length limit and trim the replay beat first.
 ## 11. Constraints and risks
 
 - **Rules and prior work**: Sentinel (`benjaminxie1/sentinel-app`) is a team member's earlier open-source project. It's used here as a dependency and disclosed in the submission; everything else is built during the event. Confirm in the official rules that this is allowed, and check the video length and submission fields.
-- **Meta Model API limits**: pricing, rate limits and video-input limits weren't published on the docs page. So pre-trim clips to ≤ 30 s, cache every `sam-3.1` result, and never call video segmentation live during the demo. The analyst calls `muse-spark-1.3` live, with cached answers for the scripted demo questions as a fallback.
+- **Meta Model API limits**: pricing, rate limits and video-input limits weren't published on the docs page. So pre-trim clips to ≤ 30 s, cache every `sam-3.1` result, and never call video segmentation live in the app. The analyst calls `muse-spark-1.3` live, with cached answers for the scripted video questions as a fallback.
 - **SAM on fire and smoke**: they are amorphous, so masks may be noisy. Thursday's smoke test decides. If they're poor, keep Sentinel for fire and point SAM at `burned vegetation` and `destroyed building`, where its masks are crisp.
 - **Drone flying**: recreational TRUST certificate or Part 107; check B4UFLY for airspace and TFRs; never over people or near active incidents. The footage is b-roll and EO-feed material, not fire data.
 - **Credit**: the README credits Dilum Sanjaya's post as design inspiration. Don't use the FireTrace name or logo.
 - **Sparse perimeters**: if there are fewer than ~4 timed perimeters in the first 24 h, the arrival raster leans on FIRMS. Say so in the Evidence tab.
 - **Shader risk**: covered by fallback path B (§3).
-- **Performance**: cap trees at 40k instances, the arrival texture at 2048², and contour updates at 10 Hz. Test on the demo laptop on Sunday.
+- **Performance**: cap trees at 40k instances, the arrival texture at 2048², and contour updates at 10 Hz. Test on the presentation laptop on Sunday.

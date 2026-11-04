@@ -6,10 +6,9 @@ import {Analysis} from './analysis';
 import {Analyst} from './analyst';
 import {IncidentOverview} from './overview';
 import {RiskRail} from './risk';
+import {SwarmPanel} from './swarm';
 import {POSTERIOR_THUMB, SCAR_THUMB} from './ramps';
 import {WeatherCard} from './weather';
-
-export {Card} from './ui';
 
 /** A 28×28 SVG drawing as a CSS background layer, for thumbnails a gradient cannot draw. */
 const svgThumb = (body: string) =>
@@ -26,7 +25,9 @@ const THUMBS: Partial<Record<LayerId, string>> = {
   wind: 'linear-gradient(135deg,#d6dadb,#eef0ee)',
   structures: 'linear-gradient(135deg,#8d8d86,#b9b7ae)',
   roads: 'linear-gradient(135deg,#d9d6cc,#bcb8ab)',
-  labels: 'linear-gradient(135deg,#ebe8de,#d6d2c6)'
+  labels: 'linear-gradient(135deg,#ebe8de,#d6d2c6)',
+  forecast: `${svgThumb("<path d='M5 18 9 7 19 5 24 14 16 23Z' fill='none' stroke='#7e57ff' stroke-width='1.8' stroke-dasharray='3 2'/>")} #8f8a7c`,
+  liveHits: `${svgThumb("<path d='M6 20 10 9 21 8 22 19Z' fill='none' stroke='#ffd640' stroke-width='1.5'/><circle cx='12' cy='14' r='2.2' fill='#ff4020'/><circle cx='17' cy='12' r='2.2' fill='#ff4020'/><circle cx='15' cy='18' r='2.2' fill='#ff4020' opacity='.5'/>")} #8f8a7c`
 };
 
 function LayersList() {
@@ -102,7 +103,7 @@ function Evidence({fire}: {fire: FireData}) {
   );
 }
 
-const SUBTABS = ['Layers', 'Analysis', 'Evidence', 'Analyst'] as const;
+const SUBTABS = ['Layers', 'Analysis', 'Evidence', 'Analyst', 'Swarm'] as const;
 
 function IncidentRail({fire}: {fire: FireData}) {
   const [sub, setSub] = useState<(typeof SUBTABS)[number]>('Layers');
@@ -119,7 +120,7 @@ function IncidentRail({fire}: {fire: FireData}) {
             <button
               key={s}
               onClick={() => setSub(s)}
-              className={`px-3 py-2 text-sm ${sub === s ? 'border-b-2 border-ink font-medium' : 'text-muted'}`}
+              className={`px-2 py-2 text-sm ${sub === s ? 'border-b-2 border-ink font-medium' : 'text-muted'}`}
             >
               {s}
             </button>
@@ -129,6 +130,7 @@ function IncidentRail({fire}: {fire: FireData}) {
         {sub === 'Analysis' && <Analysis fire={fire} />}
         {sub === 'Evidence' && <Evidence fire={fire} />}
         {sub === 'Analyst' && <Analyst fire={fire} />}
+        {sub === 'Swarm' && <SwarmPanel fire={fire} />}
       </section>
       <IncidentOverview fire={fire} />
       <WeatherCard fire={fire} />

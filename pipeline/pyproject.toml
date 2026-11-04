@@ -19,6 +19,8 @@ dependencies = [
 [project.optional-dependencies]
 # Mask decoding for SAM 3.1 output (Meta's parser); only the vision steps need it.
 sam = ["meta-sam-parser>=0.1"]
+# The drone-swarm simulation (sim/): MuJoCo physics and the Gymnasium environment API.
+sim = ["mujoco>=3.2", "gymnasium>=1.0"]
 
 [tool.uv]
 package = false

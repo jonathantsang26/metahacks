@@ -13,10 +13,6 @@ export function Card({title, aside, children}: {title: ReactNode; aside?: ReactN
   );
 }
 
-export function Pending({children}: {children: ReactNode}) {
-  return <div className="px-3 py-6 text-center text-sm text-muted">{children}</div>;
-}
-
 /** The honest empty state for one panel whose file is missing or failed to load. */
 export function Missing({file, error}: {file: string; error: string | null}) {
   return (

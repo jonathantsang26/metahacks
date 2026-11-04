@@ -64,6 +64,8 @@ export type DetectorEval = {
 
 type FootageState = {
   clipId: string | null;
+  /** Set once the first clip has been opened for the visitor, so closing the camera keeps it closed. */
+  autoOpened: boolean;
   /** Playback position of the selected clip, seconds. */
   time: number;
   playing: boolean;
@@ -73,6 +75,8 @@ type FootageState = {
   /** A seek request for the player; `seq` makes repeated requests distinct. */
   seek: {time: number; seq: number} | null;
   select: (id: string | null) => void;
+  /** Opens `id` unless a clip has already been opened this visit. */
+  autoOpen: (id: string) => void;
   setTime: (time: number) => void;
   setPlaying: (playing: boolean) => void;
   setExpanded: (expanded: boolean) => void;
@@ -82,13 +86,15 @@ type FootageState = {
 
 export const useFootage = create<FootageState>(set => ({
   clipId: null,
+  autoOpened: false,
   time: 0,
   playing: false,
   expanded: false,
   showBoxes: true,
   showMasks: true,
   seek: null,
-  select: clipId => set({clipId, time: 0, playing: clipId !== null, expanded: false}),
+  select: clipId => set({clipId, autoOpened: true, time: 0, playing: clipId !== null, expanded: false}),
+  autoOpen: id => set(s => (s.autoOpened ? {} : {clipId: id, autoOpened: true, time: 0, playing: true, expanded: false})),
   setTime: time => set({time}),
   setPlaying: playing => set({playing}),
   setExpanded: expanded => set({expanded}),

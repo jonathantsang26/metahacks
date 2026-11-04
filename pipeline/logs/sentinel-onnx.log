@@ -1,0 +1,147 @@
+# Sentinel ONNX export + parity · 2026-11-03T07:40:54+00:00
+python 3.13.18 · torch 2.15.0+cu132 · ultralytics 8.4.199 · onnx 1.23.2 · onnxruntime 1.31.1 · opencv 5.0.0
+machine: Linux-6.18.44-fc-v230-x86_64-with-glibc2.39 · x86_64 · 4 logical CPUs
+
+## export
+weights pipeline/models/sentinel_fire.pt sha256 f4c860f27df4daefe3b31d9943d3b92db5759a25f4fcf220d5b22e384b1a84a8
+classes {0: 'fire', 1: 'smoke'}
+onnx web/public/models/sentinel_fire.onnx 12677118 bytes sha256 6c1369844f8621aefcfe5beecc0542c19344b7ef9467f0e7cc1ac7cdf8be21f1
+opset 12 · ir 7 · 234 nodes · ops ['Add', 'Concat', 'Conv', 'Div', 'MaxPool', 'Mul', 'Reshape', 'Resize', 'Sigmoid', 'Slice', 'Softmax', 'Split', 'Sub', 'Transpose']
+input  images [1, 3, 416, 416] float
+output output0 [1, 6, 3549] float
+
+## frames
+60 frames: blm-north-bank 30 (0..894, every 6th-frame grid); blm-north-umpqua-ir 30 (0..786, every 6th-frame grid)
+
+## which imgsz reproduces footage/detections/*.json (step 12 default --imgsz is 640)
+imgsz 416: published 94 vs re-run 68, matched 35, only-published 59, only-re-run 33, max |Δconf| 0.307673
+imgsz 640: published 94 vs re-run 91, matched 89, only-published 5, only-re-run 2, max |Δconf| 0.058754
+→ published detections are best reproduced by imgsz 640
+
+## tensor parity: identical 416x416 letterboxed tensor → PyTorch vs onnxruntime raw output
+max |Δ| per frame, box rows (px in 416 space): {'n': 60, 'max': 0.003433, 'median': 0.001602, 'mean': 0.001753, 'min': 0.000595}
+max |Δ| per frame, class-score rows:           {'n': 60, 'max': 2e-06, 'median': 1e-06, 'mean': 1e-06, 'min': 0.0}
+
+## end-to-end parity: PyTorch side vs onnxruntime + NumPy letterbox/decode/NMS (the browser algorithm)
+(conf 0.25, NMS IoU 0.7 per class, matching = same class and box IoU ≥ 0.5, boxes in source pixels)
+
+### vs pt_square416: ultralytics .pt predict, imgsz 416, rect=False (square 416x416 letterbox, same input geometry as the ONNX)
+detections: ref 76, onnx 76, matched 76, only ref 0, only onnx 0
+|Δconf| matched: {'n': 76, 'max': 1e-06, 'median': 0.0, 'mean': 0.0, 'min': 0.0}
+box IoU matched: {'n': 76, 'max': 1.0, 'median': 1.0, 'mean': 0.999999, 'min': 0.999998}
+
+### vs pt_raw_ultralytics_nms: PyTorch raw output on the identical NumPy tensor + ultralytics non_max_suppression/scale_boxes (checks decode/NMS only)
+detections: ref 76, onnx 76, matched 76, only ref 0, only onnx 0
+|Δconf| matched: {'n': 76, 'max': 1e-06, 'median': 0.0, 'mean': 0.0, 'min': 0.0}
+box IoU matched: {'n': 76, 'max': 1.0, 'median': 1.0, 'mean': 1.0, 'min': 0.999996}
+
+### vs pt_rect416: ultralytics .pt predict, imgsz 416, default rect letterbox (416x256 for 1280x720)
+detections: ref 68, onnx 76, matched 57, only ref 11, only onnx 19
+|Δconf| matched: {'n': 57, 'max': 0.207257, 'median': 0.046061, 'mean': 0.055237, 'min': 0.002455}
+box IoU matched: {'n': 57, 'max': 0.997828, 'median': 0.956337, 'mean': 0.947605, 'min': 0.785727}
+  only ref  {'clip': 'blm-north-bank', 'frame': 618, 'cls': 0, 'conf': 0.4365, 'box': [0.0, 572.4, 425.3, 720.0]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 648, 'cls': 0, 'conf': 0.2563, 'box': [7.5, 572.9, 425.6, 720.0]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 678, 'cls': 0, 'conf': 0.3226, 'box': [7.1, 579.9, 417.2, 720.0]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 708, 'cls': 0, 'conf': 0.4697, 'box': [0.0, 585.3, 426.4, 720.0]}
+  only ref  {'clip': 'blm-north-umpqua-ir', 'frame': 0, 'cls': 0, 'conf': 0.2633, 'box': [129.5, 177.1, 708.9, 692.7]}
+  only ref  {'clip': 'blm-north-umpqua-ir', 'frame': 162, 'cls': 0, 'conf': 0.263, 'box': [308.5, 81.8, 829.4, 717.5]}
+  only ref  {'clip': 'blm-north-umpqua-ir', 'frame': 486, 'cls': 0, 'conf': 0.3021, 'box': [545.3, 241.1, 1134.9, 720.0]}
+  only ref  {'clip': 'blm-north-umpqua-ir', 'frame': 570, 'cls': 0, 'conf': 0.2779, 'box': [269.9, 295.1, 651.4, 720.0]}
+  only ref  {'clip': 'blm-north-umpqua-ir', 'frame': 648, 'cls': 0, 'conf': 0.3082, 'box': [588.4, 261.6, 986.1, 720.0]}
+  only ref  {'clip': 'blm-north-umpqua-ir', 'frame': 648, 'cls': 0, 'conf': 0.2918, 'box': [594.9, 353.7, 1055.0, 720.0]}
+  only ref  {'clip': 'blm-north-umpqua-ir', 'frame': 702, 'cls': 0, 'conf': 0.2701, 'box': [604.6, 405.6, 1083.1, 720.0]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 0, 'cls': 0, 'conf': 0.3045, 'box': [778.0, 150.1, 986.4, 267.4]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 90, 'cls': 0, 'conf': 0.3197, 'box': [344.4, 476.6, 533.4, 615.1]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 126, 'cls': 0, 'conf': 0.4124, 'box': [342.8, 498.3, 489.5, 624.4]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 156, 'cls': 0, 'conf': 0.3488, 'box': [137.8, 510.0, 266.8, 603.4]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 156, 'cls': 0, 'conf': 0.341, 'box': [341.3, 497.7, 487.4, 627.4]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 246, 'cls': 0, 'conf': 0.293, 'box': [120.0, 509.8, 255.5, 628.7]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 306, 'cls': 0, 'conf': 0.2921, 'box': [89.3, 528.5, 240.6, 657.3]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 342, 'cls': 0, 'conf': 0.2819, 'box': [324.6, 535.5, 478.7, 660.9]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 462, 'cls': 0, 'conf': 0.396, 'box': [779.4, 92.0, 1012.1, 205.2]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 492, 'cls': 0, 'conf': 0.2501, 'box': [790.4, 92.2, 1010.8, 212.4]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 552, 'cls': 0, 'conf': 0.2621, 'box': [463.4, 364.8, 629.2, 471.4]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 588, 'cls': 0, 'conf': 0.259, 'box': [1.8, 598.6, 171.6, 720.0]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 648, 'cls': 0, 'conf': 0.2911, 'box': [274.0, 632.6, 430.2, 720.0]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 708, 'cls': 0, 'conf': 0.3073, 'box': [805.2, 99.9, 1020.1, 224.8]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 834, 'cls': 0, 'conf': 0.2836, 'box': [266.1, 588.0, 442.4, 720.0]}
+  (lists truncated to 15 each)
+
+### vs pt_rect640: ultralytics .pt predict, imgsz 640, default rect letterbox (640x384): how step 12 ran
+detections: ref 91, onnx 76, matched 40, only ref 51, only onnx 36
+|Δconf| matched: {'n': 40, 'max': 0.375397, 'median': 0.080382, 'mean': 0.112911, 'min': 0.005575}
+box IoU matched: {'n': 40, 'max': 0.943889, 'median': 0.808818, 'mean': 0.803508, 'min': 0.595792}
+  only ref  {'clip': 'blm-north-bank', 'frame': 186, 'cls': 0, 'conf': 0.4998, 'box': [143.7, 515.3, 258.7, 603.1]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 186, 'cls': 0, 'conf': 0.3913, 'box': [342.5, 517.3, 473.7, 643.6]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 216, 'cls': 0, 'conf': 0.371, 'box': [338.7, 523.4, 473.8, 648.3]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 246, 'cls': 0, 'conf': 0.2918, 'box': [331.6, 523.2, 489.1, 656.3]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 276, 'cls': 0, 'conf': 0.2736, 'box': [328.9, 532.0, 476.8, 656.5]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 276, 'cls': 0, 'conf': 0.2608, 'box': [122.3, 528.3, 244.9, 627.4]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 342, 'cls': 0, 'conf': 0.3029, 'box': [94.1, 542.5, 228.4, 641.3]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 402, 'cls': 0, 'conf': 0.3057, 'box': [69.7, 546.9, 213.6, 671.7]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 432, 'cls': 0, 'conf': 0.352, 'box': [282.4, 545.4, 465.8, 693.9]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 462, 'cls': 0, 'conf': 0.369, 'box': [37.8, 522.3, 211.9, 711.4]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 462, 'cls': 0, 'conf': 0.3528, 'box': [276.2, 537.4, 465.5, 672.5]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 522, 'cls': 0, 'conf': 0.3633, 'box': [3.6, 545.2, 200.6, 720.0]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 522, 'cls': 0, 'conf': 0.3411, 'box': [257.7, 569.7, 462.4, 720.0]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 618, 'cls': 0, 'conf': 0.3996, 'box': [0.0, 609.5, 160.3, 720.0]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 678, 'cls': 0, 'conf': 0.3622, 'box': [255.3, 638.8, 423.2, 720.0]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 0, 'cls': 0, 'conf': 0.3695, 'box': [169.5, 489.5, 300.2, 588.1]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 60, 'cls': 0, 'conf': 0.4332, 'box': [343.7, 469.9, 539.1, 611.1]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 60, 'cls': 0, 'conf': 0.4221, 'box': [780.4, 144.5, 980.9, 256.5]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 90, 'cls': 0, 'conf': 0.3627, 'box': [779.0, 144.4, 983.4, 256.5]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 90, 'cls': 0, 'conf': 0.3197, 'box': [344.4, 476.6, 533.4, 615.1]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 126, 'cls': 0, 'conf': 0.3623, 'box': [782.9, 142.6, 983.6, 255.3]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 156, 'cls': 0, 'conf': 0.3242, 'box': [784.3, 143.9, 983.4, 258.0]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 276, 'cls': 0, 'conf': 0.35, 'box': [781.0, 144.2, 995.7, 254.8]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 306, 'cls': 0, 'conf': 0.3408, 'box': [783.2, 145.2, 998.5, 254.8]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 306, 'cls': 0, 'conf': 0.2921, 'box': [89.3, 528.5, 240.6, 657.3]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 342, 'cls': 0, 'conf': 0.4334, 'box': [781.8, 141.5, 1005.6, 257.5]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 372, 'cls': 0, 'conf': 0.3565, 'box': [788.5, 140.5, 1016.4, 267.0]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 462, 'cls': 0, 'conf': 0.396, 'box': [779.4, 92.0, 1012.1, 205.2]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 492, 'cls': 0, 'conf': 0.4063, 'box': [286.5, 548.0, 469.8, 715.3]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 492, 'cls': 0, 'conf': 0.2501, 'box': [790.4, 92.2, 1010.8, 212.4]}
+  (lists truncated to 15 each)
+
+### vs published_detections: the committed footage/detections/*.json at these frames (conf rounded to 3 dp, box to 0.1 px)
+detections: ref 94, onnx 76, matched 40, only ref 54, only onnx 36
+|Δconf| matched: {'n': 40, 'max': 0.374969, 'median': 0.100435, 'mean': 0.115004, 'min': 0.003152}
+box IoU matched: {'n': 40, 'max': 0.946422, 'median': 0.813137, 'mean': 0.80459, 'min': 0.599854}
+  only ref  {'clip': 'blm-north-bank', 'frame': 186, 'cls': 0, 'conf': 0.507, 'box': [143.8, 514.6, 260.0, 603.0]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 186, 'cls': 0, 'conf': 0.377, 'box': [342.7, 518.0, 473.8, 643.3]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 216, 'cls': 0, 'conf': 0.347, 'box': [340.0, 521.6, 474.6, 645.0]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 246, 'cls': 0, 'conf': 0.289, 'box': [332.1, 522.8, 489.4, 656.3]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 276, 'cls': 0, 'conf': 0.282, 'box': [125.4, 526.6, 243.1, 623.5]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 276, 'cls': 0, 'conf': 0.261, 'box': [329.4, 531.9, 476.6, 653.1]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 342, 'cls': 0, 'conf': 0.324, 'box': [94.3, 542.3, 228.3, 641.3]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 402, 'cls': 0, 'conf': 0.337, 'box': [69.7, 547.4, 213.5, 671.8]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 432, 'cls': 0, 'conf': 0.35, 'box': [284.7, 546.2, 465.3, 698.6]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 432, 'cls': 0, 'conf': 0.253, 'box': [60.0, 534.3, 210.9, 666.3]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 462, 'cls': 0, 'conf': 0.398, 'box': [39.5, 522.1, 212.0, 714.4]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 462, 'cls': 0, 'conf': 0.294, 'box': [277.6, 537.7, 466.4, 673.4]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 492, 'cls': 0, 'conf': 0.315, 'box': [20.5, 536.8, 205.0, 720.0]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 522, 'cls': 0, 'conf': 0.402, 'box': [5.1, 545.6, 200.0, 720.0]}
+  only ref  {'clip': 'blm-north-bank', 'frame': 522, 'cls': 0, 'conf': 0.36, 'box': [256.5, 569.4, 462.2, 720.0]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 0, 'cls': 0, 'conf': 0.3695, 'box': [169.5, 489.5, 300.2, 588.1]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 60, 'cls': 0, 'conf': 0.4332, 'box': [343.7, 469.9, 539.1, 611.1]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 60, 'cls': 0, 'conf': 0.4221, 'box': [780.4, 144.5, 980.9, 256.5]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 90, 'cls': 0, 'conf': 0.3627, 'box': [779.0, 144.4, 983.4, 256.5]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 90, 'cls': 0, 'conf': 0.3197, 'box': [344.4, 476.6, 533.4, 615.1]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 126, 'cls': 0, 'conf': 0.4124, 'box': [342.8, 498.3, 489.5, 624.4]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 126, 'cls': 0, 'conf': 0.3623, 'box': [782.9, 142.6, 983.6, 255.3]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 156, 'cls': 0, 'conf': 0.3242, 'box': [784.3, 143.9, 983.4, 258.0]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 276, 'cls': 0, 'conf': 0.35, 'box': [781.0, 144.2, 995.7, 254.8]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 306, 'cls': 0, 'conf': 0.3408, 'box': [783.2, 145.2, 998.5, 254.8]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 306, 'cls': 0, 'conf': 0.2921, 'box': [89.3, 528.5, 240.6, 657.3]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 342, 'cls': 0, 'conf': 0.4334, 'box': [781.8, 141.5, 1005.6, 257.5]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 372, 'cls': 0, 'conf': 0.3565, 'box': [788.5, 140.5, 1016.4, 267.0]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 462, 'cls': 0, 'conf': 0.396, 'box': [779.4, 92.0, 1012.1, 205.2]}
+  only onnx {'clip': 'blm-north-bank', 'frame': 492, 'cls': 0, 'conf': 0.2501, 'box': [790.4, 92.2, 1010.8, 212.4]}
+  (lists truncated to 15 each)
+
+## onnxruntime CPU timing (session.run only, one 1x3x416x416 tensor, after 10 warm-up runs)
+single_thread: {'intra_op_threads': 1, 'runs': 100, 'median_ms': 27.32, 'mean_ms': 27.38, 'p90_ms': 27.76, 'min_ms': 26.82}
+default: {'intra_op_threads': 'default', 'runs': 100, 'median_ms': 13.83, 'mean_ms': 14.9, 'p90_ms': 16.05, 'min_ms': 12.08}
+end-to-end per frame (letterbox + run + decode/NMS, default threads, 1280x720 BGR in): 16.38 ms
+
+wrote web/public/models/sentinel_fire.onnx.json

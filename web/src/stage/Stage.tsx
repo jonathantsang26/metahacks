@@ -3,6 +3,11 @@ import DeckGL from '@deck.gl/react';
 import {LinearInterpolator, type Layer, type MapViewState} from '@deck.gl/core';
 import {TerrainLayer} from '@deck.gl/geo-layers';
 import {PathLayer} from '@deck.gl/layers';
+// The loaders.gl worker that decodes dem.png into the terrain mesh: the installed copy (the one
+// @deck.gl/geo-layers depends on), which Vite copies into the build as a hashed asset, so it is
+// served from this site. Without workerUrl, loaders.gl fetches the worker from unpkg.com at run
+// time, and wherever unpkg is blocked the terrain, and the fire layers drawn on it, never appear.
+import terrainWorkerUrl from '@loaders.gl/terrain/terrain-worker.js?url';
 
 import type {FireData} from '../data/fire';
 import {perimeterRings} from '../data/fire';
@@ -20,9 +25,14 @@ import {distanceM} from './drape';
 import {usePlaceLabels, useRoadPart, useStructurePart, useTreePart, useWindPart} from './context-layers';
 import {useHighlightPart} from './highlight';
 import {useDebrisPart} from './debris-layer';
+import {useSwarmPart} from './swarm-layer';
+import {useRollout, useSwarmUi} from '../swarm/data';
+import {useForecastPart} from './forecast-layer';
+import {useLiveHitsPart} from './live-layer';
 import {Compass, HoverInspector, MapControls, MapNotes, SyntheticChip, type StageNote} from './overlays';
 
 const PITCH_3D = 58;
+const TERRAIN_LOAD_OPTIONS = {terrain: {workerUrl: terrainWorkerUrl}};
 const fireExtension = new FireExtension();
 const transition = new LinearInterpolator(['pitch', 'bearing', 'zoom', 'longitude', 'latitude']);
 const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
@@ -166,11 +176,24 @@ export function Stage({fire}: {fire: FireData}) {
   const treePart = useTreePart(fire, dem, t, terrain.visible, arrivalRaster, arrivalWindow);
   const highlightPart = useHighlightPart(dem, highlight);
   const debrisPart = useDebrisPart(fire, dem, layers.debrisFlow, risk, setRisk);
+  const swarmUi = useSwarmUi();
+  const {data: swarmRollout} = useRollout(fire, swarmUi.policy);
+  const swarmPart = useSwarmPart(fire, dem, t, swarmRollout, swarmUi.show);
+  const forecastPart = useForecastPart(fire, dem, t, layers.forecast.visible && layers.forecast.ready);
+  const livePart = useLiveHitsPart(dem, layers.liveHits.visible);
 
   // Labels from every layer compete for space; the survivors depend on the camera.
   const labels = useMemo<MapLabel[]>(
-    () => [...highlightPart.labels, ...ignitionPart.labels, ...perimeterPart.labels, ...spinePart.labels, ...placeLabels],
-    [highlightPart.labels, ignitionPart.labels, perimeterPart.labels, spinePart.labels, placeLabels]
+    () => [
+      ...highlightPart.labels,
+      ...livePart.labels,
+      ...forecastPart.labels,
+      ...ignitionPart.labels,
+      ...perimeterPart.labels,
+      ...spinePart.labels,
+      ...placeLabels
+    ],
+    [highlightPart.labels, livePart.labels, forecastPart.labels, ignitionPart.labels, perimeterPart.labels, spinePart.labels, placeLabels]
   );
   // The surviving ids and their placements, as a string so the text layers rebuild only when they change.
   const keepKey = [...declutter(labels, viewState, size.width, size.height)]
@@ -278,12 +301,15 @@ export function Stage({fire}: {fire: FireData}) {
       swatches: [{color: '#ffffff', label: 'Final perimeter', shape: 'dash'}]
     });
   notes.push(
+    ...livePart.notes,
+    ...forecastPart.notes,
     ...ignitionPart.notes,
     ...spinePart.notes,
     ...windPart.notes,
     ...structurePart.notes,
     ...roadPart.notes,
-    ...debrisPart.notes
+    ...debrisPart.notes,
+    ...swarmPart.notes
   );
   const osmRow = manifestRow(fire, 'Roads, peaks & places');
   if (osmRow && (layers.roads.visible || layers.labels.visible))
@@ -304,6 +330,7 @@ export function Stage({fire}: {fire: FireData}) {
       bounds: fire.dem.bounds,
       elevationDecoder: fire.dem.decoder,
       meshMaxError: 2,
+      loadOptions: TERRAIN_LOAD_OPTIONS,
       material: {ambient: 0.72, diffuse: 0.4, shininess: 4, specularColor: [20, 20, 20]},
       // '3d' picks the terrain surface under the cursor; plain picking unprojects onto sea level,
       // which at this pitch reads a point 1–3 km beyond the cursor.
@@ -342,6 +369,9 @@ export function Stage({fire}: {fire: FireData}) {
     ...spinePart.layers,
     ...windPart.layers,
     ...ignitionPart.layers,
+    ...swarmPart.layers,
+    ...forecastPart.layers,
+    ...livePart.layers,
     ...highlightPart.layers,
     ...textLayers
   ];

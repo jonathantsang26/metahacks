@@ -26,3 +26,6 @@ __pycache__/
 # OS
 .DS_Store
 web/public/data/*/.manifest.lock
+
+# onnxruntime-web runtimes, copied from node_modules by web/vite.config.ts
+web/public/ort/

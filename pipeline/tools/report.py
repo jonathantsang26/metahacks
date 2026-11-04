@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 import math
-from pathlib import Path
 
 from ember.config import REPO_DIR, load_fire
 
@@ -85,7 +84,8 @@ def synthetic_section(fire) -> list[str]:
                     f"{s['backtrace_beats_baseline']['time']:.0%} of cases |")
     rows += [
         "",
-        f"Truth physics differs from the inverted model: {c['truth_perturbation']}. "
+        "The truth runs the same spread equations as the inverted model, on inputs the model never sees, so the "
+        f"benchmark tests parameter misspecification only. Perturbations: {c['truth_perturbation']}. "
         "Location baseline = centroid of the first footprint the fit sees; time baseline = linear back-extrapolation of sqrt(area).",
         "",
     ]
