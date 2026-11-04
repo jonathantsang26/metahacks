@@ -15,7 +15,7 @@ Run: uv run python -m steps.s10_events
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import numpy as np

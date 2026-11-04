@@ -319,7 +319,7 @@ def credible_region(post: np.ndarray, grid: Grid, mass: float = 0.9):
     boxes = [box(grid.west + c * dx, grid.north - (r + 1) * dy, grid.west + (c + 1) * dx, grid.north - r * dy)
              for r, c in zip(rows, cols)]
     region = unary_union(boxes).simplify(dx / 2)
-    lon, lat = region.centroid.x, region.centroid.y
+    lat = region.centroid.y
     area_km2 = region.area * EARTH_M_PER_DEG ** 2 * np.cos(np.radians(lat)) / 1e6
     return mapping(region), n, float(area_km2)
 

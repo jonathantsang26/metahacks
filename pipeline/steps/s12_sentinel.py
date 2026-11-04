@@ -16,7 +16,6 @@ Run from pipeline/ (ultralytics is not a pipeline dependency, so pull it in for 
 from __future__ import annotations
 
 import argparse
-import json
 import shutil
 import subprocess
 from pathlib import Path
