@@ -1,10 +1,9 @@
-// Placeholder exports so the incident screen compiles before the plan UI lands.
-// plan-ui replaces this file; see docs/CONTRACTS.md.
-import type {ReactElement} from 'react';
-
-export type PlanLayerContext = {fire: string; t: string};
-export function PlanPanel(): ReactElement | null { return null; }
-export function BriefingPanel(): ReactElement | null { return null; }
-export function HindsightCard(): ReactElement | null { return null; }
-export function GuideSteps(): ReactElement | null { return null; }
-export function usePlanLayers(_ctx: PlanLayerContext): unknown[] { return []; }
+// Plan UI for the core loop (docs/CONTRACTS.md): the plan panel, briefing, hindsight, the
+// first-run guide and the map layers. ui-port mounts these in app/sentinel/.
+export {PlanPanel, askAgentToPlan, askAgentAboutDrone, type PlanPanelProps} from './PlanPanel';
+export {BriefingPanel, askAgentToBrief, type BriefingPanelProps} from './BriefingPanel';
+export {HindsightCard, type HindsightCardProps} from './HindsightCard';
+export {GuideSteps, useGuideStep, type GuideStepsProps} from './GuideSteps';
+export {usePlanLayers, usePlanMapControls, type PlanLayerContext} from './layers';
+export {selectPlanDrone, requestFlyTo, usePlanUi} from './store';
+export {usePlanData, usePlanContext} from './data';

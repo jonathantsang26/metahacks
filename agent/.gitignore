@@ -30,7 +30,7 @@ dist-ssr
 !.env.example
 .tmp/
 
-**/data/
+/data/
 data/pglite/
 data/uploads/
 data/settings.json

@@ -6,7 +6,7 @@ Shared agreements for everyone working in `agent/` at once. Change this file onl
 
 The agent has one job: **plan the next hour of drone coverage on a fire, and write the crew briefing.**
 The person and the agent edit the same plan through the same actions. The judged flow is one replay hour
-of the Eaton Fire (Jan 8 2025, 15:30 PST = 23:30Z). Every step can be done by clicking or by asking the
+of the Eaton Fire: 2025-01-08T16:00Z (8 AM PST). 18Z has every drone grounded by wind; 22-23Z have no accepted Muse forecast. Every step can be done by clicking or by asking the
 agent. Honesty labels from the Meta build stay: LIVE, CACHED, SIMULATED, MODELED. The plan is for a replay
 of a past fire, no drone flies, and the score is simple geometry, not the MuJoCo sim.
 
@@ -80,6 +80,7 @@ agent can cite them and `save-briefing` can re-run them.
 | `get-drone-plan` (read) | `{fire, t}` or `{planId}` | `{plan, assignments[], score, briefing}` or `{plan:null}` |
 | `create-drone-plan` | `{fire, t, drones:[{droneId, lon, lat, radiusM?, reason}], keepLocked?: true}` | replaces unlocked drones, max 6 drones `D1`..`D6`, returns plan + score |
 | `update-drone-assignment` | `{planId, droneId, lon?, lat?, radiusM?, locked?, reason?, remove?}` | upsert/remove one drone, returns new score |
+| `flyable-cells` (read) | `{fire, t}` | 24 HRRR wind cells with bbox, gust at 120 m, flyable (<= 12 m/s) |
 | `score-plan` (read) | `{planId}` | `{frontKm, coveredKm, frontCoveragePct, groundedCount, homesNearFront, homesWatched, perDrone:[...], label}` |
 | `save-briefing` | `{planId, paragraphs:[{text, cites:[{action, args}]}]}` | re-runs each cited data action through `server/fire/tools.ts`, checks numbers with `server/fire/verify.ts`, keeps verified paragraphs, reports dropped ones |
 | `edit-briefing-paragraph` | `{briefingId, index, text}` | person's inline edit, marked "edited by person" |
