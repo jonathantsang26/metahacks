@@ -83,7 +83,19 @@ export default defineAction({
         if (!plan) screen.plan = {exists: false, hourKey: pt.hourKey, next: f ? 'create-drone-plan' : 'pick an hour with a forecast'};
       }
     }
-    if (plan) screen.plan = planSummary(await bundle(plan));
+    if (plan) {
+      const summary = planSummary(await bundle(plan));
+      screen.plan = summary;
+      // The UI writes the selection when the person clicks or drops a drone; an agent move does not
+      // rewrite it. Always report the selected drone where the plan has it now, never a stale position.
+      const sel = screen.selection as {kind?: string; droneId?: string; lon?: number; lat?: number} | undefined;
+      if (sel?.kind === 'drone' && sel.droneId) {
+        const d = summary.drones.find(x => x.droneId === sel.droneId);
+        screen.selection = d
+          ? {...sel, lon: d.lon, lat: d.lat, radiusM: d.radiusM, locked: d.locked, grounded: d.grounded}
+          : {...sel, note: `${sel.droneId} is not in the current plan.`};
+      }
+    }
     screen.labels = 'Replay of a past fire. The forecast was made earlier; the drones are a plan (none flew).';
     return screen;
   }
