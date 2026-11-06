@@ -63,16 +63,24 @@ export function Header({fire}: {fire: FireData}) {
     <header className="flex h-10 shrink-0 items-center whitespace-nowrap border-b border-hairline bg-chrome px-3">
       <Logo />
       <span className="ml-2 text-[17px] font-semibold tracking-tight">Sentinel Ember</span>
-      <span className="hidden items-center lg:flex">
+      {/* Subtitle and location only when there is room to spare (> 1600 px). */}
+      <span className="hidden items-center min-[1601px]:flex">
         <Divider />
         <span className="text-sm text-se-muted">Wildfire Forensic Analysis</span>
       </span>
       <Divider dotted />
       <FirePicker fire={fire} />
-      <span className="ml-4 hidden truncate text-sm text-se-muted xl:inline">{fire.aoi.location}</span>
+      <span className="ml-4 hidden truncate text-sm text-se-muted min-[1601px]:inline">{fire.aoi.location}</span>
       <span className="ml-4 hidden items-center gap-1.5 text-sm md:flex">
         <Icon name="calendar" size={14} className="text-se-muted" />
         {formatDate(start, tz)} – {formatDate(end, tz)}
+      </span>
+      {/* The one place the screen says it is a replay; cards don't repeat it. */}
+      <span
+        className="ml-3 rounded-[3px] border border-hairline px-1.5 py-px font-mono text-[10px] tracking-[0.04em] text-se-muted"
+        title="A replay of a past fire. Drone positions are simulated; no drone flies."
+      >
+        REPLAY · no drone flies
       </span>
 
       <nav className="ml-auto flex rounded-md bg-tabgroup p-0.5">

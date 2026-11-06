@@ -1,12 +1,14 @@
 import {sendToAgentChat} from '@agent-native/core/client/agent-chat';
-import {IconArrowsMove, IconLock, IconLockOpen, IconMessage, IconPlus, IconX} from '@tabler/icons-react';
+import {IconArrowsMove, IconChevronRight, IconLock, IconLockOpen, IconMessage, IconPlus, IconX} from '@tabler/icons-react';
 import {useQueryClient} from '@tanstack/react-query';
 import {useState, type ReactElement} from 'react';
 import {useSearchParams} from 'react-router';
 import {act, errorText, FIRE_LABEL, fireTime, freeSpotOnFront, MAX_DRONES, nextDroneId, useForecastFront, usePlanContext, usePlanData, useSelectionGuard, useUpdateDrone} from './data';
 import {selectPlanDrone, setPlanError, usePlanUi} from './store';
 import type {Assignment, LonLat, Score} from './types';
-import {Btn, ByChip, Card, Chip, Label, Spinner} from './ui';
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip';
+import {useGuideStep} from './GuideSteps';
+import {Btn, ByWord, Card, Chip, Label, Spinner} from './ui';
 
 export type PlanPanelProps = {
   /** Defaults to the `fire` URL param. */
@@ -54,118 +56,152 @@ function ScoreBlock({score, method}: {score: Score | null; method: string | null
     return <div className="px-3 py-3 text-[12px] text-[var(--pl-muted)]">Scoring the plan…</div>;
   }
   const pct = score.frontCoveragePct;
+  const methodText = method ? METHOD_LABEL[method] ?? method : 'forecast';
   return (
-    <div className="px-3 pb-2 pt-3">
-      <div className="flex items-end gap-3">
-        <div className="text-[34px] font-semibold leading-none tabular-nums">{pct === null ? '–' : `${Math.round(pct)}%`}</div>
-        <div className="pb-0.5 text-[12px] leading-[15px] text-[var(--pl-muted)]">
-          of the forecast front is inside a drone&apos;s view
-          <div className="tabular-nums text-[var(--pl-ink)]">
-            {fmtKm(score.coveredKm)} of {fmtKm(score.frontKm)} km covered
+    <div className="px-3 pb-2.5 pt-3">
+      <div className="flex items-center gap-2.5">
+        <div className="text-[28px] font-semibold leading-none tracking-[-0.01em] tabular-nums">{pct === null ? '–' : `${Math.round(pct)}%`}</div>
+        <div className="min-w-0 text-[12px] leading-[15px]">
+          of the forecast front watched
+          <div className="tabular-nums text-[var(--pl-muted)]">
+            {fmtKm(score.coveredKm)} of {fmtKm(score.frontKm)} km
           </div>
         </div>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
-        <div>
-          <Label>Grounded drones</Label>
-          <div className={`text-[15px] font-semibold tabular-nums ${score.groundedCount ? 'text-[var(--pl-live)]' : ''}`}>{fmtInt(score.groundedCount)}</div>
-          <div className="text-[11px] leading-[14px] text-[var(--pl-muted)]">Gusts at flight height over the 12 m/s limit (shaded cells on the map); they cover nothing.</div>
-        </div>
-        <div>
-          <Label>Homes watched</Label>
-          <div className="text-[15px] font-semibold tabular-nums">
-            {fmtInt(score.homesWatched)}
-            <span className="font-normal text-[var(--pl-muted)]"> of {fmtInt(score.homesNearFront)}</span>
-          </div>
-          <div className="text-[11px] leading-[14px] text-[var(--pl-muted)]">Homes near the front that sit inside a drone footprint.</div>
-        </div>
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-3 text-[12px] leading-[16px] text-[var(--pl-muted)]">
+        <span className="tabular-nums">
+          <span className="font-semibold text-[var(--pl-ink)]">{fmtInt(score.homesWatched)}</span> of {fmtInt(score.homesNearFront)} homes
+        </span>
+        <span className="tabular-nums">
+          <span className={`font-semibold ${score.groundedCount ? 'text-[var(--pl-live)]' : 'text-[var(--pl-ink)]'}`}>{fmtInt(score.groundedCount)}</span> grounded by wind
+        </span>
       </div>
-      <div className="mt-2.5 flex flex-wrap items-center gap-1 text-[11px] leading-[14px] text-[var(--pl-muted)]">
-        <Chip tone="modeled" title="Simple geometry: footprint circles against the forecast front line">MODELED</Chip>
-        <Chip tone="modeled" title={`The +1 h ${method ? METHOD_LABEL[method] ?? method : 'forecast'} saved for this replay hour`}>
+      <div className="mt-2 flex flex-wrap items-center gap-1">
+        <Chip tone="ghost" title="Simple geometry: footprint circles against the forecast front line">
+          MODELED
+        </Chip>
+        <Chip tone="ghost" title={`The +1 h ${methodText} saved for this replay hour`}>
           CACHED{method ? ` · ${method.toUpperCase()}` : ''}
         </Chip>
-        <Chip tone="muted" title="No drone flew this fire">SIM</Chip>
-        <span>{score.label ?? 'Geometric estimate on a cached forecast. Drones are simulated.'}</span>
+        <Chip tone="ghost" title="No drone flew this fire">
+          SIM
+        </Chip>
+        <TooltipProvider delayDuration={100}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button type="button" className="whitespace-nowrap rounded px-0.5 text-[11px] leading-[16px] text-[var(--pl-muted)] hover:text-[var(--pl-ink)] focus-visible:outline-2 focus-visible:outline-[var(--pl-accent)]">
+                How it&apos;s scored ›
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" align="start" className="max-w-[280px] space-y-1.5 text-xs leading-[16px]">
+              <p>
+                <b>Front watched:</b> the share of the cached +1 h {methodText} front that lies inside a drone&apos;s view circle.
+              </p>
+              <p>
+                <b>Homes:</b> homes near the front that sit inside a drone footprint.
+              </p>
+              <p>
+                <b>Grounded:</b> gusts at flight height over the 12 m/s limit (shaded cells on the map); a grounded drone covers nothing.
+              </p>
+              <p className="opacity-80">{score.label ?? 'Geometric estimate on a cached forecast. Drones are simulated.'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </div>
   );
 }
 
-function DroneRow({a, planId, selected, armed, approved}: {a: Assignment; planId: string; selected: boolean; armed: boolean; approved: boolean}) {
+const ICON_BTN = 'rounded p-1 text-[var(--pl-muted)] hover:bg-[var(--pl-tab-active)] hover:text-[var(--pl-ink)] focus-visible:outline-2 focus-visible:outline-[var(--pl-accent)]';
+
+function DroneRow({a, planId, selected, armed, approved, accent}: {a: Assignment; planId: string; selected: boolean; armed: boolean; approved: boolean; accent: boolean}) {
   const update = useUpdateDrone();
   const select = () => selectPlanDrone(planId, selected ? null : a);
+  const groundedText = a.grounded ? (a.gustMs !== null ? `grounded, gust ${a.gustMs.toFixed(1)} m/s` : 'grounded') : null;
+  const controls = !approved && (
+    <span className="flex shrink-0 items-center gap-0.5">
+      <button
+        type="button"
+        title={armed ? 'Click the map to place it (Esc to cancel)' : `Move ${a.droneId}: drag its marker, or press this then click the map`}
+        aria-label={`Move ${a.droneId}`}
+        aria-pressed={armed}
+        onClick={() => usePlanUi.setState({moveArmed: armed ? null : a.droneId})}
+        className={armed ? 'rounded bg-[var(--pl-ink)] p-1 text-white' : ICON_BTN}
+      >
+        <IconArrowsMove size={13} />
+      </button>
+      <button
+        type="button"
+        title={a.locked ? `Unlock ${a.droneId} (the agent may move it)` : `Lock ${a.droneId} (the agent keeps it when re-planning)`}
+        aria-label={a.locked ? `Unlock ${a.droneId}` : `Lock ${a.droneId}`}
+        aria-pressed={a.locked}
+        onClick={() => void update({planId, droneId: a.droneId, locked: !a.locked}, {locked: !a.locked})}
+        className={`${ICON_BTN} ${a.locked ? 'text-[var(--pl-ink)]' : ''}`}
+      >
+        {a.locked ? <IconLock size={13} /> : <IconLockOpen size={13} />}
+      </button>
+      <button
+        type="button"
+        title={`Remove ${a.droneId}`}
+        aria-label={`Remove ${a.droneId}`}
+        onClick={() => {
+          if (selected) selectPlanDrone(null, null);
+          void update({planId, droneId: a.droneId, remove: true}, {removed: true});
+        }}
+        className={`${ICON_BTN} hover:text-[var(--pl-live)]`}
+      >
+        <IconX size={13} />
+      </button>
+    </span>
+  );
+  const marker = a.locked ? (
+    <IconLock size={12} className="shrink-0 text-[var(--pl-muted)]" aria-label="Locked" />
+  ) : (
+    <ByWord by={a.updatedBy} />
+  );
+  // An unselected row shows one quiet marker; hover or keyboard focus swaps it for the controls.
   return (
-    <li
-      className={`border-t border-[var(--pl-hair)] ${selected ? 'bg-[var(--pl-selected)]' : 'hover:bg-[var(--pl-tab-active)]/60'}`}
-      aria-selected={selected}
-    >
-      <div className="flex items-start gap-2 px-3 py-1.5">
+    <li className={`group border-t border-[var(--pl-hair)] ${selected ? 'bg-[var(--pl-selected)]' : 'hover:bg-[var(--pl-tab-active)]/50'}`} aria-selected={selected}>
+      <div className={`flex min-h-[30px] gap-2 px-3 ${selected ? 'items-start py-1.5' : 'items-center'}`}>
         <button
           type="button"
           onClick={select}
-          className="flex min-w-0 flex-1 items-start gap-2 rounded text-left focus-visible:outline-2 focus-visible:outline-[var(--pl-accent)]"
+          className={`flex min-h-[18px] min-w-0 flex-1 gap-2 rounded text-left ${selected ? 'items-start' : 'items-center'} focus-visible:outline-2 focus-visible:outline-[var(--pl-accent)]`}
           aria-label={`Select ${a.droneId}${a.reason ? `: ${a.reason}` : ''}`}
+          title={selected ? undefined : [a.reason, a.grounded ? (a.groundedReason ?? groundedText) : null].filter(Boolean).join(' · ') || undefined}
         >
           <span
-            className={`mt-px inline-flex h-[18px] w-[26px] shrink-0 items-center justify-center rounded font-mono text-[11px] font-semibold ${
-              a.grounded ? 'bg-[var(--pl-tab)] text-[var(--pl-muted)] line-through' : 'bg-[var(--pl-ink)] text-white'
+            className={`inline-flex h-[18px] w-[26px] shrink-0 items-center justify-center rounded font-mono text-[11px] font-semibold ${
+              a.grounded ? 'bg-[var(--pl-tab)] text-[var(--pl-muted)] line-through' : selected && accent ? 'bg-[var(--pl-accent)] text-white' : 'bg-[var(--pl-ink)] text-white'
             }`}
           >
             {a.droneId}
           </span>
-          <span className="min-w-0 flex-1">
-            <span className={`block text-[12px] leading-[16px] ${selected ? '' : 'line-clamp-2'}`}>{a.reason || <span className="text-[var(--pl-muted)]">No reason given</span>}</span>
-            {a.grounded && <span className="block text-[11px] leading-[14px] text-[var(--pl-live)]">Grounded{a.groundedReason ? `: ${a.groundedReason}` : a.gustMs !== null ? `: gusts ${a.gustMs.toFixed(1)} m/s` : ''}</span>}
-          </span>
+          <span className={`min-w-0 text-[12px] leading-[18px] ${selected ? '' : 'truncate'} ${a.grounded ? 'text-[var(--pl-muted)]' : ''}`}>{a.reason || <span className="text-[var(--pl-muted)]">No reason given</span>}</span>
+          {groundedText && <span className="-ml-1 shrink-0 whitespace-nowrap text-[11px] leading-[18px] text-[var(--pl-muted)]">· {groundedText}</span>}
         </button>
-        <span className="flex shrink-0 items-center gap-0.5 pt-px">
-          <ByChip by={a.updatedBy} />
-          {!approved && (
-            <>
-              <button
-                type="button"
-                title={armed ? 'Click the map to place it (Esc to cancel)' : `Move ${a.droneId}: drag its marker, or press this then click the map`}
-                aria-label={`Move ${a.droneId}`}
-                aria-pressed={armed}
-                onClick={() => usePlanUi.setState({moveArmed: armed ? null : a.droneId})}
-                className={`rounded p-1 ${armed ? 'bg-[var(--pl-accent)] text-white' : 'text-[var(--pl-muted)] hover:text-[var(--pl-ink)]'}`}
-              >
-                <IconArrowsMove size={13} />
-              </button>
-              <button
-                type="button"
-                title={a.locked ? `Unlock ${a.droneId} (the agent may move it)` : `Lock ${a.droneId} (the agent keeps it when re-planning)`}
-                aria-label={a.locked ? `Unlock ${a.droneId}` : `Lock ${a.droneId}`}
-                aria-pressed={a.locked}
-                onClick={() => void update({planId, droneId: a.droneId, locked: !a.locked}, {locked: !a.locked})}
-                className={`rounded p-1 ${a.locked ? 'text-[var(--pl-ink)]' : 'text-[var(--pl-muted)] hover:text-[var(--pl-ink)]'}`}
-              >
-                {a.locked ? <IconLock size={13} /> : <IconLockOpen size={13} />}
-              </button>
-              <button
-                type="button"
-                title={`Remove ${a.droneId}`}
-                aria-label={`Remove ${a.droneId}`}
-                onClick={() => {
-                  if (selected) selectPlanDrone(null, null);
-                  void update({planId, droneId: a.droneId, remove: true}, {removed: true});
-                }}
-                className="rounded p-1 text-[var(--pl-muted)] hover:text-[var(--pl-live)]"
-              >
-                <IconX size={13} />
-              </button>
-            </>
-          )}
-        </span>
+        {selected || approved ? (
+          marker
+        ) : armed ? (
+          controls
+        ) : (
+          <>
+            <span className="flex items-center group-hover:hidden">{marker}</span>
+            <span className="hidden group-hover:flex">{controls}</span>
+          </>
+        )}
       </div>
       {selected && (
-        <div className="flex items-center justify-between gap-2 px-3 pb-2 pl-[44px] text-[11px] text-[var(--pl-muted)]">
-          <span className="tabular-nums">
-            {a.lon.toFixed(4)}, {a.lat.toFixed(4)} · {Math.round(a.radiusM)} m view
-          </span>
+        <div className="px-3 pb-2.5 pl-[46px] -mt-0.5">
+          {a.grounded && a.groundedReason && <p className="pb-1 text-[11px] leading-[15px] text-[var(--pl-muted)]">{a.groundedReason}</p>}
+          <div className="flex items-center justify-between gap-1 text-[11px] text-[var(--pl-muted)]">
+            <span className="min-w-0 truncate whitespace-nowrap tabular-nums" title={`${Math.round(a.radiusM)} m view radius at ${a.lon.toFixed(4)}, ${a.lat.toFixed(4)}`}>
+              {Math.round(a.radiusM)} m · {a.lon.toFixed(4)}, {a.lat.toFixed(4)}
+            </span>
+            {controls}
+          </div>
           {!approved && (
-            <Btn onClick={() => askAgentAboutDrone(planId, a)} title={`Ask the agent to change ${a.droneId}`}>
+            <Btn variant={accent ? 'accent' : 'plain'} className="mt-1.5" onClick={() => askAgentAboutDrone(planId, a)} title={`Ask the agent to change ${a.droneId}`}>
               <IconMessage size={12} /> Ask agent to change {a.droneId}
             </Btn>
           )}
@@ -188,6 +224,8 @@ export function PlanPanel(props: PlanPanelProps = {}): ReactElement | null {
   const [, setParams] = useSearchParams();
   const [busy, setBusy] = useState<null | 'add' | 'approve'>(null);
   useSelectionGuard(data.plan?.id ?? null, data.assignments, !data.fetching);
+  // One accent on screen at a time, on the current guide step's control (0-based steps).
+  const step = useGuideStep({fire, t: t ?? undefined});
 
   const plan = data.plan;
   const approved = plan?.status === 'approved';
@@ -249,13 +287,12 @@ export function PlanPanel(props: PlanPanelProps = {}): ReactElement | null {
     }
   };
 
-  const status = plan ? <Chip tone={approved ? 'ok' : 'muted'}>{approved ? 'APPROVED' : 'DRAFT'}</Chip> : data.fetching ? <Spinner className="text-[var(--pl-muted)]" /> : null;
+  const status = plan ? <Chip tone={approved ? 'ok' : 'ghost'}>{approved ? 'APPROVED' : 'DRAFT'}</Chip> : data.fetching ? <Spinner className="text-[var(--pl-muted)]" /> : null;
   const title = (
     <span>
       Plan <span className="font-normal text-[var(--pl-muted)]">· {t ? `hour from ${fireTime(plan?.t || t)}` : 'no hour picked'}</span>
     </span>
   );
-
   if (!t) {
     return (
       <Card title={title} className={props.className}>
@@ -264,14 +301,15 @@ export function PlanPanel(props: PlanPanelProps = {}): ReactElement | null {
     );
   }
 
+  const planAccent = !plan && (step === 1 || step === 5);
   const askBtn = (
-    <Btn primary={!plan} onClick={() => askAgentToPlan(fire, t, data.assignments.filter(a => a.locked))} disabled={approved} title="Send the planning request to the agent">
-      <IconMessage size={13} /> {plan ? 'Ask agent to re-plan' : 'Ask agent to plan'}
+    <Btn variant={planAccent ? 'accent' : 'plain'} className="px-2" onClick={() => askAgentToPlan(fire, t, data.assignments.filter(a => a.locked))} disabled={approved} title="Send the planning request to the agent">
+      {plan ? 'Re-plan with agent' : 'Ask agent to plan'}
     </Btn>
   );
   const addBtn = (
-    <Btn onClick={() => void addDrone()} disabled={approved || full || busy !== null} title={full ? `The plan already has ${MAX_DRONES} drones` : 'Add a drone on the front'}>
-      {busy === 'add' ? <Spinner /> : <IconPlus size={13} />} Add drone
+    <Btn variant="quiet" className="px-1" onClick={() => void addDrone()} disabled={approved || full || busy !== null} title={full ? `The plan already has ${MAX_DRONES} drones` : 'Add a drone on the front'}>
+      {busy === 'add' ? <Spinner /> : <IconPlus size={12} />} Drone
     </Btn>
   );
 
@@ -281,9 +319,9 @@ export function PlanPanel(props: PlanPanelProps = {}): ReactElement | null {
       {!plan ? (
         <div className="px-3 py-3">
           <p className="text-[12px] leading-[16px] text-[var(--pl-muted)]">
-            {data.loading ? 'Loading the plan for this hour…' : 'No drones are planned for this hour. Ask the agent to place up to six over the forecast front, or add one yourself.'}
+            {data.loading ? 'Loading the plan for this hour…' : 'No drones planned for this hour. The agent places up to six on the forecast front.'}
           </p>
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
             {askBtn}
             {addBtn}
           </div>
@@ -291,13 +329,13 @@ export function PlanPanel(props: PlanPanelProps = {}): ReactElement | null {
       ) : (
         <>
           <ScoreBlock score={data.score} method={front?.method ?? data.score?.forecastMethod ?? null} />
-          <div className="flex items-center justify-between px-3 pb-1 pt-2">
+          <div className="flex items-center justify-between border-t border-[var(--pl-hair)] px-3 pb-1.5 pt-2">
             <Label>
               Drones {data.assignments.length}/{MAX_DRONES}
             </Label>
             {plan.updatedBy && (
               <span className="text-[10px] text-[var(--pl-muted)]">
-                last change by {plan.updatedBy === 'agent' ? 'the agent' : 'a person'}
+                last change: {plan.updatedBy === 'agent' ? 'agent' : 'you'}
                 {plan.updatedAt ? ` · ${new Date(plan.updatedAt).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}` : ''}
               </span>
             )}
@@ -305,19 +343,36 @@ export function PlanPanel(props: PlanPanelProps = {}): ReactElement | null {
           {data.assignments.length ? (
             <ul>
               {data.assignments.map(a => (
-                <DroneRow key={a.droneId} a={a} planId={plan.id} selected={selected?.droneId === a.droneId && selected.planId === plan.id} armed={armed === a.droneId} approved={approved} />
+                <DroneRow
+                  key={a.droneId}
+                  a={a}
+                  planId={plan.id}
+                  selected={selected?.droneId === a.droneId && selected.planId === plan.id}
+                  armed={armed === a.droneId}
+                  approved={approved}
+                  accent={step === 3}
+                />
               ))}
             </ul>
           ) : (
             <p className="border-t border-[var(--pl-hair)] px-3 py-2 text-[12px] text-[var(--pl-muted)]">Every drone was removed. Add one or ask the agent to re-plan.</p>
           )}
-          {!approved && data.assignments.length > 0 && <p className="px-3 pt-1.5 text-[11px] text-[var(--pl-muted)]">Drag a marker on the map to move a drone; the score updates when you drop it.</p>}
-          <div className="flex flex-wrap items-center gap-1.5 border-t border-[var(--pl-hair)] px-3 py-2.5 mt-2">
+          {!approved && data.assignments.length > 0 && (
+            <p className="border-t border-[var(--pl-hair)] px-3 py-1.5 text-[11px] text-[var(--pl-muted)]">Drag a marker on the map to move a drone.</p>
+          )}
+          <div className="flex items-center gap-1 border-t border-[var(--pl-hair)] py-2 pl-3 pr-2">
             {askBtn}
             {addBtn}
-            <Btn primary className="ml-auto" onClick={() => void approve()} disabled={approved || busy !== null || !data.assignments.length} title="Lock this plan and move to the next hour">
+            <Btn
+              variant={step === 5 && !approved ? 'accent' : 'plain'}
+              className="ml-auto px-2"
+              onClick={() => void approve()}
+              disabled={approved || busy !== null || !data.assignments.length}
+              title="Approve this plan and move to the next hour"
+            >
               {busy === 'approve' ? <Spinner /> : null}
-              {approved ? 'Approved' : 'Approve & next hour'}
+              {approved ? 'Approved' : 'Approve'}
+              {!approved && busy !== 'approve' && <IconChevronRight size={13} className="-mr-1" />}
             </Btn>
           </div>
         </>

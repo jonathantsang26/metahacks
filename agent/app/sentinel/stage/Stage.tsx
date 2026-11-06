@@ -30,8 +30,8 @@ import {useSwarmPart} from './swarm-layer';
 import {useRollout, useSwarmUi} from '../swarm/data';
 import {useForecastPart} from './forecast-layer';
 import {useLiveHitsPart} from './live-layer';
-import {Compass, HoverInspector, MapControls, MapNotes, SyntheticChip, type StageNote} from './overlays';
-import {usePlanLayers, usePlanMapControls} from '@/plan';
+import {Compass, HoverInspector, MapControls, MapNotes, SyntheticChip, type KeySummaryItem, type StageNote} from './overlays';
+import {usePlanData, usePlanLayers, usePlanMapControls} from '@/plan';
 import {useSearchParams} from 'react-router';
 import {setMapCenter} from './map-center';
 import {selectMapPoint} from '../agent/context';
@@ -47,6 +47,9 @@ const severityCode = (dnbr: number) => 1 + ((dnbr + 0.1) / 1.1) * 254;
 /** Key & Benson low and high class edges, the step 08 contract, if severity_stats.json is missing. */
 const DEFAULT_EDGES = [0.1, 0.66];
 const css = ([r, g, b]: number[]) => `rgb(${r}, ${g}, ${b})`;
+/** Key colours of the plan layer's front (app/plan/layers.ts): unwatched = accent, watched = green. */
+const ACCENT = 'rgb(209, 101, 75)';
+const WATCHED = 'rgb(92, 214, 140)';
 
 export function Stage({fire}: {fire: FireData}) {
   const t = useTime(s => s.t);
@@ -184,13 +187,17 @@ export function Stage({fire}: {fire: FireData}) {
   const swarmUi = useSwarmUi();
   const {data: swarmRollout} = useRollout(fire, swarmUi.policy);
   const swarmPart = useSwarmPart(fire, dem, t, swarmRollout, swarmUi.show);
-  const forecastPart = useForecastPart(fire, dem, t, layers.forecast.visible && layers.forecast.ready);
-  const livePart = useLiveHitsPart(dem, layers.liveHits.visible);
   // The next hour's drone plan (app/plan): watch points, footprints, front coverage. The plan UI
   // owns the layers. It reads the URL's `t` (written by IncidentSync, debounced), the same hour the
   // plan panel reads, so playback does not rebuild them per frame.
   const [searchParams] = useSearchParams();
   const planT = searchParams.get('t') ?? new Date(Math.floor(t / 60_000) * 60_000).toISOString().replace('.000Z', 'Z');
+  // Same get-drone-plan query as the plan panel (shared per hour). With a plan on the map, its
+  // front (watched / unwatched) is the one forecast line, so the stage's own outlines step aside.
+  const planData = usePlanData(fire.id, planT);
+  const planOnMap = layers.dronePlan.visible && !!planData.plan;
+  const forecastPart = useForecastPart(fire, dem, t, layers.forecast.visible && layers.forecast.ready && !planOnMap);
+  const livePart = useLiveHitsPart(dem, layers.liveHits.visible);
   const zAt = useMemo(() => (dem ? (lon: number, lat: number) => dem.heightAt(lon, lat) : undefined), [dem]);
   const planCtx = useMemo(
     () => ({fire: fire.id, t: planT, zAt, visible: layers.dronePlan.visible}),
@@ -338,6 +345,42 @@ export function Stage({fire}: {fire: FireData}) {
       detail: osmRow.source
     });
 
+  if (planOnMap)
+    notes.push({
+      id: 'plan-front',
+      tag: 'CACHED',
+      title: 'Forecast front +1 h · drone plan',
+      detail:
+        "The cached +1 h forecast front for this hour, drawn by the drone plan: green where it falls inside a flying drone's view, orange where it does not. Drones are simulated; no drone flies",
+      swatches: [
+        {color: ACCENT, label: 'Front, not watched', shape: 'line'},
+        {color: WATCHED, label: 'Front, watched', shape: 'line'},
+        {color: '#ffffff', label: 'Drone view (SIM)', shape: 'ring'}
+      ]
+    });
+
+  // The default one-line key: only what the planning loop reads. Everything else is in "All layers".
+  const summary: KeySummaryItem[] = [];
+  if (planOnMap) {
+    summary.push(
+      {id: 'front', label: 'Forecast front +1 h', tag: 'CACHED', swatch: {color: ACCENT, label: 'Forecast front', shape: 'line'}, title: 'Cached +1 h forecast front for this hour'},
+      {id: 'watched', label: 'watched', swatch: {color: WATCHED, label: 'Watched', shape: 'line'}, title: "Stretch of the front inside a flying drone's view"},
+      {id: 'view', label: 'Drone view', tag: 'SIM', swatch: {color: '#ffffff', label: 'Drone view', shape: 'ring'}, title: 'Simulated drone footprint; no drone flies'}
+    );
+  } else {
+    const fc = forecastPart.notes[0];
+    if (fc)
+      summary.push({
+        id: 'front',
+        label: 'Forecast +1 h',
+        tag: fc.tag,
+        swatch: fc.swatches?.[0] ?? {color: '#ffffff', label: 'Forecast', shape: 'dash'},
+        title: fc.title
+      });
+  }
+  if (layers.structures.visible && structurePart.notes.some(n => n.id === 'structures'))
+    summary.push({id: 'homes', label: 'Homes', swatch: {color: '#eeeade', label: 'Homes', shape: 'square'}, title: 'Structures from the damage inspection (DINS)'});
+
   // The terrain mesh is always drawn: the fire layers live in its shader. The Terrain layer's
   // switch and slider blend only its stylized texture toward a flat neutral ground.
   const deckLayers: Layer[] = [
@@ -430,7 +473,7 @@ export function Stage({fire}: {fire: FireData}) {
         }
       />
       <SyntheticChip visible={simulated && spread.visible} />
-      <MapNotes notes={notes} />
+      <MapNotes notes={notes} summary={notes.length ? summary : undefined} />
       <MapControls />
       <HoverInspector dem={dem} fire={fire} arrivalWindow={arrivalWindow} arrivalMeta={arrivalMeta} />
     </div>

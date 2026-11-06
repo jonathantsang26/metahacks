@@ -109,7 +109,9 @@ function Evidence({fire}: {fire: FireData}) {
 const SUBTABS = ['Layers', 'Analysis', 'Evidence', 'Ask', 'Swarm'] as const;
 
 function IncidentRail({fire}: {fire: FireData}) {
-  const [sub, setSub] = useState<(typeof SUBTABS)[number]>('Layers');
+  // Collapsed (header only) until a tab is picked, so the plan cards lead the rail; a click on
+  // the open tab collapses it again.
+  const [sub, setSub] = useState<(typeof SUBTABS)[number] | null>(null);
   const selected = useUi(s => s.selectedStructure);
   // Picking a structure on the map opens Analysis → Homes, where its record is shown.
   useEffect(() => {
@@ -118,12 +120,15 @@ function IncidentRail({fire}: {fire: FireData}) {
   return (
     <>
       <section className="mx-2 mt-2 overflow-hidden rounded-md bg-se-card shadow-[0_0_0_1px_var(--hairline)]">
-        <div className="flex border-b border-hairline bg-section px-1">
+        <div className={`flex bg-section px-1 ${sub ? 'border-b border-hairline' : ''}`} role="tablist">
           {SUBTABS.map(s => (
             <button
               key={s}
-              onClick={() => setSub(s)}
-              className={`px-2 py-2 text-sm ${sub === s ? 'border-b-2 border-ink font-medium' : 'text-se-muted'}`}
+              role="tab"
+              aria-selected={sub === s}
+              aria-expanded={sub === s}
+              onClick={() => setSub(cur => (cur === s ? null : s))}
+              className={`px-2 py-2 text-sm ${sub === s ? 'border-b-2 border-ink font-medium' : 'text-se-muted hover:text-ink'}`}
             >
               {s}
             </button>

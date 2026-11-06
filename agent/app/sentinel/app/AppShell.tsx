@@ -43,9 +43,11 @@ export function AppShell({fire}: {fire: FireId}) {
             <Stage fire={data} />
             <FootagePlayer fire={data} />
             <LivePlayer fire={data} />
-            {/* The plan UI's numbered "Start here" guide, over the map's free top-right corner. */}
-            <div className="absolute right-3 top-3 z-30 max-w-[340px]">
-              <GuideSteps />
+            {/* The plan UI's one-line guide strip, centred at the top of the map, clear of the compass. */}
+            <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center px-14">
+              <div className="pointer-events-auto min-w-0 max-w-[640px]">
+                <GuideSteps />
+              </div>
             </div>
           </div>
           <Dock fire={data} />

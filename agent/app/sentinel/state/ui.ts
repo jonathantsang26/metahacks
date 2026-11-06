@@ -33,20 +33,25 @@ export type LayerDef = {
   pending?: string;
 };
 
+/**
+ * Defaults suit the planning loop: terrain, fire progression, perimeters, forecast, homes, the
+ * drone plan and labels. The final burn scar (gives away the future), ignition estimate, spread
+ * spine and live hits start off and stay one toggle away in Layers.
+ */
 export const LAYERS: LayerDef[] = [
   {id: 'terrain', label: 'Terrain (3D)', visible: true, opacity: 1, ready: true},
-  {id: 'burnScar', label: 'Burn Scar (dNBR)', visible: true, opacity: 0.9, ready: true},
+  {id: 'burnScar', label: 'Burn Scar (dNBR)', visible: false, opacity: 0.9, ready: true},
   {id: 'fireSpread', label: 'Fire Progression (Interpolated)', visible: true, opacity: 1, ready: true},
   {id: 'perimeters', label: 'Mapped Perimeters', visible: true, opacity: null, ready: true},
-  {id: 'ignition', label: 'Ignition Probability', visible: true, opacity: 0.8, ready: true},
-  {id: 'spine', label: 'Spread Spine', visible: true, opacity: null, ready: true},
+  {id: 'ignition', label: 'Ignition Probability', visible: false, opacity: 0.8, ready: true},
+  {id: 'spine', label: 'Spread Spine', visible: false, opacity: null, ready: true},
   {id: 'wind', label: 'Weather (Wind Vectors)', visible: false, opacity: 0.7, ready: true},
-  {id: 'structures', label: 'Structures', visible: false, opacity: null, ready: true},
+  {id: 'structures', label: 'Structures', visible: true, opacity: null, ready: true},
   {id: 'roads', label: 'Roads & Trails', visible: false, opacity: null, ready: true},
   {id: 'labels', label: 'Place Labels', visible: true, opacity: null, ready: true},
   {id: 'debrisFlow', label: 'Debris-Flow Likelihood', visible: false, opacity: 1, ready: true},
   {id: 'forecast', label: 'Spread Forecast (+1 h)', visible: true, opacity: null, ready: true},
-  {id: 'liveHits', label: 'Live Drone Hits', visible: true, opacity: null, ready: true},
+  {id: 'liveHits', label: 'Live Drone Hits', visible: false, opacity: null, ready: true},
   {id: 'dronePlan', label: 'Drone Plan (next hour)', visible: true, opacity: null, ready: true}
 ];
 
@@ -73,8 +78,30 @@ export type FlyTo = {lon: number; lat: number; zoom?: number; seq: number} | nul
 /** A place to mark on the map while the pointer is over something that cites it (a citation chip). */
 export type Highlight = {lon: number; lat: number; label?: string} | null;
 
+const DOCK_OPEN_KEY = 'sentinel.dock.chartsOpen';
+
+/** Per-viewer choice of whether the dock shows charts + key events or just the timeline row. */
+function readDockOpen(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem(DOCK_OPEN_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function writeDockOpen(open: boolean) {
+  try {
+    localStorage.setItem(DOCK_OPEN_KEY, open ? '1' : '0');
+  } catch {
+    // Storage blocked: the choice lasts for this page only.
+  }
+}
+
 type UiState = {
   tab: Tab;
+  /** Incident tab: the dock shows charts + key events (true) or only the timeline row (false, default). */
+  dockOpen: boolean;
+  setDockOpen: (open: boolean) => void;
   viewMode: ViewMode;
   bearing: number;
   layers: Record<LayerId, LayerDef>;
@@ -107,6 +134,11 @@ const INITIAL_TAB: Tab = TAB_PARAM === 'risk' || TAB_PARAM === 'drones' ? TAB_PA
 
 export const useUi = create<UiState>(set => ({
   tab: INITIAL_TAB,
+  dockOpen: readDockOpen(),
+  setDockOpen: dockOpen => {
+    writeDockOpen(dockOpen);
+    set({dockOpen});
+  },
   viewMode: '3d',
   bearing: 0,
   layers: Object.fromEntries(

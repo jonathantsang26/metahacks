@@ -34,7 +34,7 @@ export function MapControls() {
   const seg = (mode: '2d' | '3d', label: string) => (
     <button
       onClick={() => setViewMode(mode)}
-      className={`px-2 py-1 text-xs font-semibold ${viewMode === mode ? 'rounded bg-se-accent text-white' : 'text-se-muted'}`}
+      className={`px-2 py-1 text-xs font-semibold ${viewMode === mode ? 'rounded bg-btndark text-white shadow-[0_0_0_1px_rgba(255,255,255,0.15)]' : 'text-white/55 hover:text-white'}`}
     >
       {label}
     </button>
@@ -93,6 +93,33 @@ function SwatchMark({s}: {s: Swatch}) {
   return <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{background: s.color}} />;
 }
 
+/** One entry on the collapsed one-line key: a mark, a short label and an optional honesty tag. */
+export type KeySummaryItem = {id: string; label: string; tag?: string | undefined; swatch: Swatch; title?: string | undefined};
+
+/**
+ * Default map key: one line with only the layers the planning loop reads (forecast front,
+ * watched stretch, drone view, homes); "All layers ▸" opens the full key below.
+ */
+function KeySummary({items, onOpen}: {items: KeySummaryItem[]; onOpen: () => void}) {
+  return (
+    <div
+      className="absolute bottom-3 left-3 flex items-center gap-3 overflow-hidden whitespace-nowrap rounded-md bg-hud px-2.5 py-1.5 text-xs text-white"
+      style={{maxWidth: 'calc(100% - 150px)'}}
+    >
+      {items.map(i => (
+        <span key={i.id} className="flex min-w-0 items-center gap-1.5" title={i.title}>
+          <SwatchMark s={i.swatch} />
+          <span className="truncate">{i.label}</span>
+          {i.tag && <span className="shrink-0 rounded-[3px] border border-white/25 px-1 font-mono text-2xs tracking-wide text-white/80">{i.tag}</span>}
+        </span>
+      ))}
+      <button onClick={onOpen} aria-expanded={false} className="shrink-0 text-white/60 hover:text-white">
+        {items.length ? 'All layers ▸' : 'Map key ▸'}
+      </button>
+    </div>
+  );
+}
+
 /** Swatches on a collapsed line; the rest show, with their labels, when it is opened. */
 const SWATCHES_COLLAPSED = 4;
 
@@ -101,9 +128,11 @@ const SWATCHES_COLLAPSED = 4;
  * opens its sources and caveats, and the header opens or closes them all. Capped at 40% of the
  * stage and scrolled beyond that, so it never reaches the compass.
  */
-export function MapNotes({notes}: {notes: StageNote[]}) {
+export function MapNotes({notes, summary}: {notes: StageNote[]; summary?: KeySummaryItem[] | undefined}) {
   // Notes are rebuilt every render, so the open lines are tracked by id here.
   const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  const [full, setFull] = useState(false);
+  if (summary && !full) return <KeySummary items={summary} onOpen={() => setFull(true)} />;
   if (!notes.length) return null;
   const expandable = notes.filter(n => n.detail || n.swatches?.length).map(n => n.id);
   const allOpen = expandable.length > 0 && expandable.every(id => open.has(id));
@@ -120,14 +149,21 @@ export function MapNotes({notes}: {notes: StageNote[]}) {
     >
       <div className="flex shrink-0 items-center justify-between gap-3 px-2.5 pb-0.5 pt-1.5">
         <span className="text-2xs font-semibold uppercase tracking-wide text-white/55">Map key</span>
-        {expandable.length > 0 && (
-          <button
-            onClick={() => setOpen(allOpen ? new Set() : new Set(expandable))}
-            className="text-2xs text-white/55 hover:text-white"
-          >
-            {allOpen ? 'Hide details' : 'Show details'}
-          </button>
-        )}
+        <span className="flex items-center gap-3">
+          {expandable.length > 0 && (
+            <button
+              onClick={() => setOpen(allOpen ? new Set() : new Set(expandable))}
+              className="text-2xs text-white/55 hover:text-white"
+            >
+              {allOpen ? 'Hide details' : 'Show details'}
+            </button>
+          )}
+          {summary && (
+            <button onClick={() => setFull(false)} aria-expanded className="text-2xs text-white/55 hover:text-white">
+              Collapse ◂
+            </button>
+          )}
+        </span>
       </div>
       <div className="min-h-0 overflow-y-auto pb-1 [scrollbar-color:rgba(255,255,255,0.3)_transparent] [scrollbar-width:thin]">
         {notes.map(n => {

@@ -43,6 +43,18 @@ interface LayoutProps {
 }
 
 const SIDEBAR_COLLAPSE_KEY = "chat.sidebar.collapsed";
+// The incident map needs the width more than the nav, so it keeps its own
+// preference and starts collapsed (the icon rail keeps the nav reachable).
+const INCIDENT_SIDEBAR_COLLAPSE_KEY = "chat.sidebar.collapsed.incident";
+
+function sidebarPreference(pathname: string): {
+  key: string;
+  fallback: boolean;
+} {
+  return pathname === "/incident"
+    ? { key: INCIDENT_SIDEBAR_COLLAPSE_KEY, fallback: true }
+    : { key: SIDEBAR_COLLAPSE_KEY, fallback: false };
+}
 
 function routeOwnsToolbar(pathname: string): boolean {
   return (
@@ -89,7 +101,24 @@ function LayoutShell({ children }: LayoutProps) {
   const location = useLocation();
   const t = useT();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarPref = sidebarPreference(location.pathname);
+  const [sidebarState, setSidebarState] = useState<{
+    key: string;
+    collapsed: boolean;
+  }>(() => ({ key: sidebarPref.key, collapsed: sidebarPref.fallback }));
+  // Before the stored value is read for this route, use the route's default.
+  const sidebarCollapsed =
+    sidebarState.key === sidebarPref.key
+      ? sidebarState.collapsed
+      : sidebarPref.fallback;
+  const setSidebarCollapsed = (collapsed: boolean) => {
+    setSidebarState({ key: sidebarPref.key, collapsed });
+    try {
+      window.localStorage.setItem(sidebarPref.key, collapsed ? "1" : "0");
+    } catch {
+      // Ignore storage access errors.
+    }
+  };
   const isChatRoute = isChatPathname(location.pathname);
   // Settings brings its own navigation, header, and agent toggle, so it
   // renders full width.
@@ -119,24 +148,15 @@ function LayoutShell({ children }: LayoutProps) {
   }, []);
 
   useEffect(() => {
+    let collapsed = sidebarPref.fallback;
     try {
-      const stored = window.localStorage.getItem(SIDEBAR_COLLAPSE_KEY);
-      if (stored !== null) setSidebarCollapsed(stored === "1");
+      const stored = window.localStorage.getItem(sidebarPref.key);
+      if (stored !== null) collapsed = stored === "1";
     } catch {
-      // Ignore storage access errors; the default collapsed state still works.
+      // Ignore storage access errors; the route's default still works.
     }
-  }, []);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(
-        SIDEBAR_COLLAPSE_KEY,
-        sidebarCollapsed ? "1" : "0",
-      );
-    } catch {
-      // Ignore storage access errors.
-    }
-  }, [sidebarCollapsed]);
+    setSidebarState({ key: sidebarPref.key, collapsed });
+  }, [sidebarPref.key, sidebarPref.fallback]);
 
   const pageTitle = useHeaderTitle();
   const pageActions = useHeaderActions();

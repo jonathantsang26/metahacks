@@ -39,13 +39,12 @@ export function HindsightCard(props: HindsightCardProps = {}): ReactElement | nu
         </span>
       }
       aside={
-        <Chip tone="modeled" title="Burned area comes from the arrival raster, interpolated between official perimeters (about 28 min steps)">
+        <Chip tone="ghost" title="Hindsight: the real fire, mapped after the fact. Burned area comes from the arrival raster, interpolated between official perimeters (about 28 min steps)">
           MODELED
         </Chip>
       }
       className={props.className}
     >
-      <div className="px-3 pt-2 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--pl-muted)]">Hindsight: the real fire, mapped after the fact</div>
       {h.loading ? (
         <div className="flex items-center gap-2 px-3 py-3 text-[12px] text-[var(--pl-muted)]">
           <Spinner /> Checking the plan against the real fire…
@@ -54,7 +53,7 @@ export function HindsightCard(props: HindsightCardProps = {}): ReactElement | nu
         <p className="px-3 py-3 text-[12px] text-[var(--pl-muted)]">{h.error ? `Hindsight check failed: ${h.error}` : 'No hindsight data for this hour.'}</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 px-3 pt-2">
+          <div className="grid grid-cols-2 gap-3 px-3 pt-3">
             <div>
               <Label>This plan</Label>
               <div className="text-[26px] font-semibold leading-tight tabular-nums">{pctText(d.pct)}</div>

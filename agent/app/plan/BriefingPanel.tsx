@@ -1,12 +1,13 @@
 import {sendToAgentChat} from '@agent-native/core/client/agent-chat';
-import {IconMapPin, IconMessage} from '@tabler/icons-react';
+import {IconChevronRight, IconMapPin} from '@tabler/icons-react';
 import {useQueryClient} from '@tanstack/react-query';
 import {useEffect, useRef, useState, type ReactElement} from 'react';
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip';
 import {act, errorText, FIRE_LABEL, fireTime, usePlanContext, usePlanData} from './data';
+import {useGuideStep} from './GuideSteps';
 import {requestFlyTo} from './store';
 import type {BriefingCite, BriefingEvidence, BriefingParagraph} from './types';
-import {Btn, ByChip, Card, Chip, Spinner} from './ui';
+import {Btn, ByChip, Card, Chip, PLAN_VARS, Spinner} from './ui';
 
 export type BriefingPanelProps = {fire?: string | undefined; t?: string | undefined; className?: string | undefined};
 
@@ -52,7 +53,7 @@ function CiteChip({cite}: {cite: {name: string; label: string; lon: number | nul
   );
 }
 
-function Paragraph({p, index, briefingId, editable}: {p: BriefingParagraph; index: number; briefingId: string; editable: boolean}) {
+function Paragraph({p, index, briefingId, editable, allVerified}: {p: BriefingParagraph; index: number; briefingId: string; editable: boolean; allVerified: boolean}) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(p.text);
   const [saving, setSaving] = useState(false);
@@ -134,7 +135,7 @@ function Paragraph({p, index, briefingId, editable}: {p: BriefingParagraph; inde
         {chipsOf(p).map(c => (
           <CiteChip key={c.key} cite={c} />
         ))}
-        {p.verified === true && (
+        {p.verified === true && !allVerified && (
           <Chip tone="ok" title="Every number in this paragraph was re-checked against the cited actions">
             VERIFIED
           </Chip>
@@ -144,7 +145,7 @@ function Paragraph({p, index, briefingId, editable}: {p: BriefingParagraph; inde
             UNVERIFIED
           </Chip>
         )}
-        {p.editedBy === 'person' && <Chip tone="muted">EDITED BY PERSON</Chip>}
+        {p.editedBy === 'person' && <Chip tone="ghost">EDITED BY YOU</Chip>}
       </div>
     </div>
   );
@@ -154,59 +155,74 @@ function Paragraph({p, index, briefingId, editable}: {p: BriefingParagraph; inde
 export function BriefingPanel(props: BriefingPanelProps = {}): ReactElement | null {
   const {fire, t} = usePlanContext(props);
   const data = usePlanData(fire, t);
+  const step = useGuideStep({fire, t: t ?? undefined});
   if (!t || !data.plan) return null;
   const plan = data.plan;
   const b = data.briefing;
   const editable = plan.status !== 'approved';
+  const write = () => askAgentToBrief(fire, plan.t || t, plan.id);
 
+  if (!b || !b.paragraphs.length) {
+    // Empty: one quiet row until writing the briefing is the current step (step 5, index 4).
+    const now = step === 4 && editable;
+    return (
+      <section style={PLAN_VARS} className={`overflow-hidden rounded-md bg-[var(--pl-card)] text-[13px] leading-[18px] text-[var(--pl-ink)] shadow-[0_0_0_1px_var(--pl-hair)] ${props.className ?? ''}`}>
+        <div className="flex items-center justify-between gap-2 px-3 py-2">
+          <h2 className="min-w-0 text-[13px] font-semibold">
+            Crew briefing <span className="font-normal text-[var(--pl-muted)]">· not written yet</span>
+          </h2>
+          {editable && (
+            <Btn variant={now ? 'accent' : 'quiet'} className={now ? '' : '-mr-1.5'} onClick={write} title="Send the briefing request to the agent">
+              Write with agent
+              {!now && <IconChevronRight size={13} className="-mr-1" />}
+            </Btn>
+          )}
+        </div>
+        {now && <p className="border-t border-[var(--pl-hair)] px-3 py-2 text-[11px] leading-[15px] text-[var(--pl-muted)]">Every number is re-checked against its source before it is saved.</p>}
+      </section>
+    );
+  }
+
+  const allVerified = b.paragraphs.every(p => p.verified === true) || (b.verified === true && !b.paragraphs.some(p => p.verified === false));
   return (
     <TooltipProvider delayDuration={150}>
       <Card
         title="Crew briefing"
         className={props.className}
         aside={
-          <span className="flex items-center gap-1">
-            {b?.verified === true && <Chip tone="ok">VERIFIED</Chip>}
-            {b && <ByChip by={b.updatedBy} />}
+          <span className="flex items-center gap-1.5">
+            {allVerified && (
+              <Chip tone="ok" title="Every number in every paragraph was re-checked against the cited actions">
+                VERIFIED
+              </Chip>
+            )}
+            <ByChip by={b.updatedBy} />
           </span>
         }
       >
-        {!b || !b.paragraphs.length ? (
-          <div className="px-3 py-3">
-            <p className="text-[12px] leading-[16px] text-[var(--pl-muted)]">
-              No briefing yet. The agent writes one from the plan and the fire data, and every number is checked against its source before it is saved.
-            </p>
-            <Btn primary className="mt-2.5" onClick={() => askAgentToBrief(fire, plan.t || t, plan.id)} title="Send the briefing request to the agent">
-              <IconMessage size={13} /> Ask agent to write briefing
+        {b.paragraphs.map((p, i) => (
+          <Paragraph key={i} p={p} index={i} briefingId={b.id} editable={editable && !!b.id} allVerified={allVerified} />
+        ))}
+        {b.droppedCount > 0 && (
+          <div className="border-t border-[var(--pl-hair)] px-3 py-2 text-[11px] leading-[15px] text-[var(--pl-muted)]">
+            {b.droppedCount} paragraph{b.droppedCount === 1 ? ' was' : 's were'} dropped because {b.droppedCount === 1 ? 'its numbers' : 'their numbers'} did not match the cited sources.
+            {b.dropped
+              .filter(d => d.reason || d.text)
+              .slice(0, 3)
+              .map((d, i) => (
+                <div key={i} className="mt-0.5 truncate" title={d.text ?? undefined}>
+                  · {d.reason ?? d.text}
+                </div>
+              ))}
+          </div>
+        )}
+        {editable && (
+          <div className="flex items-center justify-between gap-2 border-t border-[var(--pl-hair)] px-3 py-1.5">
+            <span className="text-[11px] text-[var(--pl-muted)]">Click a paragraph to edit it.</span>
+            <Btn variant="quiet" className="-mr-1.5" onClick={write} title="Ask the agent to rewrite the briefing">
+              Rewrite <IconChevronRight size={13} className="-mr-1" />
             </Btn>
           </div>
-        ) : (
-          <>
-            {b.paragraphs.map((p, i) => (
-              <Paragraph key={i} p={p} index={i} briefingId={b.id} editable={editable && !!b.id} />
-            ))}
-            {b.droppedCount > 0 && (
-              <div className="border-t border-[var(--pl-hair)] px-3 py-2 text-[11px] leading-[15px] text-[var(--pl-muted)]">
-                {b.droppedCount} paragraph{b.droppedCount === 1 ? ' was' : 's were'} dropped because {b.droppedCount === 1 ? 'its numbers' : 'their numbers'} did not match the cited sources.
-                {b.dropped
-                  .filter(d => d.reason || d.text)
-                  .slice(0, 3)
-                  .map((d, i) => (
-                    <div key={i} className="mt-0.5 truncate" title={d.text ?? undefined}>
-                      · {d.reason ?? d.text}
-                    </div>
-                  ))}
-              </div>
-            )}
-            {editable && (
-              <div className="flex items-center justify-between gap-2 border-t border-[var(--pl-hair)] px-3 py-2">
-                <span className="text-[10px] text-[var(--pl-muted)]">Click a paragraph to edit it.</span>
-                <Btn onClick={() => askAgentToBrief(fire, plan.t || t, plan.id)} title="Ask the agent to rewrite the briefing">
-                  <IconMessage size={13} /> Ask agent to rewrite
-                </Btn>
-              </div>
-            )}
-          </>
         )}
       </Card>
     </TooltipProvider>

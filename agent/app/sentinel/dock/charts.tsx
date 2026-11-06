@@ -81,7 +81,8 @@ function ChartMenu({files}: {files: DataFile[]}) {
 
 /**
  * One chart cell: title row with the value at t, the plot, and a muted source line.
- * `modeled` is the MODELED chip's tooltip (no chip when absent).
+ * `modeled` explains how a modeled chart is derived; it shows as the title's tooltip. The MODELED
+ * tag itself is shown once for all charts, in the dock's footer line (DockChartsFooter).
  */
 export function ChartFrame({
   title,
@@ -107,7 +108,7 @@ export function ChartFrame({
   return (
     <div className="flex min-w-0 flex-1 flex-col border-r border-hairline px-3 pt-1.5 last:border-r-0">
       <div className="flex items-center gap-1.5">
-        <span className="truncate text-sm font-medium">
+        <span className="truncate text-sm font-medium" title={modeled ? `MODELED · ${modeled}` : undefined}>
           {title} {unit && <span className="font-normal text-se-muted">({unit})</span>}
         </span>
         <span className="ml-auto shrink-0 whitespace-nowrap text-xs font-medium tabular-nums" title={valueTitle}>
@@ -116,13 +117,8 @@ export function ChartFrame({
         {files && files.length > 0 && <ChartMenu files={files} />}
       </div>
       <div className="relative min-h-0 flex-1">{children}</div>
-      {(foot || modeled) && (
+      {foot && (
         <div className="flex items-center gap-1.5 pb-1 text-2xs text-se-muted">
-          {modeled && (
-            <span className="shrink-0 rounded bg-tabgroup px-1 font-mono text-ink" title={modeled}>
-              MODELED
-            </span>
-          )}
           <span className="truncate" title={footTitle ?? (typeof foot === 'string' ? foot : undefined)}>
             {foot}
           </span>

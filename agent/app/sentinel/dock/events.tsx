@@ -287,7 +287,8 @@ export function KeyEventsList({fire, data}: {fire: FireData; data: KeyEvents}) {
         const when = e.date_only ? formatDate(e.ms, tz) : `${formatDateTime(e.ms, tz)} ${zoneLabel(e.ms, tz)}`;
         const body = (
           <>
-            {i === cur && <span className="absolute inset-y-0 left-0 w-[3px] bg-se-accent" />}
+            {/* Neutral marker: the accent belongs to the plan's current step. */}
+            {i === cur && <span className="absolute inset-y-0 left-0 w-[3px] bg-ink" />}
             <span className={`mt-0.5 shrink-0 ${future || !inWindow ? 'opacity-50' : ''}`}>
               <EventGlyph kind={e.kind} soft={isMappingArtifact(e.step)} />
             </span>
@@ -304,7 +305,7 @@ export function KeyEventsList({fire, data}: {fire: FireData; data: KeyEvents}) {
             </span>
           </>
         );
-        const cls = `relative flex w-full items-start gap-2 px-3 py-1.5 text-left ${i === cur ? 'bg-selected' : ''}`;
+        const cls = `relative flex w-full items-start gap-2 px-3 py-1.5 text-left ${i === cur ? 'bg-tabgroup' : ''}`;
         const title = `${e.label}\n${when}\nSource: ${e.source}${e.step ? `\n${stepNote(e.step, tz)}` : ''}`;
         return (
           <li key={e.id} data-current={i === cur ? '' : undefined}>

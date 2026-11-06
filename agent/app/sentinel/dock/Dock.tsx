@@ -152,8 +152,8 @@ function Scrubber({tz, series, events}: {tz: string; series: Series | null; even
         onPointerMove={e => e.buttons === 1 && seek(e.clientX)}
       >
         {series && <ActivityBand series={series} start={start} end={end} />}
-        <div className="absolute inset-x-0 top-2.5 h-[2px] rounded bg-ink opacity-70" />
-        <div className="absolute left-0 top-2.5 h-[2px] rounded bg-se-accent" style={{width: pct(t)}} />
+        <div className="absolute inset-x-0 top-2.5 h-[2px] rounded bg-ink opacity-30" />
+        <div className="absolute left-0 top-[9px] h-[3px] rounded bg-ink" style={{width: pct(t)}} />
         {glyphs.map(e => (
           <span
             key={e.id}
@@ -191,9 +191,29 @@ const SIDE = {
   risk: 'Debris-Flow Models'
 };
 
-/** DESIGN.md §6: 226px dock under the map; side list on the right. */
+/** One honesty line for all the charts on a tab, instead of a chip under each chart. */
+const CHARTS_NOTE: Partial<Record<keyof typeof SIDE, {tag: string; text: string; title: string}>> = {
+  incident: {
+    tag: 'MODELED',
+    text: 'Charts: modeled from the arrival raster',
+    title: 'Fire area, rate of spread and the front along the spine come from the arrival raster, which is interpolated between mapped perimeters. Elevation is from the terrain model (DEM).'
+  },
+  risk: {
+    tag: 'MODELED',
+    text: "Charts: modeled debris-flow likelihood on USGS's design storms",
+    title: "Debris-flow likelihoods are model outputs; skill is cross-validated on USGS's observed postfire debris-flow inventory."
+  }
+};
+
+/**
+ * DESIGN.md §6: dock under the map. On the Incident tab it defaults to the 108px timeline row;
+ * "Charts & events" opens the 234px dock with the charts and the Key Events list (remembered per
+ * viewer). The other tabs always show their charts and side list.
+ */
 export function Dock({fire}: {fire: FireData}) {
   const tab = useUi(s => s.tab);
+  const dockOpen = useUi(s => s.dockOpen);
+  const setDockOpen = useUi(s => s.setDockOpen);
   const {start, end} = useTime();
   const tz = fire.aoi.timezone;
   const series = useFireJson<Series>(fire, 'series.json');
@@ -203,56 +223,80 @@ export function Dock({fire}: {fire: FireData}) {
   const span = useMemo(() => arrivalWindow(fire, meta.data), [fire, meta.data]);
   const burned = useBurnedArea(fire, span);
   const events = useKeyEvents(fire);
+  const collapsible = tab === 'incident';
+  const open = !collapsible || dockOpen;
+  const note = CHARTS_NOTE[tab];
   return (
-    <div className="flex h-[226px] shrink-0 border-t border-hairline bg-chrome">
+    <div className={`flex shrink-0 border-t border-hairline bg-chrome ${open ? 'h-[234px]' : 'h-[108px]'}`}>
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-[100px] shrink-0 flex-col border-b border-hairline px-3 pt-2">
-          <div className="flex items-center justify-between">
+        <div className={`flex h-[108px] shrink-0 flex-col px-3 pt-2 ${open ? 'border-b border-hairline' : ''}`}>
+          <div className="flex items-center justify-between gap-3">
             <span className="text-sm font-semibold">Timeline</span>
-            <span className="text-xs text-se-muted">
+            <span className="ml-auto truncate text-xs text-se-muted">
               {formatDateTime(start, tz)} – {formatDateTime(end, tz)} {zoneLabel(start, tz)}
             </span>
+            {collapsible && (
+              <button
+                onClick={() => setDockOpen(!dockOpen)}
+                aria-expanded={dockOpen}
+                className="shrink-0 whitespace-nowrap rounded px-1.5 py-0.5 text-xs text-se-muted hover:bg-tabgroup hover:text-ink"
+              >
+                {dockOpen ? 'Hide charts ▾' : 'Charts & events ▴'}
+              </button>
+            )}
           </div>
           <div className="mt-5 flex items-start gap-4">
             <Transport />
             <Scrubber tz={tz} series={series.data} events={events} />
           </div>
         </div>
-        <div className="flex min-h-0 flex-1">
-          {tab === 'incident' ? (
-            <>
-              <FireAreaChart
-                area={burned.area}
-                unavailable={burned.error}
-                perimeters={perimeters.data}
-                fire={fire}
-                base={fire.base}
-              />
-              <RateOfSpreadChart series={series} meta={meta} tz={tz} base={fire.base} />
-              <ElevationProfileChart profile={profile} tz={tz} base={fire.base} />
-            </>
-          ) : tab === 'risk' ? (
-            <RiskCharts fire={fire} />
-          ) : (
-            <DronesCharts fire={fire} />
-          )}
-        </div>
-      </div>
-      <aside className="flex w-[221px] shrink-0 flex-col border-l border-hairline bg-se-card">
-        <div className="flex items-center justify-between bg-section px-3 py-2">
-          <span className="text-base font-semibold">{SIDE[tab]}</span>
-          {tab === 'incident' && events.events && (
-            <span className="text-xs text-se-muted">{events.events.length + (events.withheld ? 1 : 0)}</span>
-          )}
-        </div>
-        {tab === 'incident' ? (
-          <KeyEventsList fire={fire} data={events} />
-        ) : tab === 'risk' ? (
-          <RiskSide fire={fire} />
-        ) : (
-          <DronesSide fire={fire} />
+        {open && (
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex min-h-0 flex-1">
+              {tab === 'incident' ? (
+                <>
+                  <FireAreaChart
+                    area={burned.area}
+                    unavailable={burned.error}
+                    perimeters={perimeters.data}
+                    fire={fire}
+                    base={fire.base}
+                  />
+                  <RateOfSpreadChart series={series} meta={meta} tz={tz} base={fire.base} />
+                  <ElevationProfileChart profile={profile} tz={tz} base={fire.base} />
+                </>
+              ) : tab === 'risk' ? (
+                <RiskCharts fire={fire} />
+              ) : (
+                <DronesCharts fire={fire} />
+              )}
+            </div>
+            {note && (
+              <div className="flex shrink-0 items-center gap-1.5 border-t border-hairline px-3 py-0.5 text-2xs text-se-muted" title={note.title}>
+                <span className="shrink-0 rounded-[3px] border border-hairline px-1 font-mono text-ink">{note.tag}</span>
+                <span className="truncate">{note.text}</span>
+              </div>
+            )}
+          </div>
         )}
-      </aside>
+      </div>
+      {open && (
+        <aside className="flex w-[221px] shrink-0 flex-col border-l border-hairline bg-se-card">
+          <div className="flex items-center justify-between bg-section px-3 py-2">
+            <span className="text-base font-semibold">{SIDE[tab]}</span>
+            {tab === 'incident' && events.events && (
+              <span className="text-xs text-se-muted">{events.events.length + (events.withheld ? 1 : 0)}</span>
+            )}
+          </div>
+          {tab === 'incident' ? (
+            <KeyEventsList fire={fire} data={events} />
+          ) : tab === 'risk' ? (
+            <RiskSide fire={fire} />
+          ) : (
+            <DronesSide fire={fire} />
+          )}
+        </aside>
+      )}
     </div>
   );
 }
