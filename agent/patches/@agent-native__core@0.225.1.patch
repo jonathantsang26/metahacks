@@ -1,0 +1,28 @@
+diff --git a/dist/agent/engine/anthropic-engine.js b/dist/agent/engine/anthropic-engine.js
+index 94f802e4518eb49907698d5e49eee567da9273ff..b8a7380955baf960b8b5106663b93079172d9990 100644
+--- a/dist/agent/engine/anthropic-engine.js
++++ b/dist/agent/engine/anthropic-engine.js
+@@ -134,9 +134,23 @@ class AnthropicEngine {
+         };
+         if (!requestParams.tools)
+             delete requestParams.tools;
++        // Sentinel Ember patch: a thinking block's signature is bound to the exact messages before it.
++        // Observational Memory compacts long threads (even mid tool loop), which changes that prefix,
++        // and the API then rejects the request with 400 "block is bound to a different conversation".
++        // Ask the API to drop such blocks instead of failing the run.
++        const thinkingBindingBeta = Boolean(requestParams.thinking);
++        if (thinkingBindingBeta) {
++            requestParams.thinking = {
++                ...requestParams.thinking,
++                block_binding: { prefix_mismatch_behavior: "drop_block" },
++            };
++        }
+         const firstEventAbort = createFirstEventAbortController(opts.abortSignal);
+         const dispatch = await startModelDispatch(opts, () => client.messages.stream(requestParams, {
+             signal: firstEventAbort.signal,
++            ...(thinkingBindingBeta
++                ? { headers: { "anthropic-beta": "thinking-binding-controls-2026-08-01" } }
++                : {}),
+         })).catch((error) => {
+             firstEventAbort.cleanup();
+             throw error;

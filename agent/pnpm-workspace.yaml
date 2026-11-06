@@ -67,3 +67,6 @@ packageExtensions:
   node-pty@*:
     dependencies:
       node-gyp: ^12.4.0
+
+patchedDependencies:
+  "@agent-native/core@0.225.1": patches/@agent-native__core@0.225.1.patch
