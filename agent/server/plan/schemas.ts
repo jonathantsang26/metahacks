@@ -11,8 +11,8 @@ export const latSchema = z.number().min(-90).max(90).describe('Latitude of the w
 export const radiusSchema = z
   .number()
   .min(100)
-  .max(1500)
-  .describe('Radius in meters of ground the drone keeps in view around its watch point, 100 to 1500; default 400 (a 120 m altitude thermal camera orbiting the point).');
+  .max(600)
+  .describe('Radius in meters of ground the drone keeps in view around its watch point, 100 to 600; default 400 (a 120 m altitude thermal camera orbiting the point). Keep 400 unless the person asks for a wider orbit: a bigger circle is not a better plan, it is a less detailed view.');
 
 const point = z.object({lon: z.number(), lat: z.number()});
 

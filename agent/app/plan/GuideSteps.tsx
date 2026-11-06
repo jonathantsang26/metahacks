@@ -47,15 +47,14 @@ export function useGuideStep(props: {fire?: string | undefined; t?: string | und
   const before = usePlanData(fire, t ? addHours(t, -1) : null);
   const moved = usePlanUi(s => s.movedByHand);
   const asked = usePlanUi(s => s.askedAboutDrone);
-  const selected = usePlanUi(s => s.selected);
-  if (before.plan?.status === 'approved' && !here.plan) return 5; // just approved: on the next hour
+  if (before.plan?.status === 'approved' && !here.plan) return 1; // just approved: plan the next hour
   if (!t) return 0;
   const plan = here.plan;
   if (!plan) return 1;
   if (plan.status === 'approved') return 5;
   const personMoved = moved || here.assignments.some(a => a.updatedBy === 'person');
   if (!personMoved) return 2;
-  if (!asked && !(selected && here.briefing)) return 3;
+  if (!asked) return 3;
   if (!here.briefing?.paragraphs.length) return 4;
   return 5;
 }

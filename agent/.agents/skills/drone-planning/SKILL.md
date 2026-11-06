@@ -36,7 +36,7 @@ say or suggest that a drone flew, saw something or will fly.
 3. **Place drones** with one `create-drone-plan` call (atomic; at most 6):
    - Put watch points only in flyable cells. A drone just inside a flyable
      cell can still watch front that lies in a grounded cell next to it, up to
-     its radius (400 m by default) away.
+     its radius (400 m by default) away. Keep the radius at 400 m unless the person asks; the cap is 600 m, and a bigger circle is a vaguer view, not a better plan.
    - Spread drones along the fast-moving front first, then along stretches
      near homes. Do not stack circles. Two watch points closer than about
      800 m overlap.

@@ -15,7 +15,7 @@ export const DRONE_IDS = ['D1', 'D2', 'D3', 'D4', 'D5', 'D6'] as const;
 export type DroneId = (typeof DRONE_IDS)[number];
 export const MAX_DRONES = DRONE_IDS.length;
 export const MIN_RADIUS_M = 100;
-export const MAX_RADIUS_M = 1500;
+export const MAX_RADIUS_M = 600;
 
 export type Editor = 'agent' | 'person';
 
