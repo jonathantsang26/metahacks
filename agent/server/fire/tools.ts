@@ -1,6 +1,6 @@
 import type {ChatCompletionFunctionTool} from 'openai/resources/chat/completions';
 import {arrivalStepMin, FireStore, MissingDataError, sampleArrival, type ArrivalRaster} from './data.js';
-import {bboxCenter, compass, densify, insideRings, metersPerDegree, polygonRings, type LonLat, type PolygonCollection} from './geo.js';
+import {bboxCenter, compass, densify, insideRings, metersPerDegree, polygonRings, position, type LonLat, type PolygonCollection} from './geo.js';
 import {matchTier, normalizeName, TIER_RANK, type MatchTier} from './names.js';
 import {localDate, localLabel, parseTime, roundToMinute, stamp} from './time.js';
 import type {Cite, ToolCite, ToolOutput} from './types.js';
@@ -8,8 +8,8 @@ import type {Cite, ToolCite, ToolOutput} from './types.js';
 /** The analyst's tools: OpenAI function schemas plus implementations over public/data/<fire>/. */
 
 type Args = Record<string, unknown>;
-type Ctx = {store: FireStore; tz: string};
-type Impl = (args: Args, ctx: Ctx) => ToolOutput;
+export type ToolContext = {store: FireStore; tz: string};
+type Impl = (args: Args, ctx: ToolContext) => ToolOutput;
 
 export class ToolArgError extends Error {}
 
@@ -24,7 +24,7 @@ type Weather = {hourly: Hourly[]; daily?: {date: string; erc?: number; bi?: numb
 type Spine = {features: {geometry: {type: string; coordinates: number[]}; properties: {kind?: string; t?: string; label?: string}}[]};
 type FireEvent = {id?: string; kind: string; label: string; t: string; lon: number; lat: number; source?: string; date_only?: boolean};
 type StructureProps = Record<string, string | number | null>;
-type Structures = {features: {geometry: {coordinates: number[]}; properties: StructureProps}[]};
+type Structures = {features: {geometry: {coordinates: LonLat}; properties: StructureProps}[]};
 type Ignition = {
   map: {lon: number; lat: number; t: string};
   r90_m?: number;
@@ -303,6 +303,12 @@ const streetFireTimeline: Impl = (args, {store, tz}) => {
   };
 };
 
+/** A spine waypoint (a Point with a time) as the head of the fire. */
+function spineHead(wp: Spine['features'][number], tz: string) {
+  const [lon, lat] = position(wp.geometry.coordinates);
+  return {...stamp(Date.parse(wp.properties.t!), tz), lon, lat};
+}
+
 const fireStateAt: Impl = (args, {store, tz}) => {
   const {ms, assumedUtc} = time(args);
   const s = store.json<Series>('series.json');
@@ -313,21 +319,26 @@ const fireStateAt: Impl = (args, {store, tz}) => {
       cites: [{layer: 'series', label: 'Fire area series (no data at that time)'}]
     };
   }
-  const tMs = Date.parse(s.t[i]);
+  // gapMs is finite only when nearest() matched a time, so i indexes s.t; the other series run in parallel.
+  const t = s.t[i];
+  const area = s.area_acres[i];
+  const ros = s.ros_chains_hr[i];
+  if (t === undefined || area === undefined || ros === undefined) throw new Error(`series.json has no entry ${i} in every series`);
+  const tMs = Date.parse(t);
   const st = stamp(tMs, tz);
   const wp = (store.optionalJson<Spine>('spine.geojson')?.features ?? [])
     .filter(f => f.geometry.type === 'Point' && f.properties.t && Date.parse(f.properties.t) <= tMs && tMs - Date.parse(f.properties.t) <= 3.6e6)
     .sort((a, b) => Date.parse(b.properties.t!) - Date.parse(a.properties.t!))[0];
-  const head = wp ? {...stamp(Date.parse(wp.properties.t!), tz), lon: wp.geometry.coordinates[0], lat: wp.geometry.coordinates[1]} : null;
-  const cites: ToolCite[] = [{layer: 'series', t: st.t, label: `${s.area_acres[i].toLocaleString('en-US')} acres burned`}];
+  const head = wp ? spineHead(wp, tz) : null;
+  const cites: ToolCite[] = [{layer: 'series', t: st.t, label: `${area.toLocaleString('en-US')} acres burned`}];
   if (head) cites.push({layer: 'spine', t: head.t, lon: head.lon, lat: head.lat, label: 'Head of the fire (spine waypoint)'});
   return {
     result: {
       asked: stamp(ms, tz),
       ...st,
-      area_acres: s.area_acres[i],
-      ros_chains_hr: s.ros_chains_hr[i],
-      ros_mph: r2(s.ros_chains_hr[i] / 80),
+      area_acres: area,
+      ros_chains_hr: ros,
+      ros_mph: r2(ros / 80),
       head,
       note: 'Nearest hour in series.json. Area is cumulative burned area from the arrival raster; ROS is the head rate of spread.',
       ...timeNote(assumedUtc)
@@ -349,7 +360,9 @@ const weatherAt: Impl = (args, {store, tz}) => {
       cites: [{layer: 'weather', label: 'Hourly weather (no data at that time)'}]
     };
   }
+  // gapMs is finite only when nearest() matched an hour, so i indexes w.hourly.
   const h = w.hourly[i];
+  if (!h) throw new Error(`weather.json has no hour ${i}`);
   const tMs = Date.parse(h.t);
   const st = stamp(tMs, tz);
   const daily = w.daily?.find(d => d.date === localDate(tMs, tz));
@@ -393,6 +406,7 @@ const events: Impl = (_args, {store, tz}) => {
 
 const DAMAGE_ORDER = ['Destroyed', 'Major', 'Minor', 'Affected', 'No Damage', 'Inaccessible'];
 const CONSTRUCTION = ['roof', 'vents', 'eaves', 'window_pane'] as const;
+type ConstructionTally = Record<(typeof CONSTRUCTION)[number], Record<string, {n: number; destroyed: number}>>;
 
 const structuresNear: Impl = (args, {store}) => {
   const [lon, lat] = lonLat(args);
@@ -400,7 +414,7 @@ const structuresNear: Impl = (args, {store}) => {
   const [mx, my] = metersPerDegree(lat);
   const byDamage: Record<string, number> = {};
   const byCategory: Record<string, number> = {};
-  const construction: Record<string, Record<string, {n: number; destroyed: number}>> = Object.fromEntries(CONSTRUCTION.map(k => [k, {}]));
+  const construction = Object.fromEntries(CONSTRUCTION.map(k => [k, {}])) as ConstructionTally;
   let total = 0;
   for (const f of store.json<Structures>('structures.geojson').features) {
     const [x, y] = f.geometry.coordinates;
@@ -543,7 +557,7 @@ const exposureStats: Impl = (args, {store}) => {
 
 // ---------------------------------------------------------------- registry
 
-const IMPLS: Record<string, Impl> = {
+const IMPLS = {
   place_lookup: placeLookup,
   arrival_at: arrivalAt,
   street_fire_timeline: streetFireTimeline,
@@ -553,7 +567,17 @@ const IMPLS: Record<string, Impl> = {
   structures_near: structuresNear,
   ignition_summary: ignitionSummary,
   exposure_stats: exposureStats
-};
+} satisfies Record<string, Impl>;
+
+export type DataToolName = keyof typeof IMPLS;
+
+/**
+ * Runs one data tool directly, without the runner's JSON wrapping or cite ids. Bad arguments throw
+ * ToolArgError and missing data files throw MissingDataError (from data.ts); anything else is a bug.
+ */
+export function runTool(name: DataToolName, args: Args, ctx: ToolContext): ToolOutput {
+  return IMPLS[name](args, ctx);
+}
 
 const fn = (name: string, description: string, properties: Record<string, unknown> = {}, required: string[] = []): ChatCompletionFunctionTool => ({
   type: 'function',
@@ -625,7 +649,8 @@ export function createToolRunner(store: FireStore) {
     } catch (e) {
       return {content: JSON.stringify({error: `arguments are not valid JSON: ${(e as Error).message}`}), args: rawArgs, ok: false};
     }
-    const impl = IMPLS[name];
+    const byName: Record<string, Impl> = IMPLS;
+    const impl = byName[name];
     if (!impl) return {content: JSON.stringify({error: `unknown tool "${name}"`}), args, ok: false};
     let out: ToolOutput;
     try {

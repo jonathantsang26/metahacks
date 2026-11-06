@@ -101,7 +101,8 @@ export class FireStore {
       buf => {
         const png = PNG.sync.read(buf);
         const aoi = this.aoi();
-        const [w0, w1] = aoi.window_utc.map(Date.parse);
+        const w0 = Date.parse(aoi.window_utc[0]);
+        const w1 = Date.parse(aoi.window_utc[1]);
         return {
           width: png.width,
           height: png.height,
@@ -127,7 +128,9 @@ export function sampleArrival(r: ArrivalRaster, lon: number, lat: number): Arriv
   if (col < 0 || row < 0 || col >= r.width || row >= r.height) return {inBounds: false};
   const i = (row * r.width + col) * 4;
   const code = r.rgba[i];
-  const confidence = r.rgba[i + 1] / 255;
+  const green = r.rgba[i + 1];
+  if (code === undefined || green === undefined) throw new Error(`arrival raster has fewer pixels than its ${r.width}x${r.height} size`);
+  const confidence = green / 255;
   if (code < 1 || code > 254) return {inBounds: true, burned: false, confidence};
   return {inBounds: true, burned: true, ms: r.startMs + ((code - 1) / 253) * r.windowMs, confidence};
 }

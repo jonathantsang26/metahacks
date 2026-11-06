@@ -24,7 +24,8 @@ const u32 = (v: number) => v >>> 0;
 
 function digit(s: string, i: number): number {
   const c = s.charCodeAt(i);
-  const v = c < 128 ? VALUES[c] : -1;
+  // VALUES has 128 entries, so c < 128 is in range (charCodeAt past the end is NaN and fails it).
+  const v = c < 128 ? VALUES[c]! : -1;
   if (v < 0) throw new MaskDecodeError('mask payload has an invalid character');
   return v;
 }
@@ -93,7 +94,7 @@ class RangeDecoder {
   }
   private read(): number {
     if (this.pos >= this.input.length) throw new MaskDecodeError('mask payload ended before decoding completed');
-    return this.input[this.pos++];
+    return this.input[this.pos++]!;
   }
 }
 
@@ -108,12 +109,13 @@ function paeth(l: number, u: number, ul: number): number {
 
 function predict(out: Uint8Array, o: number, x: number, y: number, mode: number, w: number): number {
   if (mode < 0 || mode >= 5) throw new MaskDecodeError('lossless mask payload uses an invalid predictor');
-  const l = x > 0 ? out[o - 1] : 0;
-  const u = y > 0 ? out[o - w] : 0;
+  // o is the current pixel (o = y * w + x), so each neighbour read is guarded onto an earlier pixel.
+  const l = x > 0 ? out[o - 1]! : 0;
+  const u = y > 0 ? out[o - w]! : 0;
   if (mode === 1) return u;
   if (mode === 2) return l;
   if (mode === 3) return (l + u) >> 1;
-  const ul = x > 0 && y > 0 ? out[o - w - 1] : 0;
+  const ul = x > 0 && y > 0 ? out[o - w - 1]! : 0;
   if (mode === 0) return paeth(l, u, ul);
   if (ul >= Math.max(l, u)) return Math.min(l, u);
   if (ul <= Math.min(l, u)) return Math.max(l, u);
@@ -122,8 +124,8 @@ function predict(out: Uint8Array, o: number, x: number, y: number, mode: number,
 
 function decodeLossless(payload: string, w: number, h: number): Uint8Array {
   const packed = unpack(payload.slice(1));
-  if (packed.length < 5) throw new MaskDecodeError('lossless mask payload is truncated');
   const selector = packed[0];
+  if (packed.length < 5 || selector === undefined) throw new MaskDecodeError('lossless mask payload is truncated');
   const dec = new RangeDecoder(packed.subarray(1));
   const n = w * h;
   const out = new Uint8Array(n);
@@ -135,60 +137,62 @@ function decodeLossless(payload: string, w: number, h: number): Uint8Array {
   let zeroTotal = SYMBOLS * 2;
   const two = new Map<number, Uint16Array>();
   let prev = 0;
+  // Non-null reads below: o < n indexes out/res and neighbours are guarded by x, y; zo + 1 < 32; prev,
+  // sym < SYMBOLS index the model tables (fo + sym < SYMBOLS²); second has SYMBOLS + 1 entries.
   for (let o = 0; o < n; o++) {
     const x = o % w;
     const y = (o - x) / w;
-    const zl = x > 0 ? +(res[o - 1] === 0) : 1;
-    const zu = y > 0 ? +(res[o - w] === 0) : 1;
-    const zul = x > 0 && y > 0 ? +(res[o - w - 1] === 0) : 1;
-    const zur = y > 0 && x < w - 1 ? +(res[o - w + 1] === 0) : 1;
+    const zl = x > 0 ? +(res[o - 1]! === 0) : 1;
+    const zu = y > 0 ? +(res[o - w]! === 0) : 1;
+    const zul = x > 0 && y > 0 ? +(res[o - w - 1]! === 0) : 1;
+    const zur = y > 0 && x < w - 1 ? +(res[o - w + 1]! === 0) : 1;
     const zo = (zl | (zu << 1) | (zul << 2) | (zur << 3)) << 1;
-    const z = zeroCounts[zo];
-    const nz = zeroCounts[zo + 1];
+    const z = zeroCounts[zo]!;
+    const nz = zeroCounts[zo + 1]!;
     const bit = dec.freq(z + nz) < z ? 0 : 1;
     dec.decode(bit ? z : 0, bit ? nz : z);
-    zeroCounts[zo + bit] += 32;
-    if (zeroCounts[zo] + zeroCounts[zo + 1] >= 16384) {
-      zeroCounts[zo] = zeroCounts[zo] >> 1 || 1;
-      zeroCounts[zo + 1] = zeroCounts[zo + 1] >> 1 || 1;
+    zeroCounts[zo + bit]! += 32;
+    if (zeroCounts[zo]! + zeroCounts[zo + 1]! >= 16384) {
+      zeroCounts[zo] = zeroCounts[zo]! >> 1 || 1;
+      zeroCounts[zo + 1] = zeroCounts[zo + 1]! >> 1 || 1;
     }
     let sym = 0;
     if (bit) {
-      const above = o >= w ? res[o - w] : 0;
+      const above = o >= w ? res[o - w]! : 0;
       const key = (prev << 8) | above;
       let second = two.get(key);
       if (!second) two.set(key, (second = new Uint16Array(SYMBOLS + 1)));
       const fo = prev << 8;
-      const total = second[SYMBOLS] + oneTotals[prev] + zeroTotal - (second[0] + one[fo] + zero[0]);
+      const total = second[SYMBOLS]! + oneTotals[prev]! + zeroTotal - (second[0]! + one[fo]! + zero[0]!);
       const target = dec.freq(total);
       let cum = 0;
       sym = 1;
-      let f = second[1] + one[fo + 1] + zero[1];
+      let f = second[1]! + one[fo + 1]! + zero[1]!;
       while (cum + f <= target) {
         cum += f;
         if (++sym >= SYMBOLS) throw new MaskDecodeError('lossless mask payload is malformed');
-        f = second[sym] + one[fo + sym] + zero[sym];
+        f = second[sym]! + one[fo + sym]! + zero[sym]!;
       }
       dec.decode(cum, f);
-      second[sym] += 14 * 44;
-      second[SYMBOLS] += 14 * 44;
-      if (second[SYMBOLS] >= 14 * 3584) {
+      second[sym]! += 14 * 44;
+      second[SYMBOLS]! += 14 * 44;
+      if (second[SYMBOLS]! >= 14 * 3584) {
         let t = 0;
-        for (let v = 0; v < SYMBOLS; v++) t += second[v] >>= 1;
+        for (let v = 0; v < SYMBOLS; v++) t += second[v]! >>= 1;
         second[SYMBOLS] = t;
       }
-      one[fo + sym] += 56;
-      oneTotals[prev] += 56;
-      if (oneTotals[prev] >= 8192) {
+      one[fo + sym]! += 56;
+      oneTotals[prev]! += 56;
+      if (oneTotals[prev]! >= 8192) {
         let t = 0;
-        for (let v = 0; v < SYMBOLS; v++) t += one[fo + v] = one[fo + v] >> 1 || 1;
+        for (let v = 0; v < SYMBOLS; v++) t += one[fo + v] = one[fo + v]! >> 1 || 1;
         oneTotals[prev] = t;
       }
-      zero[sym] += 32;
+      zero[sym]! += 32;
       zeroTotal += 32;
       if (zeroTotal >= 4096) {
         let t = 0;
-        for (let v = 0; v < SYMBOLS; v++) t += zero[v] >>= 1;
+        for (let v = 0; v < SYMBOLS; v++) t += zero[v]! >>= 1;
         zeroTotal = t;
       }
     }
@@ -197,7 +201,7 @@ function decodeLossless(payload: string, w: number, h: number): Uint8Array {
     out[o] = (predict(out, o, x, y, selector, w) + delta) & 0xff;
     prev = sym;
   }
-  for (let o = 0; o < n; o++) out[o] = out[o] >= 129 ? 1 : 0;
+  for (let o = 0; o < n; o++) out[o] = out[o]! >= 129 ? 1 : 0;
   return out;
 }
 
@@ -207,6 +211,8 @@ function decodeOneBit(payload: string, w: number, h: number): Uint8Array {
   const pw = w + 4;
   const padded = new Uint8Array(pw * (h + 2));
   const out = new Uint8Array(w * h);
+  // Non-null reads below: padded has two border rows above and two columns each side, so every
+  // context offset from p lands inside it; off + 1 < 2 << 12 since ctx has 12 bits.
   for (let y = 0; y < h; y++) {
     const row = (y + 2) * pw + 2;
     for (let x = 0; x < w; x++) {
@@ -214,29 +220,29 @@ function decodeOneBit(payload: string, w: number, h: number): Uint8Array {
       const a = p - pw;
       const b = p - 2 * pw;
       const ctx =
-        padded[p - 1] |
-        (padded[p - 2] << 1) |
-        (padded[a - 2] << 2) |
-        (padded[a - 1] << 3) |
-        (padded[a] << 4) |
-        (padded[a + 1] << 5) |
-        (padded[a + 2] << 6) |
-        (padded[b - 2] << 7) |
-        (padded[b - 1] << 8) |
-        (padded[b] << 9) |
-        (padded[b + 1] << 10) |
-        (padded[b + 2] << 11);
+        padded[p - 1]! |
+        (padded[p - 2]! << 1) |
+        (padded[a - 2]! << 2) |
+        (padded[a - 1]! << 3) |
+        (padded[a]! << 4) |
+        (padded[a + 1]! << 5) |
+        (padded[a + 2]! << 6) |
+        (padded[b - 2]! << 7) |
+        (padded[b - 1]! << 8) |
+        (padded[b]! << 9) |
+        (padded[b + 1]! << 10) |
+        (padded[b + 2]! << 11);
       const off = ctx << 1;
-      const z = counts[off];
-      const o = counts[off + 1];
+      const z = counts[off]!;
+      const o = counts[off + 1]!;
       const bit = dec.freq(z + o) < z ? 0 : 1;
       dec.decode(bit ? z : 0, bit ? o : z);
       padded[p] = bit;
       out[y * w + x] = bit;
-      counts[off + bit] += 14;
-      if (counts[off] + counts[off + 1] >= 4096) {
-        counts[off] = counts[off] >> 1 || 1;
-        counts[off + 1] = counts[off + 1] >> 1 || 1;
+      counts[off + bit]! += 14;
+      if (counts[off]! + counts[off + 1]! >= 4096) {
+        counts[off] = counts[off]! >> 1 || 1;
+        counts[off + 1] = counts[off + 1]! >> 1 || 1;
       }
     }
   }
@@ -294,10 +300,11 @@ export function traceOutline(raster: Uint8Array, w: number, h: number): number[]
       // Drop collinear vertices so straight runs are one segment.
       const out: number[] = [];
       const n = pts.length / 2;
+      // pts holds n (x, y) pairs and every index below is reduced mod n, so the reads are in range.
       for (let i = 0; i < n; i++) {
-        const [px, py] = [pts[((i + n - 1) % n) * 2], pts[((i + n - 1) % n) * 2 + 1]];
-        const [cx, cy] = [pts[i * 2], pts[i * 2 + 1]];
-        const [nx, ny] = [pts[((i + 1) % n) * 2], pts[((i + 1) % n) * 2 + 1]];
+        const [px, py] = [pts[((i + n - 1) % n) * 2]!, pts[((i + n - 1) % n) * 2 + 1]!];
+        const [cx, cy] = [pts[i * 2]!, pts[i * 2 + 1]!];
+        const [nx, ny] = [pts[((i + 1) % n) * 2]!, pts[((i + 1) % n) * 2 + 1]!];
         if ((cx - px) * (ny - cy) - (cy - py) * (nx - cx) !== 0) out.push(cx, cy);
       }
       if (out.length >= 6) loops.push(out);

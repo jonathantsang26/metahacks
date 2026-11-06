@@ -1,4 +1,4 @@
-import type {ChatClient, ChatReply, ChatRequest} from './analyst.js';
+import type {ChatClient, ChatReply, ChatRequest} from './chat.js';
 
 /**
  * A hard dollar cap on Meta API spend. Meta bills pay-as-you-go and its console spend limit only
@@ -114,7 +114,8 @@ export function storeConfig(env: BudgetEnv): {url: string; token: string} | null
       if (token) found.set(value, {url: value, token});
     }
   }
-  return found.size === 1 ? [...found.values()][0] : null;
+  const [only] = found.values();
+  return found.size === 1 && only ? only : null;
 }
 
 /** The shared store when its variables are set. */

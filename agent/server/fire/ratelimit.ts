@@ -37,13 +37,16 @@ export function createLimiter(perVisitor: Limit = PER_VISITOR, global: Limit = G
   const all: number[] = [];
 
   const prune = (hits: number[], windowMs: number, t: number) => {
-    while (hits.length && hits[0] <= t - windowMs) hits.shift();
+    for (let oldest = hits[0]; oldest !== undefined && oldest <= t - windowMs; oldest = hits[0]) hits.shift();
   };
   // Seconds until enough of the oldest hits leave the window for `cost` more to fit.
   const wait = (hits: number[], limit: Limit, cost: number, t: number) => {
     if (!hits.length) return Math.ceil(limit.windowMs / 1000);
     const i = Math.min(hits.length - 1, hits.length + cost - limit.max - 1);
-    return Math.max(1, Math.ceil((hits[i] + limit.windowMs - t) / 1000));
+    // Called only when hits.length + cost > limit.max, so 0 <= i < hits.length.
+    const hit = hits[i];
+    if (hit === undefined) throw new Error(`rate limit: no hit at ${i} of ${hits.length}`);
+    return Math.max(1, Math.ceil((hit + limit.windowMs - t) / 1000));
   };
 
   return {

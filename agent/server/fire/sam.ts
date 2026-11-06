@@ -64,7 +64,7 @@ export class SamApiError extends Error {
 }
 
 /** Reads the Responses API SSE stream and returns the output text; throws unless it completed. */
-export async function readStream(body: ReadableStream<Uint8Array>): Promise<string> {
+export async function readStream(body: ReadableStream<Uint8Array<ArrayBuffer>>): Promise<string> {
   const reader = body.pipeThrough(new TextDecoderStream()).getReader();
   let buf = '';
   let text = '';
@@ -120,14 +120,17 @@ export function parseOutput(output: string, frame: {width: number; height: numbe
   let width = frame.width;
   let height = frame.height;
   for (const line of output.split('\n')) {
-    const m = line.trim().match(/^<(\d+)f>(.*)$/);
-    if (!m) continue;
-    const records = m[2].matchAll(/(\d+)<\|(box;[^|]*)\|><\|(mask;[^|]*)\|>/g);
+    const frameRecords = line.trim().match(/^<(\d+)f>(.*)$/)?.[2];
+    if (frameRecords === undefined) continue;
+    const records = frameRecords.matchAll(/(\d+)<\|(box;[^|]*)\|><\|(mask;[^|]*)\|>/g);
     for (const [, id, boxTok, maskTok] of records) {
       try {
+        // The pattern's groups are all required, so a match always has them.
+        if (id === undefined || boxTok === undefined || maskTok === undefined) throw new Error('record is incomplete');
         const b = fields(boxTok);
         const k = fields(maskTok);
-        const [x1, y1, x2, y2, w, h] = ['x1', 'y1', 'x2', 'y2', 'w', 'h'].map(n => Number(b[n]));
+        const at = (n: string) => Number(b[n]);
+        const [x1, y1, x2, y2, w, h] = [at('x1'), at('y1'), at('x2'), at('y2'), at('w'), at('h')];
         if (![x1, y1, x2, y2].every(Number.isFinite)) throw new Error('box is missing a corner');
         if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) [width, height] = [w, h];
         const data = maskTok.slice(maskTok.indexOf('data=') + 5);

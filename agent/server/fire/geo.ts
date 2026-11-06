@@ -30,36 +30,47 @@ export function polygonRings(fc: PolygonCollection): number[][][] {
 
 export function insideRings(rings: number[][][], lon: number, lat: number): boolean {
   let inside = false;
+  // Hot loop: i and j stay in 0..ring.length-1, and GeoJSON positions are [lon, lat, ...].
   for (const ring of rings) {
     for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-      const [xi, yi] = ring[i];
-      const [xj, yj] = ring[j];
+      const [xi, yi] = ring[i] as LonLat;
+      const [xj, yj] = ring[j] as LonLat;
       if (yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
     }
   }
   return inside;
 }
 
+/** A GeoJSON position as [lon, lat]; throws if it has fewer than two coordinates. */
+export function position(p: number[] | undefined): LonLat {
+  const lon = p?.[0];
+  const lat = p?.[1];
+  if (lon === undefined || lat === undefined) throw new Error(`invalid GeoJSON position ${JSON.stringify(p)}`);
+  return [lon, lat];
+}
+
 /** Points along a polyline, about stepM apart, always including both ends. */
 export function densify(coords: number[][], stepM: number): LonLat[] {
   const out: LonLat[] = [];
   for (let i = 0; i < coords.length - 1; i++) {
-    const a: LonLat = [coords[i][0], coords[i][1]];
-    const b: LonLat = [coords[i + 1][0], coords[i + 1][1]];
+    const a = position(coords[i]);
+    const b = position(coords[i + 1]);
     const n = Math.max(1, Math.ceil(distanceM(a, b) / stepM));
     for (let k = 0; k < n; k++) out.push([a[0] + ((b[0] - a[0]) * k) / n, a[1] + ((b[1] - a[1]) * k) / n]);
   }
   const last = coords[coords.length - 1];
-  if (last) out.push([last[0], last[1]]);
+  if (last) out.push(position(last));
   return out;
 }
 
-export function bboxCenter([w, s, e, n]: number[]): LonLat {
+export function bboxCenter([w, s, e, n]: [number, number, number, number]): LonLat {
   return [(w + e) / 2, (s + n) / 2];
 }
 
 const COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
 
 export function compass(deg: number): string {
-  return COMPASS[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16];
+  const point = COMPASS[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16];
+  if (point === undefined) throw new Error(`compass: bearing ${deg} is not a finite number`);
+  return point;
 }

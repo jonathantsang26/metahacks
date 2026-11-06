@@ -20,14 +20,16 @@ const SHORT_DIRECTIONS = new Set(Object.values(DIRECTIONS));
 export function normalizeName(name: string): string {
   const s = name.toLowerCase().replace(/['’.]/g, '');
   const tokens = s.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
-  if (tokens.length && tokens[0] in DIRECTIONS) tokens[0] = DIRECTIONS[tokens[0]];
+  const first = tokens[0];
+  const direction = first !== undefined && first in DIRECTIONS ? DIRECTIONS[first] : undefined;
+  if (direction !== undefined) tokens[0] = direction;
   return tokens.map(t => STREET_WORDS[t] ?? t).join(' ');
 }
 
 /** 'n lake ave' -> 'lake ave', so "Lake Ave" finds both North and South Lake Avenue. */
 export function withoutDirection(key: string): string {
   const [first, ...rest] = key.split(' ');
-  return rest.length && SHORT_DIRECTIONS.has(first) ? rest.join(' ') : key;
+  return rest.length && first !== undefined && SHORT_DIRECTIONS.has(first) ? rest.join(' ') : key;
 }
 
 export type MatchTier = 'exact' | 'prefix' | 'contains';

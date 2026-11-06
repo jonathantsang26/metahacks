@@ -36,6 +36,13 @@ const NAME_TOKEN = "(?!(?:AM|PM|PST|PDT|UTC|GMT)\\b)(?:[A-Z][A-Za-z'’.-]*|\\d+
 const ADDRESS = new RegExp(`(?<![:\\d])\\b(\\d{1,6})[A-Za-z]?\\s+(?:${NAME_TOKEN}\\s+){1,4}(?:${STREET_SUFFIX})\\b`, 'g');
 const DATE_BEFORE = /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2},?\s*$/;
 
+/** A capture group the pattern always fills when it matches. */
+function group(m: RegExpMatchArray, i: number): string {
+  const g = m[i];
+  if (g === undefined) throw new Error(`regex group ${i} is empty in ${JSON.stringify(m[0])}`);
+  return g;
+}
+
 export function mentionsCause(text: string): boolean {
   return CAUSE_PATTERNS.some(p => p.test(text));
 }
@@ -43,7 +50,7 @@ export function mentionsCause(text: string): boolean {
 export function containsAddress(text: string): boolean {
   for (const m of text.matchAll(ADDRESS)) {
     // "Jan 8, 2025 Lake Avenue ..." is a date running into a street name, not an address.
-    const isYear = /^(?:19|20)\d\d$/.test(m[1]);
+    const isYear = /^(?:19|20)\d\d$/.test(group(m, 1));
     if (isYear && DATE_BEFORE.test(text.slice(Math.max(0, m.index - 16), m.index))) continue;
     return true;
   }
@@ -58,13 +65,29 @@ const CLOCK = /\b(\d{1,2}):(\d{2})(?:\s*([ap])\.?\s*m\b\.?)?/gi;
 const DATES = new RegExp(`\\b\\d{4}-\\d{2}-\\d{2}(?:T[\\d:]+Z?)?\\b|\\b${MONTH}\\s+\\d{1,2}(?:st|nd|rd|th)?(?:,?\\s*\\d{4})?|\\b(?:19|20)\\d{2}\\b`, 'gi');
 const NUMBER = /(?<![\w.])(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?(\s*%)?(?![\w])/g;
 
-function collect(value: unknown, numbers: number[], strings: string[]): void {
-  if (typeof value === 'number' && Number.isFinite(value)) numbers.push(value);
+/** "45 percent" or "45 per cent" right after a number. */
+const PERCENT_WORD = /^\s*per\s?cent\b/i;
+
+/** A number from a cited result; `pct` when it is already a percentage (its key or a % after it says so). */
+type Evidence = {v: number; pct: boolean};
+
+/** Key names whose values are percentages, shares or rates: rh_pct, burnedFraction, destroyed_rate. */
+function percentKey(key: string): boolean {
+  const words = key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase().split(/[^a-z0-9]+/);
+  return words.some(w => /^(?:pct|percent(?:age)?s?|shares?|fractions?|rates?)$/.test(w));
+}
+
+function collect(value: unknown, numbers: Evidence[], strings: string[], pctKey = false): void {
+  if (typeof value === 'number' && Number.isFinite(value)) numbers.push({v: value, pct: pctKey});
   else if (typeof value === 'string') {
     strings.push(value);
-    for (const m of value.replace(CLOCK, ' ').matchAll(NUMBER)) numbers.push(Number((m[1] + (m[2] ?? '')).replace(/,/g, '')));
-  } else if (Array.isArray(value)) value.forEach(v => collect(v, numbers, strings));
-  else if (value && typeof value === 'object') Object.values(value).forEach(v => collect(v, numbers, strings));
+    const plain = value.replace(CLOCK, ' ');
+    for (const m of plain.matchAll(NUMBER)) {
+      const pct = pctKey || !!m[3] || PERCENT_WORD.test(plain.slice(m.index + m[0].length));
+      numbers.push({v: Number((group(m, 1) + (m[2] ?? '')).replace(/,/g, '')), pct});
+    }
+  } else if (Array.isArray(value)) value.forEach(v => collect(v, numbers, strings, pctKey));
+  else if (value && typeof value === 'object') Object.entries(value).forEach(([k, v]) => collect(v, numbers, strings, percentKey(k)));
 }
 
 /** v (written with `decimals` places) is x rounded: to those places, or to 2+ significant figures. */
@@ -80,29 +103,36 @@ function roundsTo(x: number, v: number, decimals: number): boolean {
 
 /**
  * Numbers and clock times in the prose that appear in none of the paragraph's cited tool outputs
- * (nor in the question). Rounding is allowed; percentages may come from fractions; integers up to
- * 10 are exempt, since prose counts ("two perimeters") are rarely the claim being made.
+ * (nor in the question). Rounding is allowed; integers up to 10 are exempt, since prose counts
+ * ("two perimeters") are rarely the claim being made. A percentage ("45%", "45 percent") matches
+ * only a cited percentage (a pct/percent/share/fraction/rate field, or a number written with %)
+ * or a cited value from 0 to 1 taken ×100, never an unrelated count that happens to be 45.
  */
 export function ungroundedNumbers(text: string, cites: Cite[], g: Grounding): string[] {
-  const numbers: number[] = [];
+  const numbers: Evidence[] = [];
   const strings: string[] = [];
   for (const c of cites) collect([g.evidence.get(c.id), c], numbers, strings);
   collect(g.question ?? '', numbers, strings);
   const haystack = strings.join(' | ').toLowerCase();
   const bad: string[] = [];
   for (const m of text.matchAll(CLOCK)) {
-    const [, h, mm, ap] = m;
+    const [, , mm, ap] = m;
+    const h = group(m, 1);
     const local = `${Number(h)}:${mm}${ap ? ` ${ap.toLowerCase()}m` : ''}`;
     const utc = `t${h.padStart(2, '0')}:${mm}`;
     if (!haystack.includes(local) && !haystack.includes(utc)) bad.push(m[0].trim());
   }
   const prose = text.replace(CLOCK, ' ').replace(DATES, ' ');
   for (const m of prose.matchAll(NUMBER)) {
-    const v = Number(m[1].replace(/,/g, '') + (m[2] ?? ''));
+    const v = Number(group(m, 1).replace(/,/g, '') + (m[2] ?? ''));
     const decimals = m[2] ? m[2].length - 1 : 0;
-    if (!m[3] && !m[2] && v <= 10) continue;
-    const ok = numbers.some(x => roundsTo(x, v, decimals) || (m[3] && Math.abs(x) <= 1 && roundsTo(100 * x, v, decimals)));
-    if (!ok) bad.push(m[0].trim());
+    const after = prose.slice(m.index + m[0].length).match(PERCENT_WORD)?.[0];
+    const percent = !!m[3] || after !== undefined;
+    if (!percent && !m[2] && v <= 10) continue;
+    const ok = percent
+      ? numbers.some(x => (x.pct && roundsTo(x.v, v, decimals)) || (Math.abs(x.v) <= 1 && roundsTo(100 * x.v, v, decimals)))
+      : numbers.some(x => roundsTo(x.v, v, decimals));
+    if (!ok) bad.push((m[0] + (after ?? '')).trim());
   }
   return bad;
 }

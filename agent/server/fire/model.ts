@@ -1,5 +1,5 @@
 import OpenAI, {type ClientOptions} from 'openai';
-import type {ChatClient} from './analyst.js';
+import type {ChatClient} from './chat.js';
 
 /** Meta's Model API is OpenAI-compatible, so the OpenAI SDK talks to it with a different base URL. */
 export const MODEL_BASE_URL = 'https://api.meta.ai/v1';
