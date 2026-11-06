@@ -34,12 +34,20 @@ import {Compass, HoverInspector, MapControls, MapNotes, SyntheticChip, type KeyS
 import {usePlanData, usePlanLayers, usePlanMapControls} from '@/plan';
 import {useSearchParams} from 'react-router';
 import {setMapCenter} from './map-center';
-import {selectMapPoint} from '../agent/context';
+import {clearSelection, selectMapPoint, useIncidentNav} from '../agent/context';
 
 const PITCH_3D = 58;
 const TERRAIN_LOAD_OPTIONS = {terrain: {workerUrl: terrainWorkerUrl}};
 const fireExtension = new FireExtension();
 const transition = new LinearInterpolator(['pitch', 'bearing', 'zoom', 'longitude', 'latitude']);
+
+const VIEW_KEYS = ['longitude', 'latitude', 'zoom', 'pitch', 'bearing', 'transitionDuration', 'transitionInterpolator', 'width', 'height'] as const;
+/** Same camera (and the same pending transition): a no-op view-state update. */
+function sameView(a: MapViewState, b: MapViewState): boolean {
+  const x = a as Record<string, unknown>;
+  const y = b as Record<string, unknown>;
+  return VIEW_KEYS.every(k => x[k] === y[k]);
+}
 const easeInOut = (x: number) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
 
 /** severity.png red code for a dNBR value (step 08: dnbr = −0.1 + (R − 1) / 254 · 1.1). */
@@ -114,7 +122,7 @@ export function Stage({fire}: {fire: FireData}) {
   }, [flyTo]);
 
   // Fire layer: arrival.png, read nearest-texel in the shader. The synthetic pattern is only a
-  // fallback for a missing file, and then the SIM chip says so. The image props go null → image
+  // fallback for a missing file, and then a note on the map says so. The image props go null → image
   // once and never back (deck's image transform cannot take null after a texture); layer
   // switches use the opacity/visible props instead.
   const arrivalImage = useFireImage(fire, 'arrival.png');
@@ -257,7 +265,6 @@ export function Stage({fire}: {fire: FireData}) {
     const elevation = manifestRow(fire, 'Terrain')?.source;
     notes.push({
       id: 'terrain',
-      tag: baseRow.status,
       title: 'Base texture · stylized land cover',
       detail: [
         `${baseRow.source}${elevation ? `, on ${elevation} elevation` : ''}`,
@@ -272,7 +279,6 @@ export function Stage({fire}: {fire: FireData}) {
   if (spread.visible && arrivalImage.status === 'ok')
     notes.push({
       id: 'spread',
-      tag: 'MODELED',
       title: 'Fire Progression (Interpolated)',
       detail: [
         "Interpolated between mapped perimeters: each cell's burn time lies between the perimeters that bracket it. Hover the map for a cell's interval",
@@ -294,7 +300,6 @@ export function Stage({fire}: {fire: FireData}) {
       const coverage = Math.round(severityStats.perimeter.coverage * 100);
       notes.push({
         id: 'scar',
-        tag: manifestRow(fire, 'Burn severity (dNBR)')?.status ?? 'dNBR',
         title: `Burn scar (dNBR) · ${coverage}% coverage`,
         detail: [
           `${src.product}${src.provisional && !/provisional/i.test(src.product) ? ' (provisional)' : ''}${src.pre_date && src.post_date ? `, ${src.pre_date} to ${src.post_date}` : ''}`,
@@ -320,7 +325,6 @@ export function Stage({fire}: {fire: FireData}) {
   if (finalRow)
     notes.push({
       id: 'final',
-      tag: finalRow.status,
       title: 'Final perimeter',
       detail: finalRow.source,
       swatches: [{color: '#ffffff', label: 'Final perimeter', shape: 'dash'}]
@@ -340,7 +344,6 @@ export function Stage({fire}: {fire: FireData}) {
   if (osmRow && (layers.roads.visible || layers.labels.visible))
     notes.push({
       id: 'osm',
-      tag: osmRow.status,
       title: layers.roads.visible && layers.labels.visible ? 'Roads and place names' : layers.roads.visible ? 'Roads' : 'Place names',
       detail: osmRow.source
     });
@@ -348,14 +351,13 @@ export function Stage({fire}: {fire: FireData}) {
   if (planOnMap)
     notes.push({
       id: 'plan-front',
-      tag: 'CACHED',
       title: 'Forecast front +1 h · drone plan',
       detail:
-        "The cached +1 h forecast front for this hour, drawn by the drone plan: green where it falls inside a flying drone's view, orange where it does not. Drones are simulated; no drone flies",
+        "The +1 h forecast front for this hour, drawn by the drone plan: green where it falls inside a flying drone's view, orange where it does not. This is a replay; the drones are a plan",
       swatches: [
         {color: ACCENT, label: 'Front, not watched', shape: 'line'},
         {color: WATCHED, label: 'Front, watched', shape: 'line'},
-        {color: '#ffffff', label: 'Drone view (SIM)', shape: 'ring'}
+        {color: '#ffffff', label: 'Drone view', shape: 'ring'}
       ]
     });
 
@@ -363,9 +365,9 @@ export function Stage({fire}: {fire: FireData}) {
   const summary: KeySummaryItem[] = [];
   if (planOnMap) {
     summary.push(
-      {id: 'front', label: 'Forecast front +1 h', tag: 'CACHED', swatch: {color: ACCENT, label: 'Forecast front', shape: 'line'}, title: 'Cached +1 h forecast front for this hour'},
+      {id: 'front', label: 'Forecast front +1 h', swatch: {color: ACCENT, label: 'Forecast front', shape: 'line'}, title: '+1 h forecast front for this hour'},
       {id: 'watched', label: 'watched', swatch: {color: WATCHED, label: 'Watched', shape: 'line'}, title: "Stretch of the front inside a flying drone's view"},
-      {id: 'view', label: 'Drone view', tag: 'SIM', swatch: {color: '#ffffff', label: 'Drone view', shape: 'ring'}, title: 'Simulated drone footprint; no drone flies'}
+      {id: 'view', label: 'Drone view', swatch: {color: '#ffffff', label: 'Drone view', shape: 'ring'}, title: 'Planned drone view; this is a replay'}
     );
   } else {
     const fc = forecastPart.notes[0];
@@ -373,7 +375,6 @@ export function Stage({fire}: {fire: FireData}) {
       summary.push({
         id: 'front',
         label: 'Forecast +1 h',
-        tag: fc.tag,
         swatch: fc.swatches?.[0] ?? {color: '#ffffff', label: 'Forecast', shape: 'dash'},
         title: fc.title
       });
@@ -447,8 +448,13 @@ export function Stage({fire}: {fire: FireData}) {
       <DeckGL
         viewState={viewState}
         onViewStateChange={({viewState: next}) => {
-          setViewState(next as MapViewState);
-          setBearing((next as MapViewState).bearing ?? 0);
+          // deck.gl's React wrapper replays view-state changes raised while it applies props from
+          // its layout effect, so these are synchronous nested updates. Ignore repeats of the
+          // current view so a re-emitted state cannot chain renders (React's update-depth limit).
+          const nv = next as MapViewState;
+          setViewState(v => (sameView(v, nv) ? v : nv));
+          const bearing = nv.bearing ?? 0;
+          if (useUi.getState().bearing !== bearing) setBearing(bearing);
         }}
         // The plan UI turns panning off while the pointer is on (or dragging) a drone marker.
         controller={{dragRotate: true, inertia: 300, dragPan: planControls.dragPan}}
@@ -464,6 +470,8 @@ export function Stage({fire}: {fire: FireData}) {
           // other layers (structures, plan watch points) are handled by those layers.
           const c = info.coordinate;
           if (c && info.layer?.id.startsWith('terrain')) selectMapPoint(c[0]!, c[1]!);
+          // A click on empty map (nothing picked) drops a selected drone too.
+          else if (!info.layer && useIncidentNav.getState().selectedDroneId) clearSelection();
         }}
         getCursor={({isDragging}) => planControls.cursor ?? (isDragging ? 'grabbing' : 'crosshair')}
       />

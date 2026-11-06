@@ -37,7 +37,7 @@ export default defineAction({
       flyableCount: g.cells.filter(c => c.flyable).length,
       cells: g.cells,
       source: g.source,
-      label: 'MODELED wind: HRRR 3 km hourly gust (max of each hour overlapping the planned hour), scaled from 10 m to 120 m by the 1/7 power law, as in the Meta swarm sim. Coarse: real flow over the ridges is more complex.'
+      label: 'Estimated wind: HRRR 3 km hourly gust (max of each hour overlapping the planned hour), scaled from 10 m to 120 m by the 1/7 power law, as in the Meta swarm sim. Coarse: real flow over the ridges is more complex.'
     };
   }
 });

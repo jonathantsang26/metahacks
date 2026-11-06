@@ -7,7 +7,7 @@
  * shader shows up immediately as the two not lining up.
  *
  * Kept only as the fallback when step 06's arrival.png fails to load; the stage then shows the
- * SIM chip so the pattern is never mistaken for the fire.
+ * test-pattern note so the pattern is never mistaken for the fire.
  */
 import type {PerimeterCollection} from '../data/fire';
 import {perimeterRings} from '../data/fire';

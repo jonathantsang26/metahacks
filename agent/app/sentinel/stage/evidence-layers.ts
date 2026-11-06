@@ -20,7 +20,7 @@ import type {StageNote, Swatch} from './overlays';
 export type StagePart = {layers: Layer[]; labels: MapLabel[]; notes: StageNote[]};
 export const NO_PART: StagePart = {layers: [], labels: [], notes: []};
 
-/** The manifest.json row for a layer (its source and REAL / MODELED status), if the pipeline wrote one. */
+/** The manifest.json row for a layer (its source and provenance), if the pipeline wrote one. */
 export function manifestRow(fire: FireData, layer: string) {
   return fire.manifest.sources.find(s => s.layer === layer);
 }
@@ -113,7 +113,6 @@ export function usePerimeterPart(fire: FireData, dem: Dem | null, t: number, on:
     else if (current)
       notes.push({
         id: 'perimeters',
-        tag: manifestRow(fire, 'Perimeters (time series)')?.status,
         title: `Mapped perimeter at t${spotRings.length ? ' + spot fires' : ''}`,
         detail: `Latest perimeter mapped at or before t: ${stamp(current.t, tz)}, ${Math.round(current.acres).toLocaleString()} ac\n${current.source}`,
         swatches: [{color: '#fff7ec', label: 'Mapped perimeter and spot fires', shape: 'line'}]
@@ -216,7 +215,6 @@ export function useSpinePart(fire: FireData, dem: Dem | null, t: number, on: boo
     const notes: StageNote[] = [
       {
         id: 'spine',
-        tag: 'MODELED',
         title: 'Spread spine',
         detail: 'From the first-burned area to the farthest early run, traced on the interpolated fire progression; waypoints after t are muted',
         swatches: [{color: css(SPINE), label: 'Spine and waypoints', shape: 'dash'}]
@@ -415,7 +413,6 @@ export function useIgnitionPart(fire: FireData, dem: Dem | null, on: boolean, he
         );
       notes.push({
         id: 'ignition',
-        tag: 'MODELED',
         title: identifiable ? `Ignition estimate · start ${stamp(Date.parse(ig.map.t), tz)}` : 'Ignition estimate · start time withheld',
         detail: detail.join('\n'),
         swatches

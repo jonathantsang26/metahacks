@@ -1,3 +1,4 @@
+import {useShallow} from 'zustand/react/shallow';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import type {FireData} from '../data/fire';
 import {useFireJson, type Perimeters, type Profile, type Series} from '../data/files';
@@ -42,7 +43,7 @@ function useWidth<T extends HTMLElement>() {
 }
 
 function Transport() {
-  const {playing, toggle, step, speed, setSpeed} = useTime();
+  const {playing, toggle, step, speed, setSpeed} = useTime(useShallow(s => ({playing: s.playing, toggle: s.toggle, step: s.step, speed: s.speed, setSpeed: s.setSpeed})));
   const btn = 'flex h-7 w-8 items-center justify-center rounded-md shadow-[0_0_0_1px_var(--hairline)]';
   return (
     <div className="flex items-center gap-1.5">
@@ -192,15 +193,13 @@ const SIDE = {
 };
 
 /** One honesty line for all the charts on a tab, instead of a chip under each chart. */
-const CHARTS_NOTE: Partial<Record<keyof typeof SIDE, {tag: string; text: string; title: string}>> = {
+const CHARTS_NOTE: Partial<Record<keyof typeof SIDE, {text: string; title: string}>> = {
   incident: {
-    tag: 'MODELED',
-    text: 'Charts: modeled from the arrival raster',
+    text: 'Charts: estimated between the mapped perimeters',
     title: 'Fire area, rate of spread and the front along the spine come from the arrival raster, which is interpolated between mapped perimeters. Elevation is from the terrain model (DEM).'
   },
   risk: {
-    tag: 'MODELED',
-    text: "Charts: modeled debris-flow likelihood on USGS's design storms",
+    text: "Charts: estimated debris-flow likelihood on USGS's design storms",
     title: "Debris-flow likelihoods are model outputs; skill is cross-validated on USGS's observed postfire debris-flow inventory."
   }
 };
@@ -214,7 +213,7 @@ export function Dock({fire}: {fire: FireData}) {
   const tab = useUi(s => s.tab);
   const dockOpen = useUi(s => s.dockOpen);
   const setDockOpen = useUi(s => s.setDockOpen);
-  const {start, end} = useTime();
+  const {start, end} = useTime(useShallow(s => ({start: s.start, end: s.end})));
   const tz = fire.aoi.timezone;
   const series = useFireJson<Series>(fire, 'series.json');
   const profile = useFireJson<Profile>(fire, 'profile.json');
@@ -273,7 +272,6 @@ export function Dock({fire}: {fire: FireData}) {
             </div>
             {note && (
               <div className="flex shrink-0 items-center gap-1.5 border-t border-hairline px-3 py-0.5 text-2xs text-se-muted" title={note.title}>
-                <span className="shrink-0 rounded-[3px] border border-hairline px-1 font-mono text-ink">{note.tag}</span>
                 <span className="truncate">{note.text}</span>
               </div>
             )}

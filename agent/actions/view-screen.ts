@@ -44,7 +44,7 @@ function planSummary(b: PlanBundle) {
 
 export default defineAction({
   description:
-    'Fresh snapshot of what the person sees: navigation (fire, time t, tab, selected drone, visible layers), the selection (a drone or a map point), whether a cached forecast covers t, and the drone plan for that hour with its drones (locked/grounded), score summary, top uncovered gaps and briefing status. Basic navigation is already in <current-screen>; call this before planning or after the person edits.',
+    'Fresh snapshot of what the person sees: navigation (fire, time t, tab, selected drone, visible layers), the selection (a drone or a map point), whether a forecast covers t, and the drone plan for that hour with its drones (locked/grounded), score summary, top uncovered gaps and briefing status. Basic navigation is already in <current-screen>; call this before planning or after the person edits.',
   schema: z.object({}),
   outputSchema: z.looseObject({}),
   http: false,
@@ -77,14 +77,14 @@ export default defineAction({
       if (!('error' in pt)) {
         const f = loadFront(store(fire), pt.ms);
         screen.forecast = f
-          ? {status: 'CACHED', issuedAt: f.issuedAt, forecastFor: f.validAt, method: f.method, frontKm: f.frontKm}
-          : {status: 'none', note: 'No cached forecast was issued for this hour, so no plan can be made or scored here.'};
+          ? {status: 'saved', issuedAt: f.issuedAt, forecastFor: f.validAt, method: f.method, frontKm: f.frontKm}
+          : {status: 'none', note: 'No forecast was issued for this hour, so no plan can be made or scored here.'};
         plan = await findPlanByHour(org, fire, pt.hourKey);
         if (!plan) screen.plan = {exists: false, hourKey: pt.hourKey, next: f ? 'create-drone-plan' : 'pick an hour with a forecast'};
       }
     }
     if (plan) screen.plan = planSummary(await bundle(plan));
-    screen.labels = 'Replay of a past fire. Forecast CACHED, arrival MODELED, drones SIMULATED (none flew).';
+    screen.labels = 'Replay of a past fire. The forecast was made earlier; the drones are a plan (none flew).';
     return screen;
   }
 });

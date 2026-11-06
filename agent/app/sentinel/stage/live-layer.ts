@@ -123,7 +123,7 @@ export function useLiveHitsPart(dem: Dem | null, on: boolean): StagePart {
       labels.push({
         id: 'live-newest',
         position: [newest.lon, newest.lat, newest.elevM + LIFT],
-        text: `LIVE · ${edge ? 'FIRE EDGE NOW' : 'HIT'} · ${poseText}`,
+        text: `${edge ? 'Fire edge now' : 'Hit'} · ${poseText}`,
         style: 'chip',
         priority: 90
       });
@@ -141,7 +141,6 @@ export function useLiveHitsPart(dem: Dem | null, on: boolean): StagePart {
     const notes: StageNote[] = [
       {
         id: 'live',
-        tag: 'LIVE',
         title: `Live hits · ${hits.length.toLocaleString()}${masks.length ? ` · ${masks.length.toLocaleString()} SAM 3.1 masks` : ''} · ${poseText}`,
         detail: [
           'Sentinel boxes from the live feed, run in this browser, projected onto the terrain from the drone pose. Dots fade over 2 min; the yellow outline is the hull of the last 20 s ("fire edge now")',

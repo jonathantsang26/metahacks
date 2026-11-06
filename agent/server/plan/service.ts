@@ -152,7 +152,7 @@ export async function bundle(plan: PlanRow): Promise<PlanBundle> {
 
 /** A one-line summary of a score, for messages and view-screen. */
 export function scoreLine(s: PlanScore): string {
-  if (!s.forecast) return 'No cached forecast covers this hour, so the plan cannot be scored.';
+  if (!s.forecast) return 'No forecast covers this hour, so the plan cannot be scored.';
   return `${s.method} forecast: ${s.coveredKm} of ${s.frontKm} km of front in view (${s.frontCoveragePct}%; fast-moving front ${s.fastCoveredKm} of ${s.fastFrontKm} km, ${s.fastCoveragePct}%), ${s.homesWatched} of ${s.homesNearFront} homes near the front watched, ${s.groundedCount} drone(s) grounded by gusts over ${s.gustLimitMs} m/s.`;
 }
 

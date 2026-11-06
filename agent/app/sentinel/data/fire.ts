@@ -32,7 +32,8 @@ export type ManifestSource = {
   layer: string;
   source: string;
   url: string;
-  status: 'REAL' | 'MODELED' | 'SIM';
+  /** The pipeline's provenance label for the source (manifest.json); not shown on screen. */
+  status: string;
   attribution: string;
   notes: string;
   retrieved: string;

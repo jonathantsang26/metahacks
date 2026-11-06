@@ -3,19 +3,7 @@ import {useFireJson} from '../data/files';
 import {formatDate} from '../lib/format';
 import {stamp} from './fmt';
 import {EstimatedPlace, EstimatedStart, type IgnitionFile} from './ignition';
-import {Card, Chip, Row} from './ui';
-
-/** Counts manifest sources by status, so "Analysis status" says what is real and what is modeled. */
-function AnalysisStatus({fire}: {fire: FireData}) {
-  const counts = {REAL: 0, MODELED: 0, SIM: 0};
-  for (const s of fire.manifest.sources) counts[s.status]++;
-  return (
-    <span className="inline-flex items-center gap-1.5" title="From manifest.json (Evidence tab)">
-      <span className={`h-2 w-2 rounded-full ${counts.SIM ? 'bg-live' : 'bg-se-muted'}`} />
-      {counts.REAL} real · {counts.MODELED} modeled sources · {counts.SIM ? `${counts.SIM} simulated` : 'none simulated'}
-    </span>
-  );
-}
+import {Card, Row} from './ui';
 
 export function IncidentOverview({fire}: {fire: FireData}) {
   const {data: ig, error} = useFireJson<IgnitionFile>(fire, 'ignition.json');
@@ -69,9 +57,7 @@ export function IncidentOverview({fire}: {fire: FireData}) {
                 <div className="text-xs">
                   <EstimatedStart ig={ig} tz={tz} />
                 </div>
-                <div className="mt-0.5">
-                  <Chip tone="modeled">MODELED</Chip> <span className="text-2xs text-se-muted">back-trace, not an investigated origin</span>
-                </div>
+                <div className="mt-0.5 text-2xs text-se-muted">Estimated from the spread, not an investigated origin</div>
               </>
             ) : (
               <span className="text-se-muted">{error ? 'not available (ignition.json)' : '…'}</span>
@@ -87,7 +73,6 @@ export function IncidentOverview({fire}: {fire: FireData}) {
           v={o.containment_date ? `${formatDate(Date.parse(o.containment_date + 'T12:00:00Z'), tz)} · CAL FIRE` : '—'}
         />
         <Row k="Cause" v={<span className="font-medium">Not assessed by this tool</span>} />
-        <Row k="Analysis status" v={<AnalysisStatus fire={fire} />} />
       </div>
     </Card>
   );

@@ -1,3 +1,4 @@
+import {useShallow} from 'zustand/react/shallow';
 import {useMemo, useState} from 'react';
 import type {FireData} from '../data/fire';
 import {insideRings, perimeterRings} from '../data/fire';
@@ -30,7 +31,7 @@ export function Compass({onReset}: {onReset: () => void}) {
 
 /** Bottom-right cluster: 2D/3D segmented toggle and fullscreen (DESIGN.md §4.1). */
 export function MapControls() {
-  const {viewMode, setViewMode} = useUi();
+  const {viewMode, setViewMode} = useUi(useShallow(s => ({viewMode: s.viewMode, setViewMode: s.setViewMode})));
   const seg = (mode: '2d' | '3d', label: string) => (
     <button
       onClick={() => setViewMode(mode)}
@@ -61,8 +62,7 @@ export function SyntheticChip({visible}: {visible: boolean}) {
   if (!visible) return null;
   return (
     <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-md bg-hud px-2.5 py-1 text-xs text-white">
-      <span className="mr-1.5 rounded bg-white/15 px-1 font-mono text-2xs tracking-wide">SIM</span>
-      arrival.png did not load · the fire progression shown is a synthetic shader test inside the real final perimeter
+      arrival.png did not load · the fire progression shown is a test pattern inside the real final perimeter, not the fire
     </div>
   );
 }
@@ -70,11 +70,9 @@ export function SyntheticChip({visible}: {visible: boolean}) {
 /** A key mark: a dot (point marker), line or dashed line (outline), ring or square (filled area). */
 export type Swatch = {color: string; label: string; shape?: 'dot' | 'line' | 'dash' | 'ring' | 'square'};
 
-/** One line of the map key: what a visible layer is, where it comes from, and whether it is modeled. */
+/** One line of the map key: what a visible layer is and where it comes from. */
 export type StageNote = {
   id: string;
-  /** Mono chip before the title, e.g. MODELED. */
-  tag?: string | undefined;
   /** The layer's name and at most a few words of state: the key shows it on one line. */
   title: string;
   /** Sources and caveats, shown when the line is expanded. */
@@ -93,8 +91,8 @@ function SwatchMark({s}: {s: Swatch}) {
   return <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{background: s.color}} />;
 }
 
-/** One entry on the collapsed one-line key: a mark, a short label and an optional honesty tag. */
-export type KeySummaryItem = {id: string; label: string; tag?: string | undefined; swatch: Swatch; title?: string | undefined};
+/** One entry on the collapsed one-line key: a mark and a short label. */
+export type KeySummaryItem = {id: string; label: string; swatch: Swatch; title?: string | undefined};
 
 /**
  * Default map key: one line with only the layers the planning loop reads (forecast front,
@@ -110,7 +108,6 @@ function KeySummary({items, onOpen}: {items: KeySummaryItem[]; onOpen: () => voi
         <span key={i.id} className="flex min-w-0 items-center gap-1.5" title={i.title}>
           <SwatchMark s={i.swatch} />
           <span className="truncate">{i.label}</span>
-          {i.tag && <span className="shrink-0 rounded-[3px] border border-white/25 px-1 font-mono text-2xs tracking-wide text-white/80">{i.tag}</span>}
         </span>
       ))}
       <button onClick={onOpen} aria-expanded={false} className="shrink-0 text-white/60 hover:text-white">
@@ -124,7 +121,7 @@ function KeySummary({items, onOpen}: {items: KeySummaryItem[]; onOpen: () => voi
 const SWATCHES_COLLAPSED = 4;
 
 /**
- * Bottom-left key for the visible layers: one line each (tag, name, swatches); a click on a line
+ * Bottom-left key for the visible layers: one line each (name, swatches); a click on a line
  * opens its sources and caveats, and the header opens or closes them all. Capped at 40% of the
  * stage and scrolled beyond that, so it never reaches the compass.
  */
@@ -179,7 +176,6 @@ export function MapNotes({notes, summary}: {notes: StageNote[]; summary?: KeySum
                 <span className={`w-2.5 shrink-0 text-white/50 ${canOpen ? '' : 'invisible'}`}>
                   <Icon name="chevron" size={10} className={isOpen ? '' : '-rotate-90'} />
                 </span>
-                {n.tag && <span className="shrink-0 rounded bg-white/15 px-1 font-mono text-2xs tracking-wide">{n.tag}</span>}
                 {/* Wraps rather than truncates on a narrow stage: titles carry caveats like "start time withheld". */}
                 <span className="min-w-0 flex-1">{n.title}</span>
                 {!isOpen && n.swatches && (
@@ -329,7 +325,6 @@ export function HoverInspector({
         <div className="mt-0.5 flex items-center gap-1.5">
           <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${arr.burned ? 'bg-[#ff8a3d]' : 'bg-white/50'}`} />
           <span>{arr.text}</span>
-          <span className="font-mono text-2xs text-white/45">MODELED</span>
         </div>
       )}
       {arr?.detail && <div className="ml-3 text-white/55">{arr.detail}</div>}

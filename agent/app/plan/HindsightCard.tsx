@@ -1,6 +1,6 @@
 import type {ReactElement} from 'react';
 import {addHours, fireTime, useHindsight, usePlanContext, usePlanData} from './data';
-import {Card, Chip, Label, Spinner} from './ui';
+import {Card, Label, Spinner} from './ui';
 
 export type HindsightCardProps = {
   fire?: string | undefined;
@@ -35,13 +35,8 @@ export function HindsightCard(props: HindsightCardProps = {}): ReactElement | nu
     <Card
       title={
         <span>
-          Hindsight <span className="font-normal text-[var(--pl-muted)]">· hour from {fireTime(plan.t)}</span>
+          What actually burned that hour <span className="font-normal text-[var(--pl-muted)]">· {fireTime(plan.t)}</span>
         </span>
-      }
-      aside={
-        <Chip tone="ghost" title="Hindsight: the real fire, mapped after the fact. Burned area comes from the arrival raster, interpolated between official perimeters (about 28 min steps)">
-          MODELED
-        </Chip>
       }
       className={props.className}
     >

@@ -68,7 +68,7 @@ export const scoreOut = z.looseObject({
     })
   ),
   gaps: z.array(z.object({lengthKm: z.number(), mid: point, homesNear: z.number(), gustMs: z.number().nullable(), flyable: z.boolean(), fast: z.boolean()})),
-  forecast: z.object({file: z.string(), issuedAt: z.string(), validAt: z.string(), method: z.string(), status: z.literal('CACHED')}).nullable(),
+  forecast: z.object({file: z.string(), issuedAt: z.string(), validAt: z.string(), method: z.string(), status: z.literal('saved')}).nullable(),
   method: z.string().nullable(),
   fastAdvanceM: z.number(),
   gustHours: z.array(z.string()),

@@ -1,7 +1,7 @@
 ---
 name: drone-planning
 description: >-
-  How the agent plans the next hour of simulated drone coverage on a replayed
+  How the agent plans the next hour of planned drone coverage on a replayed
   fire and writes the cited crew briefing. Use for "plan the drones", "auto-plan",
   "cover the front", "write the briefing", "approve", or any question about the
   drone plan, its score, grounded drones or hindsight.
@@ -11,15 +11,19 @@ description: >-
 
 ## The job
 
-Plan **one hour** of coverage for six simulated drones (D1 to D6) on the fire
+Plan **one hour** of coverage for six drones (D1 to D6, a plan; none fly) on the fire
 the person is looking at. Then write a short crew briefing in which every
 number comes from an action result. The person edits the same plan through the
 same actions (dragging a watch point calls `update-drone-assignment`), so
 read before you write and never overwrite their choices.
 
-Honesty labels, always: the forecast is **CACHED**, arrival and wind are
-**MODELED**, drones are **SIMULATED**. This is a replay of a past fire. Never
-say or suggest that a drone flew, saw something or will fly.
+Be honest in plain words, without jargon tags: this is a replay of a past
+fire, the drones are a plan, and the forecast was made earlier. Never say or
+suggest that a drone flew, saw something or will fly.
+
+Times: always speak local Pacific time the way people say it ("9 AM", "the
+10 AM hour", "Jan 8, 9 AM"), in replies and suggested next steps. Never write
+UTC or Z times ("17:00Z", "18Z hour"); those are only for action arguments.
 
 ## Steps
 
@@ -67,13 +71,13 @@ say or suggest that a drone flew, saw something or will fly.
    (`approve-plan` locks the drones and moves the map to t + 1 h). Approve
    only when the person asks.
 7. **After approval**, `hindsight-check {planId}` shows the share of ground
-   that actually burned in that hour (MODELED arrival raster) inside the
+   that actually burned in that hour (estimated arrival raster) inside the
    flying drones' circles, next to an even-spacing baseline. It is hindsight
-   on modeled data. Do not present it as a prediction.
+   on estimated data. Do not present it as a prediction.
 
 ## When the wind grounds everything
 
-Some hours have no flyable cell. At **2025-01-08T18:00Z (10 AM PST)** on
+Some hours have no flyable cell. At **10 AM PST on Jan 8, 2025** (t = 2025-01-08T18:00Z) on
 Eaton, all 24 wind cells gust over 12 m/s at 120 m, so all six drones are
 grounded and coverage is 0 whatever the plan. Say so plainly ("the wind grounds
 all six drones this hour") and cite `flyable-cells`. Do not place drones to

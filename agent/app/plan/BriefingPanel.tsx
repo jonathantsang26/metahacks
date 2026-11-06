@@ -7,7 +7,7 @@ import {act, errorText, FIRE_LABEL, fireTime, usePlanContext, usePlanData} from 
 import {useGuideStep} from './GuideSteps';
 import {requestFlyTo} from './store';
 import type {BriefingCite, BriefingEvidence, BriefingParagraph} from './types';
-import {Btn, ByChip, Card, Chip, PLAN_VARS, Spinner} from './ui';
+import {Btn, ByChip, Card, PLAN_VARS, Spinner} from './ui';
 
 export type BriefingPanelProps = {fire?: string | undefined; t?: string | undefined; className?: string | undefined};
 
@@ -53,7 +53,7 @@ function CiteChip({cite}: {cite: {name: string; label: string; lon: number | nul
   );
 }
 
-function Paragraph({p, index, briefingId, editable, allVerified}: {p: BriefingParagraph; index: number; briefingId: string; editable: boolean; allVerified: boolean}) {
+function Paragraph({p, index, briefingId, editable}: {p: BriefingParagraph; index: number; briefingId: string; editable: boolean}) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(p.text);
   const [saving, setSaving] = useState(false);
@@ -135,17 +135,6 @@ function Paragraph({p, index, briefingId, editable, allVerified}: {p: BriefingPa
         {chipsOf(p).map(c => (
           <CiteChip key={c.key} cite={c} />
         ))}
-        {p.verified === true && !allVerified && (
-          <Chip tone="ok" title="Every number in this paragraph was re-checked against the cited actions">
-            VERIFIED
-          </Chip>
-        )}
-        {p.verified === false && (
-          <Chip tone="live" title="The numbers could not be re-checked against the cited actions">
-            UNVERIFIED
-          </Chip>
-        )}
-        {p.editedBy === 'person' && <Chip tone="ghost">EDITED BY YOU</Chip>}
       </div>
     </div>
   );
@@ -183,7 +172,6 @@ export function BriefingPanel(props: BriefingPanelProps = {}): ReactElement | nu
     );
   }
 
-  const allVerified = b.paragraphs.every(p => p.verified === true) || (b.verified === true && !b.paragraphs.some(p => p.verified === false));
   return (
     <TooltipProvider delayDuration={150}>
       <Card
@@ -191,17 +179,12 @@ export function BriefingPanel(props: BriefingPanelProps = {}): ReactElement | nu
         className={props.className}
         aside={
           <span className="flex items-center gap-1.5">
-            {allVerified && (
-              <Chip tone="ok" title="Every number in every paragraph was re-checked against the cited actions">
-                VERIFIED
-              </Chip>
-            )}
             <ByChip by={b.updatedBy} />
           </span>
         }
       >
         {b.paragraphs.map((p, i) => (
-          <Paragraph key={i} p={p} index={i} briefingId={b.id} editable={editable && !!b.id} allVerified={allVerified} />
+          <Paragraph key={i} p={p} index={i} briefingId={b.id} editable={editable && !!b.id} />
         ))}
         {b.droppedCount > 0 && (
           <div className="border-t border-[var(--pl-hair)] px-3 py-2 text-[11px] leading-[15px] text-[var(--pl-muted)]">

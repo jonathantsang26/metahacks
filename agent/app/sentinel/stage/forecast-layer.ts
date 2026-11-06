@@ -137,16 +137,13 @@ export function useForecastPart(fire: FireData, dem: Dem | null, t: number, on: 
       .map((d, i) => ({
         id: `forecast-${i}`,
         position: d.top!,
-        text: d.fallback
-          ? `MUSE REJECTED: no-growth fallback, not a forecast`
-          : `FORECAST ${lead} · ${METHOD_LABEL(d.method)} · valid ${stamp(current.validMs, tz)}`,
+        text: d.fallback ? 'No forecast for this hour' : `Forecast ${lead} · ${METHOD_LABEL(d.method)} · valid ${stamp(current.validMs, tz)}`,
         style: 'chip',
         priority: 75
       }));
     const notes: StageNote[] = [
       {
         id: 'forecast',
-        tag: 'FORECAST',
         title: `Forecast ${lead} · ${methods.map(METHOD_LABEL).join(' + ') || 'none usable'}`,
         detail: [
           `Issued ${stamp(current.issuedMs, tz)}, valid ${stamp(current.validMs, tz)}: the latest forecast issued at or before t`,
@@ -159,7 +156,7 @@ export function useForecastPart(fire: FireData, dem: Dem | null, t: number, on: 
         ].join('\n'),
         swatches: [
           ...methods.map(m => ({color: css(COLORS[m] ?? OTHER), label: `${METHOD_LABEL(m)} forecast`, shape: 'dash' as const})),
-          ...(fallbacks.length ? [{color: css(REJECTED), label: 'Muse rejected · no-growth fallback', shape: 'dash' as const}] : [])
+          ...(fallbacks.length ? [{color: css(REJECTED), label: 'No forecast for this hour', shape: 'dash' as const}] : [])
         ]
       }
     ];

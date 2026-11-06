@@ -197,11 +197,10 @@ export function FootagePlayer({fire}: {fire: FireData}) {
             <span className="text-live">●</span> {playing ? 'PLAY' : 'PAUSE'} {fmtClock(time)}
           </div>
           <div>{clip.title.toUpperCase()}</div>
-          <div className="text-white/70">RECORDED</div>
         </div>
         <div className="pointer-events-none absolute right-5 top-4 max-w-[45%] text-right font-mono text-2xs leading-4 text-white">
           <div>FRAME {frame}</div>
-          <div className="text-white/70">{clip.note.toUpperCase()}</div>
+          <div className="text-white/70">Test clip: {clip.note}</div>
         </div>
         <div className="pointer-events-none absolute bottom-4 left-5 font-mono text-2xs leading-4 text-white/80">
           {clip.width}×{clip.height} · {clip.fps.toFixed(0)} FPS

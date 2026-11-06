@@ -85,7 +85,7 @@ describe("data actions on real Eaton numbers", () => {
 describe("get-forecast-front", () => {
   it("picks the 23Z forecast for 23:30Z and falls back to physics where Muse was rejected", async () => {
     const f = await getForecastFront.run({ t: T });
-    expect(f).toMatchObject({ issuedAt: "2025-01-08T23:00:00Z", forecastFor: "2025-01-09T00:00:00Z", status: "CACHED", method: "physics" });
+    expect(f).toMatchObject({ issuedAt: "2025-01-08T23:00:00Z", forecastFor: "2025-01-09T00:00:00Z", status: "saved", method: "physics" });
     expect(f.front.coordinates.length).toBeGreaterThan(0);
     expect(f.frontKm).toBeGreaterThan(10);
     expect(f.frontPieces[0]!.maxAdvanceM).toBeGreaterThan(100);

@@ -80,7 +80,7 @@ function HomeDetail({fire, id}: {fire: FireData; id: number}) {
       <KV k="Attached fence" v={p.fence_attached} />
 
       <div className="mb-0.5 mt-2 flex items-center gap-1.5 text-xs font-medium">
-        Exposure <Chip tone="modeled">MODELED</Chip>
+        Exposure
       </div>
       {!row ? (
         ex ? (
@@ -148,7 +148,7 @@ function ExposureTable({fire}: {fire: FireData}) {
   return (
     <div className="pt-2">
       <div className="px-3 text-xs text-se-muted">
-        <Chip tone="modeled">MODELED</Chip> Odds ratio of destruction, first-named vs second, matched on gust at arrival (split at {s.gust_split_mph} mph) ×
+        Odds ratio of destruction, first-named vs second, matched on gust at arrival (split at {s.gust_split_mph} mph) ×
         distance to wildland across {s.strata.length} strata. {s.population}: {s.n.toLocaleString('en-US')} homes,{' '}
         {s.destroyed.toLocaleString('en-US')} destroyed.
       </div>

@@ -1,7 +1,7 @@
 import {useRef, useState} from 'react';
 import type {FireData} from '../../data/fire';
 import {parseDjiSrt} from '../../lib/dji-srt';
-import {Button, Card, Chip, Row} from '../../rail/ui';
+import {Button, Card, Row} from '../../rail/ui';
 import {useLive} from './live';
 import {useLiveHits, type ManualPose} from './livemap';
 import {DEFAULT_HFOV} from './useLiveGeo';
@@ -45,7 +45,7 @@ export function LiveGeoCard({fire}: {fire: FireData}) {
   };
 
   return (
-    <Card title="Live Hits on the Map" aside={<Chip tone="live">LIVE</Chip>}>
+    <Card title="Live Hits on the Map">
       <div className="px-3 pt-2 text-xs text-se-muted">
         Each live box is projected onto the terrain from the drone's pose: a DJI .SRT telemetry track for the video, or a pose entered here. Without a
         pose nothing is placed. A clip's hits land on this map only if its pose is over {placeName}.
@@ -57,7 +57,7 @@ export function LiveGeoCard({fire}: {fire: FireData}) {
             onClick={() => set({mode: m})}
             className={`rounded px-1.5 font-mono text-2xs ${mode === m ? 'bg-se-accent text-white' : 'bg-tabgroup'}`}
           >
-            {m === 'srt' ? 'DJI SRT TELEMETRY' : 'MANUAL POSE'}
+            {m === 'srt' ? 'Drone telemetry file' : 'Pose by hand'}
           </button>
         ))}
       </div>

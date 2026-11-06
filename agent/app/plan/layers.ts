@@ -207,13 +207,16 @@ export function usePlanLayers(ctx: PlanLayerContext): Layer[] {
         onClick: (info: DragInfo) => {
           const a = info.object;
           if (!a || !planId) return false;
-          selectPlanDrone(planId, isSel(a) ? null : a, {fly: false});
+          // Re-clicking the selected drone keeps it selected; Esc or empty map deselects.
+          if (!isSel(a)) selectPlanDrone(planId, a, {fly: false});
           return true;
         },
         onDragStart: (info: DragInfo) => {
           const a = info.object;
           if (!a || !editable) return false;
           usePlanUi.setState({dragging: {droneId: a.droneId, lon: a.lon, lat: a.lat}});
+          // Dragging a drone selects it, so "this drone" in the chat means the one just moved.
+          if (!isSel(a)) selectPlanDrone(planId, a, {fly: false});
           return true;
         },
         onDrag: (info: DragInfo) => {
@@ -230,6 +233,9 @@ export function usePlanLayers(ctx: PlanLayerContext): Layer[] {
           usePlanUi.setState({dragging: null, movedByHand: true});
           const start = drones.find(a => a.droneId === d.droneId);
           if (start && Math.abs(start.lon - p[0]) < 1e-7 && Math.abs(start.lat - p[1]) < 1e-7) return true;
+          // Keep the agent's selection on the dropped position.
+          const sel = usePlanUi.getState().selected;
+          if (start && sel?.planId === planId && sel.droneId === d.droneId) selectPlanDrone(planId, {...start, lon: p[0], lat: p[1]}, {fly: false});
           void update({planId, droneId: d.droneId, lon: p[0], lat: p[1]}, {lon: p[0], lat: p[1]});
           return true;
         }
@@ -269,14 +275,21 @@ export function usePlanMapControls(ctx: Pick<PlanLayerContext, 'fire' | 't'>) {
   const armed = usePlanUi(s => s.moveArmed);
   const update = useUpdateDrone();
   const planId = data.plan?.id ?? null;
+  // Esc cancels an armed move, else clears the drone selection (not while typing, e.g. in the chat).
   useEffect(() => {
-    if (!armed) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') usePlanUi.setState({moveArmed: null});
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (usePlanUi.getState().moveArmed) {
+        usePlanUi.setState({moveArmed: null});
+        return;
+      }
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName) || el.closest('[role="dialog"],[role="menu"]'))) return;
+      if (usePlanUi.getState().selected) selectPlanDrone(null, null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [armed]);
+  }, []);
   return useMemo(
     () => ({
       dragPan: !hover && !dragging,

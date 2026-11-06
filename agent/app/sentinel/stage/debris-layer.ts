@@ -328,7 +328,6 @@ export function useDebrisPart(
       notes: [
         {
           id: 'debris',
-          tag: 'MODELED',
           title: `Debris-flow likelihood · ${m.short} · I15 ${i15} mm/h${none ? ' · no values' : ''}`,
           detail: [
             `${m.label}: the modeled chance that a debris flow starts from each stream segment's upstream area in a storm whose peak 15-minute rainfall is ${i15} mm/h (${accumulationMm(i15)} mm in 15 minutes)`,

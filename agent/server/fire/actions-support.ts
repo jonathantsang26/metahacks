@@ -381,7 +381,7 @@ export type ForecastFront = {
   frontKm: number;
   /** Stretches of the front of at least 0.2 km, longest first (at most 12). */
   frontPieces: FrontPiece[];
-  status: "CACHED";
+  status: "saved";
   source: string;
   note: string;
 };
@@ -398,11 +398,11 @@ export function getForecastFront(fire: FireId, tMs: number): ForecastFront {
   const hours = forecastHours(fire);
   if (!hours.includes(issuedMs)) {
     const nearest = [...hours].sort((a, b) => Math.abs(a - tMs) - Math.abs(b - tMs)).slice(0, 4).sort((a, b) => a - b).map(isoUtc);
-    const range = hours.length ? ` Cached issue hours run ${isoUtc(hours[0]!)} to ${isoUtc(hours[hours.length - 1]!)}.` : "";
+    const range = hours.length ? ` Forecast issue hours run ${isoUtc(hours[0]!)} to ${isoUtc(hours[hours.length - 1]!)}.` : "";
     fail(
       hours.length
-        ? `No cached +1 h forecast for ${fire} issued at ${isoUtc(issuedMs)} (the hour at or before ${isoUtc(tMs)}). Nearest issue hours: ${nearest.join(", ")}.${range}`
-        : `No cached forecasts exist for ${fire} (no ${fire}/forecast/ folder).`,
+        ? `No +1 h forecast for ${fire} issued at ${isoUtc(issuedMs)} (the hour at or before ${isoUtc(tMs)}). Nearest issue hours: ${nearest.join(", ")}.${range}`
+        : `No forecasts exist for ${fire} (no ${fire}/forecast/ folder).`,
       { errorCode: "no_forecast", statusCode: 404, details: { fire, issuedAt: isoUtc(issuedMs), nearest } },
     );
   }
@@ -433,7 +433,7 @@ export function getForecastFront(fire: FireId, tMs: number): ForecastFront {
     front: { type: "MultiLineString", coordinates },
     frontKm: linesKm(coordinates),
     frontPieces: pieces.filter((p) => p.km >= 0.2).slice(0, 12),
-    status: "CACHED",
+    status: "saved",
     source: `public/data/${fire}/forecast/${file} (${method} feature), precomputed by pipeline/sim/forecast.py; a hindsight forecast, not an operational product.`,
     note: `${why} The polygon is the whole expected burned footprint at forecastFor. front is the part of its edge more than ~30 m from ground already burned at issuedAt (arrival.png), i.e. where the fire is expected to advance. frontPieces lists its longer stretches with maxAdvanceM, how far each is expected to run past the burned edge; the biggest values are the head.${coordinates.length ? "" : " No edge advances in this forecast."}`,
   };

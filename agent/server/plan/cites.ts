@@ -106,9 +106,9 @@ export async function resolveCite(cite: BriefingCite, plan: PlanEvidence, runner
     case 'get-forecast-front': {
       const t = typeof args.t === 'string' ? Date.parse(args.t) : Date.parse(plan.t);
       const f = Number.isFinite(t) ? loadFront(new FireStore(fire), t) : null;
-      if (!f) return {ids: [], error: 'get-forecast-front: no cached forecast for that time'};
+      if (!f) return {ids: [], error: 'get-forecast-front: no forecast for that time'};
       // The same numbers get-forecast-front returns, without the polygon and line coordinates.
-      return add({ok: true, result: {issuedAt: f.issuedAt, forecastFor: f.validAt, method: f.method, frontKm: f.frontKm, frontPieces: f.pieces, status: 'CACHED'}, cites: [{layer: 'forecast', t: f.validAt, label: `Forecast front (${f.method}), issued ${f.issuedAt}`}]});
+      return add({ok: true, result: {issuedAt: f.issuedAt, forecastFor: f.validAt, method: f.method, frontKm: f.frontKm, frontPieces: f.pieces, status: 'saved'}, cites: [{layer: 'forecast', t: f.validAt, label: `Forecast front (${f.method}), issued ${f.issuedAt}`}]});
     }
     default: {
       if (!/^[a-z0-9-]{1,60}$/.test(cite.action)) return {ids: [], error: `unknown action "${cite.action}"`};

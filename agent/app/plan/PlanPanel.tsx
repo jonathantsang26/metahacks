@@ -31,7 +31,7 @@ export function askAgentToPlan(fire: string, t: string, locked: Assignment[] = [
   sendToAgentChat({
     message:
       `Plan the next hour of drone coverage on the ${name} fire for the hour starting ${fireTime(t)} (fire=${fire}, t=${t}). ` +
-      `Read the cached +1 h forecast front with get-forecast-front, then place up to ${MAX_DRONES} watch points (D1–D${MAX_DRONES}) along the advancing edge and near homes with create-drone-plan, giving each drone a one-line reason.${keep} ` +
+      `Read the +1 h forecast front with get-forecast-front, then place up to ${MAX_DRONES} watch points (D1–D${MAX_DRONES}) along the advancing edge and near homes with create-drone-plan, giving each drone a one-line reason.${keep} ` +
       `Then check score-plan and tell me the front coverage, any grounded drones and why, and the weakest stretch of front.`,
     submit: true,
     openSidebar: true
@@ -77,15 +77,6 @@ function ScoreBlock({score, method}: {score: Score | null; method: string | null
         </span>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1">
-        <Chip tone="ghost" title="Simple geometry: footprint circles against the forecast front line">
-          MODELED
-        </Chip>
-        <Chip tone="ghost" title={`The +1 h ${methodText} saved for this replay hour`}>
-          CACHED{method ? ` · ${method.toUpperCase()}` : ''}
-        </Chip>
-        <Chip tone="ghost" title="No drone flew this fire">
-          SIM
-        </Chip>
         <TooltipProvider delayDuration={100}>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -95,7 +86,7 @@ function ScoreBlock({score, method}: {score: Score | null; method: string | null
             </TooltipTrigger>
             <TooltipContent side="bottom" align="start" className="max-w-[280px] space-y-1.5 text-xs leading-[16px]">
               <p>
-                <b>Front watched:</b> the share of the cached +1 h {methodText} front that lies inside a drone&apos;s view circle.
+                <b>Front watched:</b> the share of the +1 h {methodText} front that lies inside a drone&apos;s view circle.
               </p>
               <p>
                 <b>Homes:</b> homes near the front that sit inside a drone footprint.
@@ -103,7 +94,7 @@ function ScoreBlock({score, method}: {score: Score | null; method: string | null
               <p>
                 <b>Grounded:</b> gusts at flight height over the 12 m/s limit (shaded cells on the map); a grounded drone covers nothing.
               </p>
-              <p className="opacity-80">{score.label ?? 'Geometric estimate on a cached forecast. Drones are simulated.'}</p>
+              <p className="opacity-80">{score.label ?? 'A geometric estimate on the saved forecast. This is a replay; the drones are a plan.'}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -116,7 +107,9 @@ const ICON_BTN = 'rounded p-1 text-[var(--pl-muted)] hover:bg-[var(--pl-tab-acti
 
 function DroneRow({a, planId, selected, armed, approved, accent}: {a: Assignment; planId: string; selected: boolean; armed: boolean; approved: boolean; accent: boolean}) {
   const update = useUpdateDrone();
-  const select = () => selectPlanDrone(planId, selected ? null : a);
+  // Clicking the selected drone keeps it selected (a drag already selects, and the follow-up click
+  // must not drop the agent's selection); Esc or a click on empty map clears it.
+  const select = () => selectPlanDrone(planId, a, {fly: !selected});
   const groundedText = a.grounded ? (a.gustMs !== null ? `grounded, gust ${a.gustMs.toFixed(1)} m/s` : 'grounded') : null;
   const controls = !approved && (
     <span className="flex shrink-0 items-center gap-0.5">

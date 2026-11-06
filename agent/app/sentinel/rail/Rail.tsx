@@ -1,3 +1,4 @@
+import {useShallow} from 'zustand/react/shallow';
 import {useEffect, useState} from 'react';
 import type {FireData} from '../data/fire';
 import {DronesRail} from '../drones/DronesRail';
@@ -34,7 +35,7 @@ const THUMBS: Partial<Record<LayerId, string>> = {
 };
 
 function LayersList() {
-  const {layers, setLayer} = useUi();
+  const {layers, setLayer} = useUi(useShallow(s => ({layers: s.layers, setLayer: s.setLayer})));
   return (
     <ul className="py-1">
       {LAYERS.map(({id}) => {
@@ -80,15 +81,11 @@ function LayersList() {
 }
 
 function Evidence({fire}: {fire: FireData}) {
-  const tone = {REAL: 'bg-okbg text-ok', MODELED: 'bg-tabgroup text-ink', SIM: 'bg-selected text-live'} as const;
   return (
     <ul className="divide-y divide-hairline">
       {fire.manifest.sources.map(s => (
         <li key={s.layer} className="px-3 py-2">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-medium">{s.layer}</span>
-            <span className={`rounded px-1.5 font-mono text-2xs ${tone[s.status]}`}>{s.status}</span>
-          </div>
+          <div className="text-sm font-medium">{s.layer}</div>
           <div className="text-xs text-se-muted">
             {s.url ? (
               <a href={s.url} target="_blank" rel="noreferrer" className="underline decoration-hairline">

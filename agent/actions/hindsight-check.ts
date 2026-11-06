@@ -9,7 +9,7 @@ const share = z.object({drones: z.number(), flying: z.number(), insideHa: z.numb
 
 export default defineAction({
   description:
-    'Hindsight for a plan: how much ground actually burned in the planned hour (MODELED arrival raster) and what share of it fell inside the watch circles of the plan\'s flyable drones, next to a naive baseline (the same number of drones spaced evenly along the forecast front, same gust rule). Use after approving, to show what the plan would have caught. Never claim drones flew.',
+    'Hindsight for a plan: how much ground actually burned in the planned hour (estimated arrival raster) and what share of it fell inside the watch circles of the plan\'s flyable drones, next to a naive baseline (the same number of drones spaced evenly along the forecast front, same gust rule). Use after approving, to show what the plan would have caught. Never claim drones flew.',
   schema: z.object({planId: z.string().describe('Plan id.')}),
   outputSchema: z.object({
     fire: z.string(),

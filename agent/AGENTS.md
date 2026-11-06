@@ -19,14 +19,14 @@ For custom branding, keep `server/plugins/agent-native-email-branding.ts` aligne
 
 ## Drone planning (the product loop)
 
-Sentinel Ember replays the January 2025 Eaton and Palisades fires on a 3D map (`/incident`). The agent plans one hour of SIMULATED drone coverage (D1-D6) on the replayed fire and writes a cited crew briefing; the person edits the same plan through the same actions. Read `.agents/skills/drone-planning/SKILL.md` before planning.
+Sentinel Ember replays the January 2025 Eaton and Palisades fires on a 3D map (`/incident`). The agent plans one hour of drone coverage (D1-D6, a plan; no drone flies) on the replayed fire and writes a cited crew briefing; the person edits the same plan through the same actions. Read `.agents/skills/drone-planning/SKILL.md` before planning.
 - Read: `view-screen`, `get-forecast-front {fire,t}` (note `method`), `flyable-cells {fire,t}`, `get-drone-plan`, `score-plan {planId}`, and the fire data actions (`place-lookup`, `arrival-at`, `street-fire-timeline`, `fire-state-at`, `weather-at`, `fire-events`, `structures-near`, `ignition-summary`, `exposure-stats`), which return `{result, cites}`.
 - Write: `create-drone-plan` (whole plan, atomic, keeps locked drones), `update-drone-assignment` (one drone), `save-briefing`, `edit-briefing-paragraph`, `approve-plan` (only when the person asks; locks and moves the map to t+1h).
 - Move the screen with `set-time`, `set-fire`, `set-tab`, `set-layers`, `fly-to` (they write the one-shot `map-command` app-state key).
 - Place watch points only in flyable cells (gust <= 12 m/s at 120 m). Never move a locked drone. Iterate on `score.gaps` at most 3 times.
 - Every briefing number must come from a cited action. The server drops paragraphs with uncited numbers, addresses or talk of what started the fire; fix and resave.
-- After approval, `hindsight-check` compares the plan with an even-spacing baseline on MODELED arrival data.
-- Labels: forecast CACHED, arrival and wind MODELED, drones SIMULATED; a replay, no drone flew. At Eaton 2025-01-08T18Z the wind grounds all six drones; say so.
+- After approval, `hindsight-check` compares the plan with an even-spacing baseline on the estimated arrival data.
+- Plain words, no jargon tags: this is a replay of a past fire, the drones are a plan (none flew), the forecast was made earlier. Speak local Pacific time ("9 AM"), never Z times. At Eaton on Jan 8 at 10 AM the wind grounds all six drones; say so.
 - Verify writes by reading the returned plan/score; report the plan id, coverage, grounded count, and paragraphs kept and dropped.
 
 ## Application state

@@ -218,7 +218,7 @@ export type PlanScore = GeometryScore & {
   tEnd: string;
   t_local: string;
   tEnd_local: string;
-  forecast: {file: string; issuedAt: string; validAt: string; method: string; status: 'CACHED'} | null;
+  forecast: {file: string; issuedAt: string; validAt: string; method: string; status: 'saved'} | null;
   /** Which forecast the front came from: "muse" (Muse Spark) or "physics" (fallback when Muse's reply was rejected). */
   method: string | null;
   fastAdvanceM: number;
@@ -234,8 +234,8 @@ export type PlanScore = GeometryScore & {
 
 export function scoreLabel(hasFront: boolean): string {
   return hasFront
-    ? 'MODELED geometric estimate on a CACHED forecast for a replay of a past fire; drones are SIMULATED and none flew. Coverage = share of the forecast front inside the watch circles of drones the HRRR gust lets fly (12 m/s at 120 m); homes are counts of inspected structures, never addresses.'
-    : 'No cached forecast covers this hour, so there is no front to score. Drones are SIMULATED.';
+    ? 'Geometric estimate on the saved forecast; this is a replay and the drones are a plan (none flew). Coverage = share of the forecast front inside the watch circles of drones the HRRR gust lets fly (12 m/s at 120 m); homes are counts of inspected structures, never addresses.'
+    : 'No forecast covers this hour, so there is no front to score. The drones are a plan (none flew).';
 }
 
 /** Score drones for a fire at t: loads the front, homes and gusts, then runs scoreGeometry. */
@@ -259,7 +259,7 @@ export function scorePlanAt(store: FireStore, tMs: number, drones: DroneInput[],
     t_local: localLabel(tMs, tz),
     tEnd_local: localLabel(tMs + 3.6e6, tz),
     ...geo,
-    forecast: front ? {file: front.forecastFile, issuedAt: front.issuedAt, validAt: front.validAt, method: front.method, status: 'CACHED'} : null,
+    forecast: front ? {file: front.forecastFile, issuedAt: front.issuedAt, validAt: front.validAt, method: front.method, status: 'saved'} : null,
     method: front?.method ?? null,
     fastAdvanceM: FAST_ADVANCE_M,
     gustHours: gust.hours,

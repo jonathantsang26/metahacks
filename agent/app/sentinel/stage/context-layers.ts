@@ -130,7 +130,6 @@ export function useWindPart(fire: FireData, dem: Dem | null, t: number, layer: L
       notes: [
         {
           id: 'wind',
-          tag: name.toUpperCase(),
           title,
           detail: `${manifestRow(fire, 'Wind field')?.source ?? `${name} model`}: modeled wind for the hour at or before t, not a station reading. Arrows point where the air moves; length is proportional to speed`,
           swatches: [{color: '#ffffff', label: 'Wind arrow', shape: 'line'}]
@@ -272,7 +271,6 @@ export function useStructurePart(
     notes: [
       {
         id: 'structures',
-        tag: 'DINS',
         title: 'Structures · damage inspection',
         detail: gated
           ? "Outcome colour appears when the modeled front reaches each structure, or at the window's end where it never does"

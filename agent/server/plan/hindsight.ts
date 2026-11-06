@@ -7,7 +7,7 @@ import type {DroneInput} from './score.js';
 import {GUST_LIMIT_MS, gustLookup} from './wind.js';
 
 /**
- * Hindsight: what actually burned in the planned hour (the MODELED arrival raster, interpolated
+ * Hindsight: what actually burned in the planned hour (the estimated arrival raster, interpolated
  * between official perimeters), and how much of it fell inside the watch circles of the drones
  * that could fly. A naive baseline, the same number of drones spaced evenly along the forecast
  * front, gives the number something to be compared with.
@@ -140,6 +140,6 @@ export function hindsightAt(store: FireStore, tMs: number, drones: DroneInput[])
     },
     arrivalStepMin: round(r.windowMs / 253 / 60_000, 1),
     label:
-      'HINDSIGHT on MODELED data: the burned area in the hour comes from the arrival raster, which is interpolated between official perimeters (about 28 min steps), not observed. Drones are SIMULATED; none flew.'
+      'What burned that hour, estimated: the burned area comes from the arrival raster, interpolated between official perimeters (about 28 min steps), not observed. The drones are a plan; none flew.'
   };
 }

@@ -16,7 +16,7 @@ export type GuideStepsProps = {
 const KEY = 'sentinel-ember:guide-dismissed:v1';
 
 const STEPS: {title: string; hint: string; body: string}[] = [
-  {title: 'Pick the hour', hint: 'Drag the timeline to the hour you want to plan', body: 'Drag the timeline to the hour you want to plan. The dashed line is the cached forecast front for the next hour.'},
+  {title: 'Pick the hour', hint: 'Drag the timeline to the hour you want to plan', body: 'Drag the timeline to the hour you want to plan. The dashed line is the forecast front for the next hour.'},
   {title: 'Ask the agent to plan', hint: 'Press "Ask agent to plan" in the Plan card', body: 'Press "Ask agent to plan" (or type it in the chat). It places up to six drones on the front and scores the plan.'},
   {title: 'Drag a drone', hint: 'Drag a marker on the map to a better spot', body: 'Drag a marker on the map to a better spot. The score updates when you drop it, and the agent sees your change.'},
   {title: 'Click a drone, ask the agent', hint: 'Select a drone, then ask the agent to change it', body: 'Select a drone, then ask the agent to change it, e.g. "move D3 north toward the homes".'},

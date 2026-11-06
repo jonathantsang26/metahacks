@@ -45,7 +45,7 @@ const TONES = {
   muted: 'bg-tabgroup text-se-muted'
 } as const;
 
-/** Small status chip (REAL / MODELED / outcome). */
+/** Small status chip (e.g. a damage outcome). */
 export function Chip({tone, children}: {tone: keyof typeof TONES; children: ReactNode}) {
   return <span className={`inline-block rounded px-1.5 font-mono text-2xs ${TONES[tone]}`}>{children}</span>;
 }

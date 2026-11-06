@@ -6,7 +6,7 @@ import {greatCircleM} from './geo';
 import {Homes} from './homes';
 import {EstimatedPlace, EstimatedStart, type IgnitionFile} from './ignition';
 import {POSTERIOR_LEGEND} from './ramps';
-import {Button, Chip, Missing, Stat, SubHead} from './ui';
+import {Button, Missing, Stat, SubHead} from './ui';
 
 const yesNo = (v: boolean) => (v ? 'Yes' : 'No');
 
@@ -115,7 +115,7 @@ function IgnitionSection({fire}: {fire: FireData}) {
   const requestFlyTo = useUi(s => s.requestFlyTo);
   const tz = fire.aoi.timezone;
   const head = (
-    <SubHead aside={<Chip tone="modeled">MODELED</Chip>}>Ignition back-trace</SubHead>
+    <SubHead>Ignition back-trace</SubHead>
   );
   if (!ig) {
     return (

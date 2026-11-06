@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import type {FireData} from '../../data/fire';
-import {Button, Card, Chip, Row, Stat} from '../../rail/ui';
+import {Button, Card, Row, Stat} from '../../rail/ui';
 import {useClips, useFootage} from '../footage';
 import {fmtStreamClock} from './decode';
 import {openCamera, openScreen, useLive, type LiveSource} from './live';
@@ -48,7 +48,7 @@ export function LiveCard({fire}: {fire: FireData}) {
   return (
     <Card
       title="Live Detection"
-      aside={source ? <Chip tone="live">● LIVE</Chip> : <span className="text-xs text-se-muted">Sentinel in this browser</span>}
+      aside={<span className="text-xs text-se-muted">Sentinel in this browser</span>}
     >
       <div className="px-3 pt-2 text-xs text-se-muted">
         Runs Sentinel (YOLOv8n, ONNX) on a live video source, in this browser, on each newest frame. A phone or drone controller can feed in as a webcam

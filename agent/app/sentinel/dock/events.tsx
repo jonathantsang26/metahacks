@@ -222,9 +222,7 @@ function modeled(e: FireEvent): boolean {
   return e.kind === 'ignition_estimate' || /^(series|profile)\.json/.test(e.source);
 }
 
-function ModeledChip() {
-  return <span className="ml-1 shrink-0 rounded bg-tabgroup px-1 font-mono text-2xs font-normal text-ink">MODELED</span>;
-}
+
 
 /** The side list. Rows inside the replay window seek and fly there; rows outside it don't. */
 export function KeyEventsList({fire, data}: {fire: FireData; data: KeyEvents}) {
@@ -263,7 +261,6 @@ export function KeyEventsList({fire, data}: {fire: FireData; data: KeyEvents}) {
             <span className="min-w-0 flex-1">
               <span className="flex items-center text-xs font-medium">
                 <span className="truncate">Ignition location (est.)</span>
-                <ModeledChip />
               </span>
               <span className="block truncate text-2xs text-se-muted">90% radius {formatRadius(withheld.r90_m)}</span>
               {withheld.timing.reasons.length > 0 && (
@@ -299,7 +296,7 @@ export function KeyEventsList({fire, data}: {fire: FireData; data: KeyEvents}) {
               <span className="block truncate text-2xs text-se-muted">
                 {when}
                 {!inWindow && ` · ${e.ms > end ? 'after' : 'before'} the replay window`}
-                {modeled(e) && <ModeledChip />}
+                {modeled(e) && ' · estimated'}
               </span>
               {e.step && <span className="block text-2xs text-se-muted">{stepLine(e.step)}</span>}
             </span>

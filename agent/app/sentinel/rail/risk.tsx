@@ -27,7 +27,7 @@ import {
   type Segment
 } from '../stage/debris-layer';
 import {pct} from './fmt';
-import {Button, Card, Chip, Missing, Stat, SubHead} from './ui';
+import {Button, Card, Missing, Stat, SubHead} from './ui';
 
 type EvalRow = DebrisModelEval['models'][number];
 
@@ -395,7 +395,7 @@ function StormIntervals({ev, basis, shown, refName}: {ev: DebrisModelEval; basis
 function ModelComparison({ev, error, stats}: {ev: DebrisModelEval | null; error: string | null; stats: DebrisFlowStats | null}) {
   const model = useUi(s => s.risk.model);
   const [basisPicked, setBasis] = useState<StormBasis>('own');
-  const head = <SubHead aside={<Chip tone="modeled">MODELED</Chip>}>Scored on observed debris flows</SubHead>;
+  const head = <SubHead>Scored on observed debris flows</SubHead>;
   if (!ev)
     return (
       <>
@@ -683,7 +683,7 @@ export function RiskRail({fire}: {fire: FireData}) {
   );
   const sc = stats.data?.scenario;
   return (
-    <Card title="Post-fire debris flows" aside={<Chip tone="modeled">MODELED</Chip>}>
+    <Card title="Post-fire debris flows">
       <div className="space-y-1 px-3 pt-2 text-xs">
         <p>
           <span className="font-medium">Likelihood</span> is the modeled chance that a debris flow starts from a stream

@@ -12,7 +12,7 @@ const errors = defineActionErrors('bad_input', 'no_forecast', 'too_many_drones',
 
 export default defineAction({
   description:
-    'Create or replace the drone plan for a fire hour in one atomic call: up to 6 drones (D1-D6), each a watch point with a radius and a short reason. Replaces every unlocked drone of that hour\'s plan; locked drones (pinned by the person or by approve-plan) are kept and any drone you send with a locked id is skipped. Needs a cached forecast for t. Returns the plan, all drones, and the new score so you can iterate. Drones are simulated; nothing flies.',
+    'Create or replace the drone plan for a fire hour in one atomic call: up to 6 drones (D1-D6), each a watch point with a radius and a short reason. Replaces every unlocked drone of that hour\'s plan; locked drones (pinned by the person or by approve-plan) are kept and any drone you send with a locked id is skipped. Needs a forecast for t. Returns the plan, all drones, and the new score so you can iterate. Drones are simulated; nothing flies.',
   schema: z.object({
     fire: fireSchema,
     t: timeSchema.describe('Start of the planned hour, UTC ISO, e.g. "2025-01-08T23:30:00Z". One plan per fire per clock hour.'),
@@ -39,7 +39,7 @@ export default defineAction({
     const pt = parsePlanTime(args.fire, args.t);
     if ('error' in pt) return errors.noWrite(pt.error, 'bad_input');
     if (!loadFront(store(args.fire), pt.ms)) {
-      return errors.noWrite(`No cached forecast covers ${args.fire} at ${pt.iso}, so there is no front to plan against. Pick an hour with a forecast (eaton: 2025-01-08T05Z to 2025-01-10T18Z).`, 'no_forecast');
+      return errors.noWrite(`No forecast covers ${args.fire} at ${pt.iso}, so there is no front to plan against. Pick an hour with a forecast (eaton: 2025-01-08T05Z to 2025-01-10T18Z).`, 'no_forecast');
     }
     for (const d of args.drones) {
       if (!inFireBbox(args.fire, d.lon, d.lat)) return errors.noWrite(`Watch point ${d.lon}, ${d.lat} is outside the ${args.fire} map area.`, 'bad_input');

@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import type {FireData} from '../data/fire';
 import {useFireJson} from '../data/files';
-import {Button, Card, Chip, Missing, Row, Stat, SubHead} from '../rail/ui';
+import {Button, Card, Missing, Row, Stat, SubHead} from '../rail/ui';
 import {Icon} from '../ui/Icon';
 import {fmtClock, fmtPct, useClipOverlays, useClips, useFootage, useSelectedClip, type Clip, type DetectorEval} from './footage';
 import {useLive} from './live/live';
@@ -35,7 +35,7 @@ function ClipDetail({fire, clip}: {fire: FireData; clip: Clip}) {
   const objects = masks ? new Set(masks.map(m => m.object_id)).size : null;
   const length = clip.window_s ? clip.window_s[1] - clip.window_s[0] : null;
   return (
-    <Card title={clip.title} aside={<Chip tone="muted">NOT THIS FIRE</Chip>}>
+    <Card title={clip.title}>
       <div className="grid grid-cols-3 gap-x-3 gap-y-2 px-3 py-2">
         <Stat label="Length" value={length !== null ? fmtClock(length) : '–'} sub={clip.window_s ? `from ${fmtClock(clip.window_s[0])}` : undefined} />
         <Stat label="Frame rate" value={clip.fps.toFixed(0)} sub="fps" />
@@ -75,7 +75,7 @@ function EvalCard({fire}: {fire: FireData}) {
   const sam = useFireJson<DetectorEval>(fire, 'eval/sam_video.json');
   const s = sentinel.data;
   return (
-    <Card title="Detector Evaluation" aside={<Chip tone="real">REAL</Chip>}>
+    <Card title="Detector Evaluation">
       {!s ? (
         <Missing file="eval/sentinel.json" error={sentinel.error} />
       ) : (

@@ -81,8 +81,8 @@ function ChartMenu({files}: {files: DataFile[]}) {
 
 /**
  * One chart cell: title row with the value at t, the plot, and a muted source line.
- * `modeled` explains how a modeled chart is derived; it shows as the title's tooltip. The MODELED
- * tag itself is shown once for all charts, in the dock's footer line (DockChartsFooter).
+ * `modeled` explains how an estimated chart is derived; it shows as the title's tooltip. One plain
+ * line in the dock's footer (DockChartsFooter) says so for all charts.
  */
 export function ChartFrame({
   title,
@@ -108,7 +108,7 @@ export function ChartFrame({
   return (
     <div className="flex min-w-0 flex-1 flex-col border-r border-hairline px-3 pt-1.5 last:border-r-0">
       <div className="flex items-center gap-1.5">
-        <span className="truncate text-sm font-medium" title={modeled ? `MODELED · ${modeled}` : undefined}>
+        <span className="truncate text-sm font-medium" title={modeled}>
           {title} {unit && <span className="font-normal text-se-muted">({unit})</span>}
         </span>
         <span className="ml-auto shrink-0 whitespace-nowrap text-xs font-medium tabular-nums" title={valueTitle}>

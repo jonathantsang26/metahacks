@@ -13,10 +13,10 @@ const polygon = z.union([
 
 export default defineAction({
   description:
-    "The cached +1 h fire-spread forecast issued at the top of the hour at or before t (Muse Spark; the physics forecast from the same file when Muse's reply for that hour was rejected, and `method` says which). " +
-    "Returns {forecastFor (valid time, issue + 1 h), issuedAt, method, polygon (whole expected burned footprint at forecastFor), front (MultiLineString of the advancing edge), frontKm, frontPieces (stretches >= 0.2 km, longest first, each with maxAdvanceM = how far it runs past the burned edge and headLonLat = its farthest point), status: \"CACHED\", source, note}. " +
+    "The saved +1 h fire-spread forecast issued at the top of the hour at or before t (Muse Spark; the physics forecast from the same file when Muse's reply for that hour was rejected, and `method` says which). " +
+    "Returns {forecastFor (valid time, issue + 1 h), issuedAt, method, polygon (whole expected burned footprint at forecastFor), front (MultiLineString of the advancing edge), frontKm, frontPieces (stretches >= 0.2 km, longest first, each with maxAdvanceM = how far it runs past the burned edge and headLonLat = its farthest point), status: \"saved\", source, note}. " +
     "front is derived, not stored: the part of the forecast polygon's edge more than ~30 m (2 arrival-raster cells) from ground already burned at issuedAt in arrival.png, i.e. where the forecaster expects the fire to move. " +
-    "Use it to place drone watch points on the front. Fails with no_forecast (listing the nearest cached hours) when that hour has no cached forecast.",
+    "Use it to place drone watch points on the front. Fails with no_forecast (listing the nearest forecast hours) when that hour has no forecast.",
   schema: z.object({
     fire: fireInput,
     t: tInput,
@@ -33,7 +33,7 @@ export default defineAction({
     frontPieces: z.array(
       z.object({ km: z.number(), maxAdvanceM: z.number(), headLonLat: z.tuple([z.number(), z.number()]) }),
     ),
-    status: z.literal("CACHED"),
+    status: z.literal("saved"),
     source: z.string(),
     note: z.string(),
   }),

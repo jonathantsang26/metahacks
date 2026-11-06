@@ -48,11 +48,11 @@ const TONES = {
   live: 'bg-[var(--pl-selected)] text-[var(--pl-live)]',
   accent: 'bg-[var(--pl-accent)] text-white',
   muted: 'bg-[var(--pl-tab)] text-[var(--pl-muted)]',
-  /** Outlined honesty tag: the default for MODELED / CACHED / SIM (at most once per card). */
+  /** Outlined quiet tag. */
   ghost: 'text-[var(--pl-muted)] shadow-[inset_0_0_0_1px_var(--pl-hair-strong)]'
 } as const;
 
-/** Status chip: SIM / CACHED / MODELED / APPROVED. */
+/** Status chip, e.g. DRAFT / APPROVED. */
 export function Chip({tone = 'modeled', children, title}: {tone?: keyof typeof TONES; children: ReactNode; title?: string}) {
   return (
     <span title={title} className={`inline-block shrink-0 rounded px-1.5 font-mono text-[10px] leading-[16px] ${TONES[tone]}`}>

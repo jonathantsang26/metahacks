@@ -1,3 +1,4 @@
+import {useShallow} from 'zustand/react/shallow';
 import {AgentToggleButton} from '@agent-native/toolkit/app/chat';
 import {useEffect, useRef, useState} from 'react';
 import {Link} from 'react-router';
@@ -55,9 +56,12 @@ function FirePicker({fire}: {fire: FireData}) {
 
 /** DESIGN.md §3: one 40px row. */
 export function Header({fire}: {fire: FireData}) {
-  const {tab, setTab} = useUi();
-  const {start, end} = useTime();
+  // Narrow selectors: the whole stores change on every pointer move (hover) and replay frame (t).
+  const {tab, setTab} = useUi(useShallow(s => ({tab: s.tab, setTab: s.setTab})));
+  const {start, end} = useTime(useShallow(s => ({start: s.start, end: s.end})));
   const tz = fire.aoi.timezone;
+  // The replay's day at the clock (a string, so the header re-renders only when the day changes).
+  const replayDay = useTime(s => formatDate(s.t, tz));
 
   return (
     <header className="flex h-10 shrink-0 items-center whitespace-nowrap border-b border-hairline bg-chrome px-3">
@@ -76,11 +80,8 @@ export function Header({fire}: {fire: FireData}) {
         {formatDate(start, tz)} – {formatDate(end, tz)}
       </span>
       {/* The one place the screen says it is a replay; cards don't repeat it. */}
-      <span
-        className="ml-3 rounded-[3px] border border-hairline px-1.5 py-px font-mono text-[10px] tracking-[0.04em] text-se-muted"
-        title="A replay of a past fire. Drone positions are simulated; no drone flies."
-      >
-        REPLAY · no drone flies
+      <span className="ml-3 hidden text-sm text-se-muted lg:inline">
+        Replay of the {replayDay} {fire.aoi.name}
       </span>
 
       <nav className="ml-auto flex rounded-md bg-tabgroup p-0.5">

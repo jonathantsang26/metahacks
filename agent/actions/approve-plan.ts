@@ -12,7 +12,7 @@ const errors = defineActionErrors('not_found', 'empty_plan');
 
 export default defineAction({
   description:
-    'Approve a drone plan: locks every drone, marks the plan approved, and moves the map to the next hour (writes a map-command set-time to t + 1 h). Returns the approved plan with its score and nextT, the start of the next planning hour. Approval is a replay step for a simulated plan; no drone flies.',
+    'Approve a drone plan: locks every drone, marks the plan approved, and moves the map to the next hour (writes a map-command set-time to t + 1 h). Returns the approved plan with its score and nextT, the start of the next planning hour. Approval is a replay step for a plan; no drone flies.',
   schema: z.object({planId: z.string().describe('Plan id to approve.')}),
   outputSchema: bundleOut.extend({
     nextT: z.string(),
