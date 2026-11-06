@@ -3,6 +3,7 @@ import {
   appPathFromLocalRoute,
 } from "@agent-native/core/client/api-path";
 import { useAgentRouteState } from "@agent-native/core/client/navigation";
+import { useShallow } from "zustand/react/shallow";
 
 import {
   chatThreadPath,
@@ -12,19 +13,46 @@ import {
   threadIdFromPath,
 } from "@/lib/chat-paths";
 import { TAB_ID } from "@/lib/tab-id";
+import {
+  incidentNavigationState,
+  useIncidentNav,
+} from "@/sentinel/agent/context";
+
+export const INCIDENT_PATH = "/incident";
 
 export interface NavigationState {
   view?: string;
   path?: string;
   publicPath?: string;
   threadId?: string;
+  // Incident screen (docs/CONTRACTS.md): fire, t, tab, planId, selectedDroneId, visibleLayers.
+  fire?: string;
+  t?: string;
+  tab?: string;
+  planId?: string | null;
+  selectedDroneId?: string | null;
+  visibleLayers?: string[];
 }
 
 export function useNavigationState() {
+  // The incident screen feeds this store (time scrubbing debounced), so the one `navigation`
+  // writer carries the map state too.
+  const incident = useIncidentNav(useShallow(incidentNavigationState));
   useAgentRouteState<NavigationState>({
     browserTabId: TAB_ID,
     requestSource: TAB_ID,
-    getNavigationState: ({ pathname }) => navigationStateForPath(pathname),
+    getNavigationState: ({ pathname, searchParams }) => {
+      const base = navigationStateForPath(pathname);
+      if (base.view !== "incident") return base;
+      if (incident) return { ...base, ...incident };
+      // Still loading the fire: the URL's shareable params are the best answer.
+      return {
+        ...base,
+        fire: searchParams.get("fire") ?? "eaton",
+        ...(searchParams.get("t") ? { t: searchParams.get("t")! } : {}),
+        tab: searchParams.get("tab") ?? "incident",
+      };
+    },
     getCommandPath: commandPathForNavigation,
   });
 }
@@ -75,6 +103,9 @@ export function navigationStateForPath(pathname: string): NavigationState {
 function viewForPath(pathname: string): string {
   if (isChatPathname(pathname)) return "chat";
   if (pathname === HOME_PATH) return "home";
+  if (pathname === INCIDENT_PATH || pathname.startsWith(`${INCIDENT_PATH}/`)) {
+    return "incident";
+  }
   if (pathname.startsWith("/database")) return "database";
   if (pathname.startsWith("/extensions")) return "extensions";
   if (pathname.startsWith("/observability")) return "observability";
@@ -93,6 +124,8 @@ function pathForView(view?: string): string {
       return NEW_CHAT_PATH;
     case "home":
       return HOME_PATH;
+    case "incident":
+      return INCIDENT_PATH;
     case "database":
       return "/database";
     case "extensions":

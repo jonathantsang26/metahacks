@@ -15,6 +15,20 @@ export default defineConfig({
       "app/components/chat/ChatRouteContent.tsx",
       "app/routes/{home,chat.$threadId}.tsx",
     ],
+    // The incident map (app/sentinel) loads deck.gl lazily, and agent-native turns off dependency
+    // discovery, so pre-bundle deck.gl/luma.gl here or their CommonJS deps (earcut) break in dev.
+    include: [
+      "@deck.gl/core",
+      "@deck.gl/layers",
+      "@deck.gl/geo-layers",
+      "@deck.gl/mesh-layers",
+      "@deck.gl/extensions",
+      "@deck.gl/react",
+      "@luma.gl/core",
+      "@luma.gl/shadertools",
+    ],
+    // ESM with its own wasm loading (app/sentinel/drones/live/detector.ts).
+    exclude: ["onnxruntime-web"],
   },
   plugins: [
     ...reactRouterPlugins(),

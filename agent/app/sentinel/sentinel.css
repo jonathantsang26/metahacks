@@ -1,0 +1,107 @@
+/*
+ * Sentinel Ember theme (ported from web/tailwind.config.js + web/src/index.css, DESIGN.md §2).
+ * The colour names that would collide with the framework's shadcn tokens (card, accent, muted)
+ * are prefixed `se-` in the ported components; the rest are new names. Everything that changes
+ * existing tokens (font sizes, mono font, border colour) is scoped to `.sentinel-root`, so the
+ * framework's own sidebar and agent panel keep their look.
+ */
+
+@theme inline {
+  --color-chrome: var(--bg-chrome);
+  --color-se-card: var(--bg-se-card);
+  --color-rail: var(--bg-rail);
+  --color-section: var(--bg-section-head);
+  --color-tabgroup: var(--bg-tabgroup);
+  --color-tabactive: var(--bg-tab-active);
+  --color-selected: var(--bg-row-selected);
+  --color-ink: var(--text);
+  --color-se-muted: var(--text-se-muted);
+  --color-hairline: var(--hairline);
+  --color-se-accent: var(--se-accent);
+  --color-live: var(--live);
+  --color-badge: var(--badge);
+  --color-ok: var(--ok);
+  --color-okbg: var(--chip-ok-bg);
+  --color-btndark: var(--btn-dark);
+  --color-hud: var(--hud-bg);
+  --text-2xs: 10px;
+  --text-2xs--line-height: 14px;
+}
+
+.sentinel-root {
+  --bg-chrome: #dedbcc;
+  --bg-se-card: #dedace;
+  --bg-rail: #d1c8b9;
+  --bg-section-head: #d3ccbc;
+  --bg-tabgroup: #d1cebf;
+  --bg-tab-active: #f2efe6;
+  --bg-row-selected: #dccabc;
+  --text: #29251a;
+  --text-se-muted: #857e6e;
+  --hairline: rgba(41, 37, 26, 0.12);
+  --se-accent: #d1654b;
+  --live: #b53536;
+  --badge: #d2492f;
+  --ok: #678352;
+  --chip-ok-bg: #dce3cf;
+  --btn-dark: #2e2a22;
+  --hud-bg: rgba(39, 35, 26, 0.92);
+
+  --chart-area-fill: rgba(211, 164, 136, 0.6);
+  --chart-area-stroke: #c0563a;
+  --chart-rate: #b8322e;
+  --chart-elev-fill: #b3b7a0;
+  --chart-elev-stroke: #4e5a44;
+
+  /* Tailwind v3 sizes from the Meta build's config. */
+  --text-xs: 11px;
+  --text-xs--line-height: 15px;
+  --text-sm: 12px;
+  --text-sm--line-height: 16px;
+  --text-base: 13px;
+  --text-base--line-height: 18px;
+  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+
+  height: 100%;
+  background: var(--bg-chrome);
+  color: var(--text);
+  font-family: "Inter Variable", Inter, system-ui, sans-serif;
+  font-size: 13px;
+  line-height: normal;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  color-scheme: light;
+}
+
+/* Tailwind v3 defaulted borders to a light grey; v4 uses currentColor. In the base layer so
+   border-* colour utilities still win. */
+@layer base {
+  .sentinel-root *,
+  .sentinel-root ::before,
+  .sentinel-root ::after {
+    border-color: var(--hairline);
+  }
+
+  .sentinel-root button:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
+/* Thin range input used by the layer opacity sliders. */
+.sentinel-root input[type="range"].slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--text);
+  border-radius: 1px;
+}
+.sentinel-root input[type="range"].slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text);
+}
+.sentinel-root input[type="range"].slider:disabled {
+  opacity: 0.35;
+}

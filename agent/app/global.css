@@ -2,6 +2,7 @@
 
 @import "tailwindcss";
 @import "@agent-native/toolkit/styles.css";
+@import "./sentinel/sentinel.css";
 
 @source "./**/*.{ts,tsx}";
 
